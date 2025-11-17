@@ -28,7 +28,6 @@ def setup_chat_session():
     """Thiết lập phiên chat, đọc khóa API từ Streamlit Secrets, và tải file."""
 
     # Đọc khóa API từ Streamlit Secrets
-    # Sử dụng .get() để tránh lỗi nếu key không tồn tại trong secrets
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
         st.error("❌ Lỗi cấu hình: Không tìm thấy GEMINI_API_KEY trong Streamlit Secrets.")
@@ -66,14 +65,15 @@ def setup_chat_session():
         # Thêm các file đã upload bằng fileId
         for file_name in LIST_FILES:
             uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_name}"
-            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain"))
+            
+            # 💡 SỬA LỖI MIME TYPE: Dùng application/pdf thay vì text/plain
+            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="application/pdf")) 
         
         # Thêm câu lệnh yêu cầu AI xác nhận đã tải file và luật phân tầng
         initial_message = f"Tôi đã tải lên {len(LIST_FILES)} tài liệu học tập. Hãy đọc kỹ tài liệu này, tuân thủ nghiêm ngặt các QUY TẮC TRẢ LỜI. Sau đó, hãy chào hỏi học sinh và xác nhận rằng bạn đã sẵn sàng."
         list_parts.append(types.Part.from_text(text=initial_message))
 
         # Gửi file ID trong tin nhắn đầu tiên của phiên chat để tạo ngữ cảnh
-        # ✅ FIX LỖI: Sử dụng tham số vị trí (positional argument) thay cho 'contents='
         first_response = chat.send_message(list_parts)
         
         return client, chat
@@ -118,4 +118,3 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
-
