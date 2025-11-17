@@ -41,7 +41,8 @@ def setup_chat_session():
     "NGÔN NGỮ & ĐỊNH DẠNG:\n"
     "1. Luôn sử dụng danh pháp Hóa học mới (VD: acid, base, oxide, oxygen, hydrogen). KHÔNG dùng danh pháp cũ (axit, bazơ, oxi...). \n"
     "2. Công thức tính số mol khí ở Điều kiện chuẩn (đkc) phải là: n = V/24.79. KHÔNG dùng 22.4. \n"
-    "3. Tất cả công thức và phương trình hóa học phải được hiển thị bằng định dạng LaTeX (đặt trong cặp $inline$ hoặc $$display$$).\n\n"
+    "3. Tất cả công thức và phương trình hóa học phải được hiển thị bằng định dạng LaTeX (đặt trong cặp $inline$ hoặc $$display$$).\n"
+    "4. QUAN TRỌNG: Khi giải hệ phương trình, TUYỆT ĐỐI KHÔNG sử dụng môi trường LaTeX phức tạp như \\begin{cases}. Thay vào đó, hãy trình bày từng phương trình trên các dòng riêng biệt hoặc sử dụng cú pháp đơn giản \\left\\{ để minh họa hệ phương trình, tránh lỗi 'undefined'.\n\n"
     
     "[QUY TẮC PHÂN TẦNG KIẾN THỨC] Tài liệu của bạn được chia thành 4 mục: [KIẾN THỨC CƠ BẢN], [PHẦN GIẢI THÍCH], [PHẦN NÂNG CAO], và [BÀI TẬP VÀ GIẢI CHI TIẾT].\n\n"
     
@@ -126,6 +127,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
 
 
 
