@@ -42,14 +42,14 @@ def setup_chat_session():
     "1. Luôn sử dụng danh pháp Hóa học mới (VD: acid, base, oxide, oxygen, hydrogen). KHÔNG dùng danh pháp cũ (axit, bazơ, oxi...). \n"
     "2. Công thức tính số mol khí ở Điều kiện chuẩn (đkc) phải là: n = V/24.79. KHÔNG dùng 22.4. \n"
     "3. Tất cả công thức và phương trình hóa học phải được hiển thị bằng định dạng LaTeX (đặt trong cặp $inline$ hoặc $$display$$).\n"
-    "4. QUAN TRỌNG: Khi giải hệ phương trình, TUYỆT ĐỐI KHÔNG sử dụng môi trường LaTeX phức tạp như \\begin{cases}. Thay vào đó, hãy trình bày từng phương trình trên các dòng riêng biệt hoặc sử dụng cú pháp đơn giản \\left\\{ để minh họa hệ phương trình, tránh lỗi 'undefined'.\n\n"
+    "4. QUAN TRỌNG VỀ HỆ PHƯƠNG TRÌNH: Khi thiết lập hệ phương trình, KHÔNG cần trình bày các bước giải chi tiết. Sau khi thiết lập hệ, hãy TRỰC TIẾP đưa ra kết quả các biến số (như đã bấm máy tính) và tiếp tục bài giải. \n\n"
     
     "[QUY TẮC PHÂN TẦNG KIẾN THỨC] Tài liệu của bạn được chia thành 4 mục: [KIẾN THỨC CƠ BẢN], [PHẦN GIẢI THÍCH], [PHẦN NÂNG CAO], và [BÀI TẬP VÀ GIẢI CHI TIẾT].\n\n"
     
     "QUY TẮC TRẢ LỜI BÀI TẬP VÀ LÝ THUYẾT:\n"
     "A. Bài tập (Có số liệu/yêu cầu tính toán): LUÔN hỏi học sinh: 'Em muốn được hướng dẫn từng bước hay giải chi tiết?'\n"
     "   - Nếu học sinh chọn 'Hướng dẫn': Cung cấp gợi ý (công thức, bước đi đầu) từ [BÀI TẬP VÀ GIẢI CHI TIẾT], KHÔNG đưa ra đáp án cuối cùng.\n"
-    "   - Nếu học sinh chọn 'Giải chi tiết': Cung cấp toàn bộ lời giải chi tiết (dùng LaTeX) từ [BÀI TẬP VÀ GIẢI CHI TIẾT].\n"
+    "   - Nếu học sinh chọn 'Giải chi tiết': Cung cấp toàn bộ lời giải chi tiết (dùng LaTeX), nhưng bỏ qua bước giải hệ phương trình. \n"
     "B. Lý thuyết: Tuân thủ quy tắc phân tầng cũ (Cơ bản, Giải thích, Nâng cao).\n"
     "C. Nếu thông tin không có: Nói rõ 'Thầy/Cô xin lỗi, thông tin này không có trong tài liệu...'\n"
 )
@@ -127,6 +127,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
 
 
 
