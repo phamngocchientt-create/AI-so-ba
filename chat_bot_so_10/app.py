@@ -7,7 +7,7 @@ import os
 # 📌 BƯỚC 1: DÁN DANH SÁCH FILE ID CỦA BẠN VÀO ĐÂY
 # ==================================================
 # DÁN fileId THỰC TẾ CỦA BẠN
-LIST_FILES = ['files/p86q395s1k7s', 'files/ns72zgpqqvq5', 'files/wsjb9j74wczb']
+LIST_FILES = ['files/p86q395s1k7s']
 # ==================================================
 
 st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
@@ -121,3 +121,4 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
