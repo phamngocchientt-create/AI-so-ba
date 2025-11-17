@@ -66,8 +66,8 @@ def setup_chat_session():
         for file_name in LIST_FILES:
             uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_name}"
             
-            # 💡 SỬA LỖI MIME TYPE: Dùng application/pdf thay vì text/plain
-            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="application/pdf")) 
+            # ✅ FIX LỖI MIME TYPE: Dùng text/plain (rất ổn định cho nội dung tài liệu)
+            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain")) 
         
         # Thêm câu lệnh yêu cầu AI xác nhận đã tải file và luật phân tầng
         initial_message = f"Tôi đã tải lên {len(LIST_FILES)} tài liệu học tập. Hãy đọc kỹ tài liệu này, tuân thủ nghiêm ngặt các QUY TẮC TRẢ LỜI. Sau đó, hãy chào hỏi học sinh và xác nhận rằng bạn đã sẵn sàng."
@@ -91,7 +91,10 @@ if "messages" not in st.session_state:
     # Lấy lời chào ban đầu từ history (Tin nhắn phản hồi của AI sau khi đọc file)
     if chat_session and chat_session.get_history():
         # Lấy tin nhắn cuối cùng (là lời chào của AI)
-        first_message = chat_session.get_history()[-1].parts[0].text
+        # Sử dụng len(chat_session.get_history()) - 1 để đảm bảo index
+        history = chat_session.get_history()
+        # Lời chào là phản hồi của model cho tin nhắn gửi file (luôn là tin nhắn cuối cùng)
+        first_message = history[-1].parts[0].text 
         st.session_state.messages = [{"role": "assistant", "content": first_message}]
     else:
         # Lời chào mặc định nếu có lỗi xảy ra
