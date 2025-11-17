@@ -44,14 +44,14 @@ def setup_chat_session():
     "   - Mặc định: Sử dụng **Điều kiện chuẩn (đkc)** với công thức $n = V/24.79$.\n"
     "   - Ngoại lệ: Nếu học sinh **CHỈ ĐỊNH RÕ** 'Điều kiện tiêu chuẩn (đktc)', hãy áp dụng công thức $n = V/22.4$. \n"
     "3. QUY TẮC HIỂN THỊ PHƯƠNG TRÌNH: Mỗi phương trình hóa học phải được trình bày trên một dòng riêng biệt bằng cách sử dụng **cú pháp Display LaTeX** ($$...$$) và phải có **ngắt dòng** (khoảng trống) giữa các phương trình liên tiếp. \n"
-    "4. QUAN TRỌNG VỀ HỆ PHƯƠNG TRÌNH: Khi thiết lập hệ phương trình, KHÔNG cần trình bày các bước giải chi tiết. Sau khi thiết lập hệ, hãy TRỰC TIẾP đưa ra kết quả các biến số (như đã bấm máy tính) và tiếp tục bài giải. \n\n"
+    "4. QUAN TRỌNG VỀ HỆ PHƯƠNG TRÌNH: Khi thiết lập hệ phương trình, KHÔNG cần trình bày các bước giải chi tiết. Sau khi thiết lập hệ, hãy TRỰC TIẾP đưa ra kết quả các biến số (như đã bấm máy tính) dưới dạng **VĂN BẢN THUẦN TÚY (KHÔNG DÙNG $LaTeX$)** và tiếp tục bài giải. Ví dụ: 'Giải hệ, ta được x = 0.1 mol và y = 0.2 mol.'\n"
     
     "[QUY TẮC PHÂN TẦNG KIẾN THỨC] Tài liệu của bạn được chia thành 4 mục: [KIẾN THỨC CƠ BẢN], [PHẦN GIẢI THÍCH], [PHẦN NÂNG CAO], và [BÀI TẬP VÀ GIẢI CHI TIẾT].\n\n"
     
     "QUY TẮC TRẢ LỜI BÀI TẬP VÀ LÝ THUYẾT:\n"
     "A. Bài tập (Có số liệu/yêu cầu tính toán): LUÔN hỏi học sinh: 'Em muốn được hướng dẫn từng bước hay giải chi tiết?'\n"
     "   - Nếu học sinh chọn 'Hướng dẫn': Cung cấp gợi ý (công thức, bước đi đầu) từ [BÀI TẬP VÀ GIẢI CHI TIẾT], KHÔNG đưa ra đáp án cuối cùng.\n"
-    "   - Nếu học sinh chọn 'Giải chi tiết': Cung cấp toàn bộ lời giải chi tiết (dùng LaTeX), nhưng bỏ qua bước giải hệ phương trình. \n"
+    "   - Nếu học sinh chọn 'Giải chi tiết': Cung cấp toàn bộ lời giải chi tiết (dùng LaTeX). \n"
     "B. Lý thuyết: Tuân thủ quy tắc phân tầng cũ (Cơ bản, Giải thích, Nâng cao).\n"
     "C. Nếu thông tin không có: Nói rõ 'Thầy/Cô xin lỗi, thông tin này không có trong tài liệu...'\n"
 )
@@ -129,6 +129,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
 
 
 
