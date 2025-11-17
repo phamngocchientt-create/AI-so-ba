@@ -6,7 +6,7 @@ import os
 # ==================================================
 # 📌 BƯỚC 1: DÁN DANH SÁCH FILE ID CỦA BẠN VÀO ĐÂY
 # ==================================================
-# Ví dụ mẫu. BẠN CẦN THAY THẾ BẰNG fileId THỰC TẾ CỦA MÌNH
+# DÁN fileId THỰC TẾ CỦA BẠN
 LIST_FILES = ['files/r222i4dmmhc0', 'files/clhq5xs9q2tb', 'files/0unn16phn0hc']
 # ==================================================
 
@@ -28,6 +28,7 @@ def setup_chat_session():
     """Thiết lập phiên chat, đọc khóa API từ Streamlit Secrets, và tải file."""
 
     # Đọc khóa API từ Streamlit Secrets
+    # Sử dụng .get() để tránh lỗi nếu key không tồn tại trong secrets
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
         st.error("❌ Lỗi cấu hình: Không tìm thấy GEMINI_API_KEY trong Streamlit Secrets.")
@@ -72,14 +73,9 @@ def setup_chat_session():
         list_parts.append(types.Part.from_text(text=initial_message))
 
         # Gửi file ID trong tin nhắn đầu tiên của phiên chat để tạo ngữ cảnh
-        first_response = chat.send_message(contents=list_parts)
+        # ✅ FIX LỖI: Sử dụng tham số vị trí (positional argument) thay cho 'contents='
+        first_response = chat.send_message(list_parts)
         
-        # Lưu lời chào vào session state ngay tại đây
-        if "messages" not in st.session_state:
-             st.session_state.messages = [
-                {"role": "assistant", "content": first_response.text}
-             ]
-
         return client, chat
         
     except Exception as e:
@@ -92,8 +88,14 @@ client, chat_session = setup_chat_session()
 
 # --- Giao diện Chatbot ---
 if "messages" not in st.session_state:
-    # Nếu hàm setup_chat_session không lưu được lời chào (do lỗi), đặt lời chào mặc định
-    st.session_state.messages = [{"role": "assistant", "content": "Chào em! Đã sẵn sàng học Hóa."}]
+    # Lấy lời chào ban đầu từ history (Tin nhắn phản hồi của AI sau khi đọc file)
+    if chat_session and chat_session.get_history():
+        # Lấy tin nhắn cuối cùng (là lời chào của AI)
+        first_message = chat_session.get_history()[-1].parts[0].text
+        st.session_state.messages = [{"role": "assistant", "content": first_message}]
+    else:
+        # Lời chào mặc định nếu có lỗi xảy ra
+        st.session_state.messages = [{"role": "assistant", "content": "Chào em! Đã sẵn sàng học Hóa."}]
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
