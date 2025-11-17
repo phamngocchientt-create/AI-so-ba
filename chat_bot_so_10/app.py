@@ -48,10 +48,12 @@ def setup_chat_session():
     "A. Danh pháp: Luôn sử dụng danh pháp Hóa học mới (VD: acid, base, oxide, oxygen, hydrogen).\n"
     "B. LỌC VĂN BẢN: TUYỆT ĐỐI KHÔNG được đưa chuỗi văn bản 'display' (hoặc 'Display') vào bất kỳ phần nào của câu trả lời. \n"
     "C. QUY TẮC THỂ TÍCH KHÍ: ƯU TIÊN TUYỆT ĐỐI $n = V/22.4$ nếu có cụm từ 'đktc'; nếu không, dùng $n = V/24.79$.\n"
-    "D. QUY TẮC HIỂN THỊ (FIX DÍNH LIỀN & LỖI HỆ PHƯƠNG TRÌNH): \n"
+    "D. QUY TẮC HIỂN THỊ (FIX DÍNH LIỀN & LỖI HỆ PHƯƠNG TRÌNH):\n"
     "   - Tất cả công thức/PTHH phải dùng **Display LaTeX** ($$...$$).\n"
     "   - BẮT BUỘC thêm **hai ngắt dòng** (ngắt dòng kép) giữa các phương trình liên tiếp.\n"
-    "   - **FIX LỖI UNDEFINED (QUY TẮC MỚI):** Sau khi trình bày các phương trình liên quan, TUYỆT ĐỐI KHÔNG sử dụng cụm từ **'Ta có hệ phương trình'** hoặc bất kỳ từ ngữ nào ám chỉ tạo hệ. Thay vào đó, hãy liệt kê các phương trình (1) và (2) bằng Display LaTeX. Sau khi liệt kê, TRỰC TIẾP đưa **kết quả giải hệ bằng VĂN BẢN THUẦN TÚY** (Không dùng LaTeX) và tiếp tục bài giải.\n\n"
+    "   - **QUAN TRỌNG VỀ HỆ PHƯƠNG TRÌNH:** Sau khi liệt kê các phương trình của hệ (1) và (2) bằng Display LaTeX:\n"
+    "     - **TUYỆT ĐỐI BỎ QUA** các bước tính toán giải hệ phương trình.\n"
+    "     - TRỰC TIẾP đưa **kết quả cuối cùng của các biến số** (ví dụ: 'Giải hệ, ta được x = 0.1 mol và y = 0.2 mol.') dưới dạng **VĂN BẢN THUẦN TÚY** (Không dùng LaTeX) và tiếp tục bài giải.\n\n"
     
     "QUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán):\n"
     "   - LUÔN hỏi học sinh: 'Em muốn được hướng dẫn từng bước hay giải chi tiết?'\n"
@@ -131,6 +133,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
 
 
 
