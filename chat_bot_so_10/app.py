@@ -58,24 +58,47 @@ def setup_chat_session():
         list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain"))
 
     # Thêm lời nhắc cuối cùng và Lời chào ban đầu
+    # CODE MỚI (Khắc phục lỗi 400 INVALID_ARGUMENT)
+
     list_parts.append(types.Part.from_text(text="Hãy tuân thủ cấu trúc tài liệu trên."))
+    
     initial_greeting = "Chào em! Thầy đã đọc kỹ tài liệu. Thầy sẽ trả lời kiến thức cơ bản trừ khi em hỏi 'tại sao' hay 'nâng cao'."
 
     try:
-        # Tạo phiên chat, thiết lập ngữ cảnh bằng cách gửi tài liệu và instruction
+        # Bước A: Gửi tài liệu (list_parts), System Instruction, và yêu cầu xác nhận.
+        # Lưu ý: Chúng ta dùng generate_content() vì nó hỗ trợ truyền file IDs trực tiếp.
+        initial_parts = list_parts + [
+            types.Part.from_text(text=sys_instruct),
+            types.Part.from_text(text=f"Tôi đã tải lên {len(LIST_FILES)} tài liệu. Hãy xác nhận rằng bạn đã hiểu rõ quy tắc phân tầng kiến thức và sẵn sàng trả lời bằng lời chào sau: '{initial_greeting}'")
+        ]
+
+        initial_response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=initial_parts, # TRUYỀN FILE IDs VÀO ĐÂY LÀ ĐÚNG CÁCH
+            config=types.GenerateContentConfig(
+                temperature=0.3
+            )
+        )
+        
+        # Bước B: Khởi tạo Chat Session và sử dụng kết quả xác nhận làm history đầu tiên.
         chat = client.chats.create(
             model="gemini-2.5-flash",
             config=types.GenerateContentConfig(
                 system_instruction=sys_instruct,
-                temperature=0.3  # Giảm sáng tạo để tăng sự tuân thủ tài liệu
+                temperature=0.3
             ),
-            # Lịch sử chat ban đầu: Người dùng gửi tài liệu + AI xác nhận
+            # Khởi tạo history bằng tin nhắn đầu tiên đã xác nhận (Gửi File/Instruction và Phản hồi của AI)
             history=[
-                types.Content(role="user", parts=list_parts),
-                types.Content(role="model", parts=[types.Part.from_text(text=initial_greeting)])
+                types.Content(role="user", parts=initial_parts),
+                types.Content(role="model", parts=[types.Part.from_text(text=initial_response.text)])
             ]
         )
         return client, chat
+     
+    except Exception as e:
+        # Xử lý lỗi trong quá trình khởi tạo phiên chat
+        st.error(f"❌ Lỗi khởi tạo phiên chat. Vui lòng kiểm tra File ID và API Key: {e}")
+        return None, None
     except Exception as e:
         st.error(f"❌ Lỗi khởi tạo phiên chat: {e}")
         return None, None
@@ -111,4 +134,5 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
+
                 st.error(f"Lỗi: {e}")
