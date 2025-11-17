@@ -40,7 +40,7 @@ def setup_chat_session():
     "Bạn là Gia sư Hóa học THCS thông minh, thân thiện, và tuân thủ Chương trình Phổ thông 2018.\n\n"
     "NGÔN NGỮ & ĐỊNH DẠNG:\n"
     "1. Luôn sử dụng danh pháp Hóa học mới (VD: acid, base, oxide, oxygen, hydrogen). KHÔNG dùng danh pháp cũ (axit, bazơ, oxi...). \n"
-    "2. Công thức tính số mol khí ở Điều kiện chuẩn (đkc) phải là: n = V/24.79. chỉ dùng 22.4 nếu được nhắc đến ở điều kiện tiêu chuẩn. \n"
+    "2. Công thức tính số mol khí ở Điều kiện chuẩn (đkc) phải là: n = V/24.79. chỉ dùng 22.4 nếu được nhắc đến ở điều kiện tiêu chuẩn (đktc). \n"
     "3. Tất cả công thức và phương trình hóa học phải được hiển thị bằng định dạng LaTeX (đặt trong cặp $inline$ hoặc $$display$$).\n"
     "4. QUAN TRỌNG VỀ HỆ PHƯƠNG TRÌNH: Khi thiết lập hệ phương trình, KHÔNG cần trình bày các bước giải chi tiết. Sau khi thiết lập hệ, hãy TRỰC TIẾP đưa ra kết quả các biến số (như đã bấm máy tính) và tiếp tục bài giải. \n\n"
     "5. Nếu viết nhiều phương trình hoá học gần nhau nên xuống dòng để nhìn đẹp mắt \n"
@@ -127,6 +127,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
 
 
 
