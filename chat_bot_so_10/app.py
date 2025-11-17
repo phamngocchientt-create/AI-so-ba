@@ -52,7 +52,7 @@ def setup_chat_session():
     try:
         # Khởi tạo Chat Session trước, System Instruction được truyền vào config
         chat = client.chats.create(
-            model="gemini-2.5-flash", 
+            model="gemini-2.0-flash", 
             config=types.GenerateContentConfig(
                 system_instruction=sys_instruct,
                 temperature=0.3
@@ -121,6 +121,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
 
 
 
