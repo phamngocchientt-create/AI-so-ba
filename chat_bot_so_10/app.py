@@ -27,7 +27,6 @@ with st.sidebar:
 def setup_chat_session():
     """Thiết lập phiên chat, đọc khóa API từ Streamlit Secrets, và tải file."""
 
-    # Đọc khóa API từ Streamlit Secrets
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
         st.error("❌ Lỗi cấu hình: Không tìm thấy GEMINI_API_KEY trong Streamlit Secrets.")
@@ -35,30 +34,30 @@ def setup_chat_session():
 
     client = genai.Client(api_key=api_key)
 
-    # --- PHẦN 1: TẠO SYSTEM INSTRUCTION ---
+    # --- PHẦN 1: TẠO SYSTEM INSTRUCTION (Tối giản và Cố định) ---
     sys_instruct = (
-    "Bạn là Gia sư Hóa học THCS thông minh, thân thiện, và tuân thủ Chương trình Phổ thông 2018.\n\n"
-    "[QUY TẮC PHÂN TẦNG KIẾN THỨC BẮT BUỘC] Tài liệu của bạn được chia thành 4 mục: [KIẾN THỨC CƠ BẢN], [PHẦN GIẢI THÍCH], [PHẦN NÂNG CAO], và [BÀI TẬP VÀ GIẢI CHI TIẾT].\n\n"
-    
-    "QUY TẮC TRẢ LỜI LÝ THUYẾT (Ưu tiên):\n"
-    "1. Mặc định: CHỈ lấy thông tin từ mục **[KIẾN THỨC CƠ BẢN]**.\n"
-    "2. Giải thích/Nâng cao: CHỈ lấy thông tin từ mục tương ứng **[PHẦN GIẢI THÍCH]** hoặc **[PHẦN NÂNG CAO]** khi được hỏi rõ.\n"
-    
-    "NGÔN NGỮ & ĐỊNH DẠNG (Bắt buộc):\n"
-    "A. Danh pháp: Luôn sử dụng danh pháp Hóa học mới (VD: acid, base, oxide, oxygen, hydrogen).\n"
-    "B. LỌC VĂN BẢN: TUYỆT ĐỐI KHÔNG được đưa chuỗi văn bản 'display' (hoặc 'Display') vào bất kỳ phần nào của câu trả lời. \n"
-    "C. QUY TẮC THỂ TÍCH KHÍ: ƯU TIÊN TUYỆT ĐỐI $n = V/22.4$ nếu có cụm từ 'đktc'; nếu không, dùng $n = V/24.79$.\n"
-    "D. QUY TẮC HIỂN THỊ (FIX DÍNH LIỀN & LỖI HỆ PHƯƠNG TRÌNH):\n"
-    "   - Tất cả công thức/PTHH phải dùng **Display LaTeX** ($$...$$).\n"
-    "   - BẮT BUỘC thêm **hai ngắt dòng** (ngắt dòng kép) giữa các phương trình liên tiếp.\n"
-    "   - **QUAN TRỌNG VỀ HỆ PHƯƠNG TRÌNH:** Sau khi liệt kê các phương trình của hệ (1) và (2) bằng Display LaTeX:\n"
-    "     - **TUYỆT ĐỐI BỎ QUA** các bước tính toán giải hệ phương trình.\n"
-    "     - TRỰC TIẾP đưa **kết quả cuối cùng của các biến số** (ví dụ: 'Giải hệ, ta được x = 0.1 mol và y = 0.2 mol.') dưới dạng **VĂN BẢN THUẦN TÚY** (Không dùng LaTeX) và tiếp tục bài giải.\n\n"
-    
-    "QUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán):\n"
-    "   - LUÔN hỏi học sinh: 'Em muốn được hướng dẫn từng bước hay giải chi tiết?'\n"
-    "   - Trình bày lời giải chi tiết theo các bước logic và chuyên nghiệp."
-)
+        "Bạn là Gia sư Hóa học THCS thông minh, thân thiện, và tuân thủ Chương trình Phổ thông 2018.\n\n"
+        "[QUY TẮC PHÂN TẦNG KIẾN THỨC BẮT BUỘC] Tài liệu của bạn được chia thành 4 mục: [KIẾN THỨC CƠ BẢN], [PHẦN GIẢI THÍCH], [PHẦN NÂNG CAO], và [BÀI TẬP VÀ GIẢI CHI TIẾT].\n\n"
+        
+        "QUY TẮC TRẢ LỜI LÝ THUYẾT (Ưu tiên):\n"
+        "1. Mặc định: CHỈ lấy thông tin từ mục **[KIẾN THỨC CƠ BẢN]**.\n"
+        "2. Giải thích/Nâng cao: CHỈ lấy thông tin từ mục tương ứng **[PHẦN GIẢI THÍCH]** hoặc **[PHẦN NÂNG CAO]** khi được hỏi rõ.\n"
+        
+        "NGÔN NGỮ & ĐỊNH DẠNG (Bắt buộc):\n"
+        "A. Danh pháp: Luôn sử dụng danh pháp Hóa học mới (VD: acid, base, oxide, oxygen, hydrogen).\n"
+        "B. LỌC VĂN BẢN: TUYỆT ĐỐI KHÔNG được đưa chuỗi văn bản 'display' (hoặc 'Display') vào bất kỳ phần nào của câu trả lời. \n"
+        "C. QUY TẮC THỂ TÍCH KHÍ: ƯU TIÊN TUYỆT ĐỐI $n = V/22.4$ nếu có cụm từ 'đktc'; nếu không, dùng $n = V/24.79$.\n"
+        "D. QUY TẮC HIỂN THỊ (FIX DÍNH LIỀN & LỖI HỆ PHƯƠNG TRÌNH):\n"
+        "   - Tất cả công thức/PTHH phải dùng **Display LaTeX** ($$...$$).\n"
+        "   - BẮT BUỘC thêm **hai ngắt dòng** (ngắt dòng kép) giữa các phương trình liên tiếp.\n"
+        "   - **QUAN TRỌNG VỀ HỆ PHƯƠNG TRÌNH:** Sau khi liệt kê các phương trình của hệ (1) và (2) bằng Display LaTeX:\n"
+        "     - **TUYỆT ĐỐI BỎ QUA** các bước tính toán giải hệ phương trình.\n"
+        "     - TRỰC TIẾP đưa **kết quả cuối cùng của các biến số** (ví dụ: 'Giải hệ, ta được x = 0.1 mol và y = 0.2 mol.') dưới dạng **VĂN BẢN THUẦN TÚY** (Không dùng LaTeX) và tiếp tục bài giải.\n\n"
+        
+        "QUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán):\n"
+        "   - LUÔN hỏi học sinh: 'Em muốn được hướng dẫn từng bước hay giải chi tiết?'\n"
+        "   - Trình bày lời giải chi tiết theo các bước logic và chuyên nghiệp."
+    )
     
     # --- PHẦN 2: KHỞI TẠO CHAT SESSION (Chỉ dùng System Instruction) ---
     try:
@@ -77,8 +76,7 @@ def setup_chat_session():
         # Thêm các file đã upload bằng fileId
         for file_name in LIST_FILES:
             uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_name}"
-            
-            # ✅ FIX LỖI MIME TYPE: Dùng text/plain (rất ổn định cho nội dung tài liệu)
+            # Sử dụng text/plain vì đây là định dạng ổn định nhất cho tài liệu
             list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain")) 
         
         # Thêm câu lệnh yêu cầu AI xác nhận đã tải file và luật phân tầng
@@ -102,55 +100,64 @@ client, chat_session = setup_chat_session()
 if "messages" not in st.session_state:
     # Lấy lời chào ban đầu từ history (Tin nhắn phản hồi của AI sau khi đọc file)
     if chat_session and chat_session.get_history():
-        # Lấy tin nhắn cuối cùng (là lời chào của AI)
-        # Sử dụng len(chat_session.get_history()) - 1 để đảm bảo index
         history = chat_session.get_history()
-        # Lời chào là phản hồi của model cho tin nhắn gửi file (luôn là tin nhắn cuối cùng)
         first_message = history[-1].parts[0].text 
         st.session_state.messages = [{"role": "assistant", "content": first_message}]
     else:
-        # Lời chào mặc định nếu có lỗi xảy ra
         st.session_state.messages = [{"role": "assistant", "content": "Chào em! Đã sẵn sàng học Hóa."}]
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
+# --- WIDGET TẢI FILE ẢNH ---
+uploaded_file = st.file_uploader("🖼️ Tải ảnh câu hỏi (tùy chọn)", type=["jpg", "jpeg", "png"])
+
+
 if prompt := st.chat_input("Nhập câu hỏi..."):
     if not client:
         st.stop()
 
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    # --- 1. CHUẨN BỊ TIN NHẮN (GỒM VĂN BẢN VÀ ẢNH) ---
+    message_parts = []
+    
+    # 1a. Thêm file ảnh (nếu có)
+    if uploaded_file is not None:
+        image_bytes = uploaded_file.getvalue()
+        
+        image_part = types.Part.from_bytes(
+            data=image_bytes,
+            mime_type=uploaded_file.type 
+        )
+        message_parts.append(image_part)
+        
+        # Thêm thông báo rằng ảnh đã được tải lên vào lịch sử tin nhắn
+        # Lưu ý: Không hiển thị ảnh trong lịch sử messages để tránh lỗi Serialization.
+        # Ảnh chỉ được hiển thị trong tin nhắn hiện tại
+        st.session_state.messages.append({"role": "user", "content": f"📝 Câu hỏi (kèm ảnh): {prompt}"})
+    else:
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+
+    # 1b. Thêm văn bản câu hỏi (Phải là phần tử cuối cùng)
+    message_parts.append(types.Part.from_text(prompt))
+
+
+    # --- 2. HIỂN THỊ TIN NHẮN NGƯỜI DÙNG ---
     with st.chat_message("user"):
+        # Hiển thị cả ảnh (nếu có) và văn bản
+        if uploaded_file is not None:
+            st.image(uploaded_file, caption=f"Ảnh câu hỏi đã tải lên: {uploaded_file.name}")
         st.markdown(prompt)
 
+
+    # --- 3. GỬI VÀ NHẬN PHẢN HỒI ---
     with st.chat_message("assistant"):
-        with st.spinner("Đang phân tích cấp độ câu hỏi và tìm kiếm tài liệu..."):
+        with st.spinner("Đang phân tích ảnh và cấp độ câu hỏi..."):
             try:
-                # Gửi tin nhắn tiếp theo
-                response = chat_session.send_message(prompt)
+                # Gửi tin nhắn chứa cả văn bản và Part ảnh
+                response = chat_session.send_message(message_parts)
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
