@@ -127,7 +127,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
         try:
             image_bytes = uploaded_file.getvalue()
             
-            # Xử lý MIME type an toàn
+            # Xử lý MIME type an toàn (FIX LỖI TypeError)
             mime_type = uploaded_file.type if uploaded_file.type in ["image/jpeg", "image/png", "image/jpg"] else "image/jpeg"
             
             image_part = types.Part.from_bytes(
@@ -141,13 +141,14 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
             
         except Exception as e:
             st.error(f"❌ Lỗi xử lý file ảnh: {e}. Vui lòng thử lại với file ảnh khác.")
-            # st.stop() # Không dừng để người dùng có thể thử lại
+            st.stop()
     else:
         # Nếu không có ảnh, ghi tin nhắn thuần túy vào lịch sử
         st.session_state.messages.append({"role": "user", "content": prompt})
         
 
     # 1b. Thêm văn bản câu hỏi (Phải là phần tử cuối cùng)
+    # FIX LỖI: Đảm bảo prompt là string (str(prompt))
     message_parts.append(types.Part.from_text(str(prompt)))
 
 
