@@ -82,7 +82,8 @@ def setup_chat_session():
         
         # Thêm câu lệnh yêu cầu AI xác nhận đã tải file và luật phân tầng
         initial_message = f"Tôi đã tải lên {len(LIST_FILES)} tài liệu học tập. Hãy đọc kỹ tài liệu này, tuân thủ nghiêm ngặt các QUY TẮC TRẢ LỜI. Sau đó, hãy chào hỏi học sinh và xác nhận rằng bạn đã sẵn sàng."
-        list_parts.append(types.Part.from_text(text=initial_message))
+        # ✅ FIX LỖI: Buộc dùng text= cho tất cả các lời gọi from_text
+        list_parts.append(types.Part.from_text(text=initial_message)) 
 
         # Gửi file ID trong tin nhắn đầu tiên của phiên chat để tạo ngữ cảnh
         first_response = chat.send_message(list_parts)
@@ -118,16 +119,9 @@ uploaded_file = st.file_uploader("🖼️ Tải ảnh câu hỏi (tùy chọn)",
 if prompt := st.chat_input("Nhập câu hỏi..."):
     if not client:
         st.stop()
-        
+
     # Loại bỏ các khoảng trắng thừa từ prompt
     cleaned_prompt = prompt.strip()
-
-    # --- KIỂM TRA ĐIỀU KIỆN GỬI TIN NHẮN AN TOÀN ---
-    if not uploaded_file and not cleaned_prompt:
-        # Không có ảnh và không có văn bản -> Không làm gì cả
-        st.info("Vui lòng nhập câu hỏi hoặc tải ảnh lên để bắt đầu.")
-        st.stop()
-
 
     # --- 1. CHUẨN BỊ TIN NHẮN (GỒM VĂN BẢN VÀ ẢNH) ---
     message_parts = []
@@ -157,12 +151,13 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
         st.session_state.messages.append({"role": "user", "content": cleaned_prompt})
         
 
-    # 1b. Thêm văn bản câu hỏi (Chỉ thêm nếu có nội dung)
-    if cleaned_prompt: # Đảm bảo prompt không rỗng
-        message_parts.append(types.Part.from_text(cleaned_prompt))
+    # 1b. Thêm văn bản câu hỏi (Phải là phần tử cuối cùng)
+    # ✅ FIX LỖI: Buộc dùng text= cho tất cả các lời gọi from_text
+    if cleaned_prompt:
+        message_parts.append(types.Part.from_text(text=cleaned_prompt))
     else:
-        # Nếu chỉ có ảnh, gửi ảnh và một chuỗi text rỗng để tránh lỗi
-        message_parts.append(types.Part.from_text("Phân tích hình ảnh này."))
+        # Nếu người dùng chỉ tải ảnh và nhấn enter không nhập text
+        message_parts.append(types.Part.from_text(text="Phân tích hình ảnh này."))
 
 
     # --- 2. HIỂN THỊ TIN NHẮN NGƯỜI DÙNG ---
@@ -183,4 +178,3 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
-
