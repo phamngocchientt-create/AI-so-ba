@@ -118,6 +118,16 @@ uploaded_file = st.file_uploader("🖼️ Tải ảnh câu hỏi (tùy chọn)",
 if prompt := st.chat_input("Nhập câu hỏi..."):
     if not client:
         st.stop()
+        
+    # Loại bỏ các khoảng trắng thừa từ prompt
+    cleaned_prompt = prompt.strip()
+
+    # --- KIỂM TRA ĐIỀU KIỆN GỬI TIN NHẮN AN TOÀN ---
+    if not uploaded_file and not cleaned_prompt:
+        # Không có ảnh và không có văn bản -> Không làm gì cả
+        st.info("Vui lòng nhập câu hỏi hoặc tải ảnh lên để bắt đầu.")
+        st.stop()
+
 
     # --- 1. CHUẨN BỊ TIN NHẮN (GỒM VĂN BẢN VÀ ẢNH) ---
     message_parts = []
@@ -137,19 +147,22 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
             message_parts.append(image_part)
             
             # Ghi vào lịch sử tin nhắn (kèm ghi chú ảnh)
-            st.session_state.messages.append({"role": "user", "content": f"📝 Câu hỏi (kèm ảnh): {prompt}"})
+            st.session_state.messages.append({"role": "user", "content": f"📝 Câu hỏi (kèm ảnh): {cleaned_prompt}"})
             
         except Exception as e:
             st.error(f"❌ Lỗi xử lý file ảnh: {e}. Vui lòng thử lại với file ảnh khác.")
             st.stop()
     else:
         # Nếu không có ảnh, ghi tin nhắn thuần túy vào lịch sử
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.session_state.messages.append({"role": "user", "content": cleaned_prompt})
         
 
-    # 1b. Thêm văn bản câu hỏi (Phải là phần tử cuối cùng)
-    # FIX LỖI: Đảm bảo prompt là string (str(prompt))
-    message_parts.append(types.Part.from_text(str(prompt)))
+    # 1b. Thêm văn bản câu hỏi (Chỉ thêm nếu có nội dung)
+    if cleaned_prompt: # Đảm bảo prompt không rỗng
+        message_parts.append(types.Part.from_text(cleaned_prompt))
+    else:
+        # Nếu chỉ có ảnh, gửi ảnh và một chuỗi text rỗng để tránh lỗi
+        message_parts.append(types.Part.from_text("Phân tích hình ảnh này."))
 
 
     # --- 2. HIỂN THỊ TIN NHẮN NGƯỜI DÙNG ---
@@ -157,7 +170,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
         # Hiển thị cả ảnh (nếu có) và văn bản
         if uploaded_file is not None:
             st.image(uploaded_file, caption=f"Ảnh câu hỏi đã tải lên: {uploaded_file.name}")
-        st.markdown(prompt)
+        st.markdown(cleaned_prompt)
 
 
     # --- 3. GỬI VÀ NHẬN PHẢN HỒI ---
@@ -170,3 +183,4 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
