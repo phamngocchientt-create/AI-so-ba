@@ -116,7 +116,7 @@ for msg in st.session_state.messages:
 uploaded_file = st.file_uploader(
     "🖼️ Tải ảnh câu hỏi (tùy chọn)", 
     type=["jpg", "jpeg", "png"],
-    key="image_uploader_widget" // <--- THÊM KHÓA NÀY
+    key="image_uploader_widget" # <--- THÊM KHÓA NÀY
 )
 
 
@@ -182,4 +182,5 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
 
