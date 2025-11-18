@@ -2,6 +2,7 @@ import streamlit as st
 from google import genai
 from google.genai import types
 import os
+import io # Cần thiết cho việc xử lý file ảnh
 
 # ==================================================
 # 📌 BƯỚC 1: DÁN DANH SÁCH FILE ID CỦA BẠN VÀO ĐÂY
@@ -123,24 +124,31 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
     
     # 1a. Thêm file ảnh (nếu có)
     if uploaded_file is not None:
-        image_bytes = uploaded_file.getvalue()
-        
-        image_part = types.Part.from_bytes(
-            data=image_bytes,
-            mime_type=uploaded_file.type 
-        )
-        message_parts.append(image_part)
-        
-        # Thêm thông báo rằng ảnh đã được tải lên vào lịch sử tin nhắn
-        # Lưu ý: Không hiển thị ảnh trong lịch sử messages để tránh lỗi Serialization.
-        # Ảnh chỉ được hiển thị trong tin nhắn hiện tại
-        st.session_state.messages.append({"role": "user", "content": f"📝 Câu hỏi (kèm ảnh): {prompt}"})
+        try:
+            image_bytes = uploaded_file.getvalue()
+            
+            # ✅ FIX LỖI 1: Xử lý MIME type an toàn hơn
+            mime_type = uploaded_file.type if uploaded_file.type in ["image/jpeg", "image/png", "image/jpg"] else "image/jpeg"
+            
+            image_part = types.Part.from_bytes(
+                data=image_bytes,
+                mime_type=mime_type 
+            )
+            message_parts.append(image_part)
+            
+            # Ghi vào lịch sử tin nhắn (kèm ghi chú ảnh)
+            st.session_state.messages.append({"role": "user", "content": f"📝 Câu hỏi (kèm ảnh): {prompt}"})
+            
+        except Exception as e:
+            st.error(f"❌ Lỗi xử lý file ảnh: {e}. Vui lòng thử lại với file ảnh khác.")
+            st.stop()
     else:
+        # Nếu không có ảnh, ghi tin nhắn thuần túy vào lịch sử
         st.session_state.messages.append({"role": "user", "content": prompt})
         
 
     # 1b. Thêm văn bản câu hỏi (Phải là phần tử cuối cùng)
-    message_parts.append(types.Part.from_text(prompt))
+    message_parts.append(types.Part.from_text(str(prompt)))
 
 
     # --- 2. HIỂN THỊ TIN NHẮN NGƯỜI DÙNG ---
@@ -158,6 +166,4 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 # Gửi tin nhắn chứa cả văn bản và Part ảnh
                 response = chat_session.send_message(message_parts)
                 st.markdown(response.text)
-                st.session_state.messages.append({"role": "assistant", "content": response.text})
-            except Exception as e:
-                st.error(f"Lỗi: {e}")
+                st.session_state.messages.append({"role": "assistant", "content": response.text
