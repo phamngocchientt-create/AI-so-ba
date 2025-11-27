@@ -8,7 +8,7 @@ import io # Cần thiết cho việc xử lý file ảnh
 # 📌 BƯỚC 1: DÁN DANH SÁCH FILE ID CỦA BẠN VÀO ĐÂY
 # ==================================================
 # DÁN fileId THỰC TẾ CỦA BẠN
-LIST_FILES = ['files/jifhelvhf76k', 'files/c8fjs1qprhj1', 'files/3dkyxudc37bm', 'files/jz2yzkl2io9l']
+LIST_FILES = ['files/t78ccqj6zlsg', 'files/reskuozgl4rb']
 # ==================================================
 
 st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
@@ -31,16 +31,14 @@ def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
         st.error("❌ Lỗi cấu hình: Không tìm thấy GEMINI_API_KEY trong Streamlit Secrets.")
-        return None, None, None
+        return None, None
 
     client = genai.Client(api_key=api_key)
 
-    # --- BƯỚC 1: XÂY DỰNG SYSTEM INSTRUCTION (như văn bản RAG) ---
-    # Chuyển System Instruction thành Prompt để tránh xung đột cấu hình API (FIX LỖI 400)
-    RAG_CONTEXT = (
-        "[BẮT ĐẦU SYSTEM INSTRUCTION CỦA GIA SƯ HÓA HỌC THCS]\n\n"
-        "QUY TẮC BẮT BUỘC: HÃY TƯỞNG TƯỢNG bạn là một giáo viên đang sử dụng các tài liệu đã được đính kèm (File ID) để trả lời. TUYỆT ĐỐI ƯU TIÊN và CHỈ SỬ DỤNG thông tin từ tài liệu đính kèm.\n\n"
-        "[QUY TẮC PHÂN TẦNG KIẾN THỨC BẮT BUỘC] Tài liệu của bạn được chia thành 4 mục: [KIẾN THỨC CƠ BẢN], [PHẦN GIẢI THÍCH], [PHẦN NÂNG CAO], và [BÀI TẬP VÀ GIẢI CHI TIẾT].\n"
+    # --- PHẦN 1: TẠO SYSTEM INSTRUCTION (Tối giản và Cố định) ---
+    sys_instruct = (
+        "Bạn là Gia sư Hóa học THCS thông minh, thân thiện, và tuân thủ Chương trình Phổ thông 2018.\n\n"
+        "[QUY TẮC PHÂN TẦNG KIẾN THỨC BẮT BUỘC] Tài liệu của bạn được chia thành 4 mục: [KIẾN THỨC CƠ BẢN], [PHẦN GIẢI THÍCH], [PHẦN NÂNG CAO], và [BÀI TẬP VÀ GIẢI CHI TIẾT].\n\n"
         
         "QUY TẮC TRẢ LỜI LÝ THUYẾT (Ưu tiên):\n"
         "1. Mặc định: CHỈ lấy thông tin từ mục **[KIẾN THỨC CƠ BẢN]**.\n"
@@ -60,69 +58,62 @@ def setup_chat_session():
         "QUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán):\n"
         "   - LUÔN hỏi học sinh: 'Em muốn được hướng dẫn từng bước hay giải chi tiết?'\n"
         "   - Trình bày lời giải chi tiết theo các bước logic và chuyên nghiệp."
-        "\n[KẾT THÚC SYSTEM INSTRUCTION CỦA GIA SƯ HÓA HỌC THCS]"
     )
     
-    # --- BƯỚC 2: KHỞI TẠO CHAT SESSION (Config Rỗng) ---
+    # --- PHẦN 2: KHỞI TẠO CHAT SESSION (Chỉ dùng System Instruction) ---
     try:
-        # Khởi tạo Chat Session KHÔNG có System Instruction để tránh lỗi 400
+        # Khởi tạo Chat Session trước, System Instruction được truyền vào config
         chat = client.chats.create(
             model="gemini-2.0-flash", 
-            config=types.GenerateContentConfig(temperature=0.3)
+            config=types.GenerateContentConfig(
+                system_instruction=sys_instruct,
+                temperature=0.3
+            )
         )
         
-        # --- BƯỚC 3: GỬI FILE ID, RAG_CONTEXT và LỜI CHÀO trong tin nhắn đầu tiên ---
+        # --- PHẦN 3: GỬI FILE ID và YÊU CẦU XÁC NHẬN (Trong Tin nhắn đầu tiên) ---
         
         list_parts = []
-        
-        # 3a. Thêm RAG_CONTEXT (System Instruction) vào đầu tiên
-        list_parts.append(types.Part.from_text(text=RAG_CONTEXT)) 
-        
-        # 3b. Thêm các File ID (Tạo ngữ cảnh RAG)
+        # Thêm các file đã upload bằng fileId
         for file_name in LIST_FILES:
             uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_name}"
-            # Bạn xác nhận file là TXT nên dùng text/plain
+            # Sử dụng text/plain vì đây là định dạng ổn định nhất cho tài liệu
             list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain")) 
         
-        # 3c. Thêm Lời chào (Prompt cuối cùng)
-        initial_prompt = "Chào em! Thầy/Cô đã tải lên tài liệu học tập và sẵn sàng hỗ trợ em mọi vấn đề về Hóa học. Hãy bắt đầu bằng câu hỏi của em nhé!"
-        list_parts.append(types.Part.from_text(text=initial_prompt)) 
+        # Thêm câu lệnh yêu cầu AI xác nhận đã tải file và luật phân tầng
+        initial_message = f"Tôi đã tải lên {len(LIST_FILES)} tài liệu học tập. Hãy đọc kỹ tài liệu này, tuân thủ nghiêm ngặt các QUY TẮC TRẢ LỜI. Sau đó, hãy chào hỏi học sinh và xác nhận rằng bạn đã sẵn sàng."
+        # ✅ FIX LỖI: Buộc dùng text= cho tất cả các lời gọi from_text
+        list_parts.append(types.Part.from_text(text=initial_message)) 
 
-        # Gửi tất cả (Context + File ID + Prompt) trong tin nhắn đầu tiên
+        # Gửi file ID trong tin nhắn đầu tiên của phiên chat để tạo ngữ cảnh
         first_response = chat.send_message(list_parts)
         
-        # Lời chào trả về sẽ là phản hồi của AI cho prompt tối thiểu
-        initial_message_text = first_response.text 
-        
-        return client, chat, initial_message_text
+        return client, chat
         
     except Exception as e:
         # Xử lý lỗi trong quá trình khởi tạo phiên chat
-        st.error(f"❌ Lỗi khởi tạo phiên chat. Vui lòng kiểm tra File ID và API Key: {e}")
-        return None, None, None
+        st.error(f"❌ Lỗi khởi tạo phiên chat. Vui lòng kiểm tra File ID ({LIST_FILES}) và API Key: {e}")
+        return None, None
 
 
-# --- Sửa dòng gọi hàm chính ---
-client, chat_session, initial_message = setup_chat_session()
+client, chat_session = setup_chat_session()
 
 # --- Giao diện Chatbot ---
 if "messages" not in st.session_state:
-    if initial_message:
-        st.session_state.messages = [{"role": "assistant", "content": initial_message}]
+    # Lấy lời chào ban đầu từ history (Tin nhắn phản hồi của AI sau khi đọc file)
+    if chat_session and chat_session.get_history():
+        history = chat_session.get_history()
+        first_message = history[-1].parts[0].text 
+        st.session_state.messages = [{"role": "assistant", "content": first_message}]
     else:
         st.session_state.messages = [{"role": "assistant", "content": "Chào em! Đã sẵn sàng học Hóa."}]
 
-# ... (Phần code còn lại của app.py giữ nguyên) ...
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
 # --- WIDGET TẢI FILE ẢNH ---
-uploaded_file = st.file_uploader(
-    "🖼️ Tải ảnh câu hỏi (tùy chọn)", 
-    type=["jpg", "jpeg", "png"],
-    key="image_uploader_widget"
-)
+uploaded_file = st.file_uploader("🖼️ Tải ảnh câu hỏi (tùy chọn)", type=["jpg", "jpeg", "png"])
 
 
 if prompt := st.chat_input("Nhập câu hỏi..."):
@@ -161,8 +152,8 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
         
 
     # 1b. Thêm văn bản câu hỏi (Phải là phần tử cuối cùng)
+    # ✅ FIX LỖI: Buộc dùng text= cho tất cả các lời gọi from_text
     if cleaned_prompt:
-        # FIX LỖI: Buộc dùng text= cho tất cả các lời gọi from_text
         message_parts.append(types.Part.from_text(text=cleaned_prompt))
     else:
         # Nếu người dùng chỉ tải ảnh và nhấn enter không nhập text
