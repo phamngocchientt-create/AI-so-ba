@@ -8,7 +8,7 @@ import io # Cần thiết cho việc xử lý file ảnh
 # 📌 BƯỚC 1: DÁN DANH SÁCH FILE ID CỦA BẠN VÀO ĐÂY
 # ==================================================
 # DÁN fileId THỰC TẾ CỦA BẠN
-LIST_FILES = ['files/zepj3iiwhax9', 'files/jznjqewz3r54', 'files/hf72c2v312qc', 'files/x39sg00eq23w']
+LIST_FILES = ['files/jifhelvhf76k', 'files/c8fjs1qprhj1', 'files/3dkyxudc37bm', 'files/jz2yzkl2io9l']
 # ==================================================
 
 st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
@@ -182,6 +182,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
 
 
 
