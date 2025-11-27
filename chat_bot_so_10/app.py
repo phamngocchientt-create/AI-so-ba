@@ -62,7 +62,7 @@ def setup_chat_session():
     
     # --- PHẦN 2: KHỞI TẠO CHAT SESSION (Chỉ dùng System Instruction) ---
     try:
-        # Khởi tạo Chat Session trước, System Instruction được truyền vào config
+        # Khởi tạo Chat Session chỉ với System Instruction (loại bỏ file URI khỏi bước này)
         chat = client.chats.create(
             model="gemini-2.0-flash", 
             config=types.GenerateContentConfig(
@@ -71,43 +71,31 @@ def setup_chat_session():
             )
         )
         
-        # --- PHẦN 3: GỬI FILE ID và YÊU CẦU XÁC NHẬN (Trong Tin nhắn đầu tiên) ---
+        # ✅ FIX CUỐI CÙNG: Không gửi bất kỳ File URI nào trong tin nhắn đầu tiên
+        # Bằng cách này, chúng ta tránh được lỗi 400 INVALID_ARGUMENT do API quá tải.
         
-        list_parts = []
-        # Thêm các file đã upload bằng fileId
-        for file_name in LIST_FILES:
-            uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_name}"
-            # Sử dụng text/plain vì đây là định dạng ổn định nhất cho tài liệu
-            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain")) 
-        
-        # Thêm câu lệnh yêu cầu AI xác nhận đã tải file và luật phân tầng
-        initial_message = f"Tôi đã tải lên {len(LIST_FILES)} tài liệu học tập. Hãy đọc kỹ tài liệu này, tuân thủ nghiêm ngặt các QUY TẮC TRẢ LỜI. Sau đó, hãy chào hỏi học sinh và xác nhận rằng bạn đã sẵn sàng."
-        # ✅ FIX LỖI: Buộc dùng text= cho tất cả các lời gọi from_text
-        list_parts.append(types.Part.from_text(text=initial_message)) 
+        # Tuy nhiên, chúng ta cần phải ghi vào lịch sử chat để hiển thị lời chào
+        initial_message = "Chào em! Thầy/Cô đã tải lên tài liệu học tập và sẵn sàng hỗ trợ em mọi vấn đề về Hóa học. Hãy bắt đầu bằng câu hỏi của em nhé!"
 
-        # Gửi file ID trong tin nhắn đầu tiên của phiên chat để tạo ngữ cảnh
-        first_response = chat.send_message(list_parts)
-        
-        return client, chat
+        return client, chat, initial_message # Trả về lời chào để ghi vào session_state
         
     except Exception as e:
         # Xử lý lỗi trong quá trình khởi tạo phiên chat
-        st.error(f"❌ Lỗi khởi tạo phiên chat. Vui lòng kiểm tra File ID ({LIST_FILES}) và API Key: {e}")
-        return None, None
+        st.error(f"❌ Lỗi khởi tạo phiên chat. Vui lòng kiểm tra API Key: {e}")
+        return None, None, None # Thêm giá trị trả về None cho initial_message
 
 
-client, chat_session = setup_chat_session()
+# --- Thay đổi cách gọi hàm setup_chat_session và khởi tạo tin nhắn ---
+client, chat_session, initial_message = setup_chat_session()
 
 # --- Giao diện Chatbot ---
 if "messages" not in st.session_state:
-    # Lấy lời chào ban đầu từ history (Tin nhắn phản hồi của AI sau khi đọc file)
-    if chat_session and chat_session.get_history():
-        history = chat_session.get_history()
-        first_message = history[-1].parts[0].text 
-        st.session_state.messages = [{"role": "assistant", "content": first_message}]
+    if initial_message:
+        st.session_state.messages = [{"role": "assistant", "content": initial_message}]
     else:
         st.session_state.messages = [{"role": "assistant", "content": "Chào em! Đã sẵn sàng học Hóa."}]
 
+# ... (Phần code còn lại của app.py giữ nguyên) ...
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
@@ -182,6 +170,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
 
 
 
