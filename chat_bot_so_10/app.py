@@ -7,7 +7,7 @@ import io # Cần thiết cho việc xử lý file ảnh
 # ==================================================
 # 📌 BƯỚC 1: DÁN DANH SÁCH FILE ID CỦA BẠN VÀO ĐÂY
 # ==================================================
-# DÁN fileId THỰC TẾ CỦA BẠN
+# DÁN fileId THỰC TẾ CỦA BẠN (3 file PDF)
 LIST_FILES = ['files/lne65mpap3l8', 'files/l4o41euv06nu', 'files/58a2u0wk4p7v']
 # ==================================================
 
@@ -31,7 +31,7 @@ def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
         st.error("❌ Lỗi cấu hình: Không tìm thấy GEMINI_API_KEY trong Streamlit Secrets.")
-        return None, None
+        return None, None, None # ✅ FIX: Trả về 3 giá trị (thêm initial_message)
 
     client = genai.Client(api_key=api_key)
 
@@ -60,7 +60,7 @@ def setup_chat_session():
         "   - Trình bày lời giải chi tiết theo các bước logic và chuyên nghiệp."
     )
     
-    # --- PHẦN 2: KHỞI TẠO CHAT SESSION (Chỉ dùng System Instruction) ---
+    # --- PHẦN 2: KHỞI TẠO CHAT SESSION (Config) ---
     try:
         # Khởi tạo Chat Session trước, System Instruction được truyền vào config
         chat = client.chats.create(
@@ -77,34 +77,36 @@ def setup_chat_session():
         # Thêm các file đã upload bằng fileId
         for file_name in LIST_FILES:
             uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_name}"
-            # Sử dụng text/plain vì đây là định dạng ổn định nhất cho tài liệu
-            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain")) 
+            # ✅ FIX LỖI 400: Sử dụng application/pdf vì các file là PDF
+            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="application/pdf")) 
         
         # Thêm câu lệnh yêu cầu AI xác nhận đã tải file và luật phân tầng
-        initial_message = f"Tôi đã tải lên {len(LIST_FILES)} tài liệu học tập. Hãy đọc kỹ tài liệu này, tuân thủ nghiêm ngặt các QUY TẮC TRẢ LỜI. Sau đó, hãy chào hỏi học sinh và xác nhận rằng bạn đã sẵn sàng."
+        initial_prompt = f"Tôi đã tải lên {len(LIST_FILES)} tài liệu học tập. Hãy đọc kỹ tài liệu này, tuân thủ nghiêm ngặt các QUY TẮC TRẢ LỜI. Sau đó, hãy chào hỏi học sinh và xác nhận rằng bạn đã sẵn sàng."
         # ✅ FIX LỖI: Buộc dùng text= cho tất cả các lời gọi from_text
-        list_parts.append(types.Part.from_text(text=initial_message)) 
+        list_parts.append(types.Part.from_text(text=initial_prompt)) 
 
         # Gửi file ID trong tin nhắn đầu tiên của phiên chat để tạo ngữ cảnh
         first_response = chat.send_message(list_parts)
         
-        return client, chat
+        initial_message_text = first_response.text
+        
+        # ✅ FIX: Trả về 3 giá trị, bao gồm tin nhắn phản hồi của AI
+        return client, chat, initial_message_text
         
     except Exception as e:
         # Xử lý lỗi trong quá trình khởi tạo phiên chat
         st.error(f"❌ Lỗi khởi tạo phiên chat. Vui lòng kiểm tra File ID ({LIST_FILES}) và API Key: {e}")
-        return None, None
+        return None, None, None # ✅ FIX: Trả về 3 giá trị None
 
 
-client, chat_session = setup_chat_session()
+# --- Sửa cách gọi hàm setup_chat_session ---
+client, chat_session, initial_message = setup_chat_session()
 
 # --- Giao diện Chatbot ---
 if "messages" not in st.session_state:
-    # Lấy lời chào ban đầu từ history (Tin nhắn phản hồi của AI sau khi đọc file)
-    if chat_session and chat_session.get_history():
-        history = chat_session.get_history()
-        first_message = history[-1].parts[0].text 
-        st.session_state.messages = [{"role": "assistant", "content": first_message}]
+    if initial_message:
+        # ✅ FIX: Lấy initial_message trực tiếp từ hàm setup
+        st.session_state.messages = [{"role": "assistant", "content": initial_message}]
     else:
         st.session_state.messages = [{"role": "assistant", "content": "Chào em! Đã sẵn sàng học Hóa."}]
 
@@ -113,7 +115,11 @@ for msg in st.session_state.messages:
         st.markdown(msg["content"])
 
 # --- WIDGET TẢI FILE ẢNH ---
-uploaded_file = st.file_uploader("🖼️ Tải ảnh câu hỏi (tùy chọn)", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader(
+    "🖼️ Tải ảnh câu hỏi (tùy chọn)", 
+    type=["jpg", "jpeg", "png"],
+    key="image_uploader_widget"
+)
 
 
 if prompt := st.chat_input("Nhập câu hỏi..."):
@@ -178,10 +184,3 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
-
-
-
-
-
-
-
