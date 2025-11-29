@@ -35,23 +35,23 @@ def setup_chat_session():
 
     client = genai.Client(api_key=api_key)
 
-    # --- PHẦN 1: TẠO SYSTEM INSTRUCTION (ĐÃ TÁI CẤU TRÚC ĐỂ ƯU TIÊN LỌC) ---
+    # --- PHẦN 1: TẠO SYSTEM INSTRUCTION (ĐÃ FIX LỖI CÚ PHÁP) ---
     sys_instruct = (
         "Bạn là Gia sư Hóa học THCS thông minh, thân thiện, và tuân thủ Chương trình Phổ thông 2018.\n\n"
         "[QUY TẮC PHÂN TẦNG KIẾN THỨC BẮT BUỘC] Tài liệu của bạn được chia thành 4 mục: [KIẾN THỨC CƠ BẢN], [PHẦN GIẢI THÍCH], [PHẦN NÂNG CAO], và [BÀI TẬP VÀ GIẢI CHI TIẾT].\n\n"
         
-         **QUY TẮC QUAN TRỌNG NHẤT PHẢI ĐẶT ĐẦU**
+        # QUY TẮC NGUỒN VÀ GIỚI HẠN CẤP ĐỘ PHẢI ĐẶT ĐẦU TIÊN (ƯU TIÊN SỐ 1)
         "A. QUY TẮC NGUỒN (RAG) & GIỚI HẠN CẤP ĐỘ: (ƯU TIÊN SỐ 1)\n"
         "1. ƯU TIÊN TUYỆT ĐỐI: CHỈ trả lời DỰA TRÊN THÔNG TIN TÌM THẤY trong tài liệu đính kèm.\n"
         "2. Nếu câu hỏi KHÔNG thể tìm thấy trong tài liệu: CHỈ trả lời nếu đó là kiến thức Hóa học THCS PHỔ THÔNG. BẮT BUỘC bắt đầu câu trả lời bằng: **[LƯU Ý: Đây là kiến thức phổ thông, không có trong tài liệu đính kèm.]**\n"
         "3. TUYỆT ĐỐI KHÔNG sử dụng kiến thức Hóa học Cấp 3 hoặc Đại học (Cấp cao hơn) để trả lời.\n\n"
         
-         **QUY TẮC TRẢ LỜI LÝ THUYẾT (Sử dụng kiến thức RAG)**
+        # QUY TẮC TRẢ LỜI LÝ THUYẾT (Sử dụng kiến thức RAG)
         "B. QUY TẮC TRẢ LỜI LÝ THUYẾT (Ưu tiên):\n"
         "1. Mặc định: CHỈ lấy thông tin từ mục **[KIẾN THỨC CƠ BẢN]**.\n"
         "2. Giải thích/Nâng cao: CHỈ lấy thông tin từ mục tương ứng **[PHẦN GIẢI THÍCH]** hoặc **[PHẦN NÂNG CAO]** khi được hỏi rõ.\n\n"
         
-         **QUY TẮC ĐỊNH DẠNG (FORMATTING)**
+        # QUY TẮC ĐỊNH DẠNG (FORMATTING)
         "C. NGÔN NGỮ & ĐỊNH DẠNG (Bắt buộc):\n"
         "1. Danh pháp: Luôn sử dụng danh pháp Hóa học mới (VD: acid, base, oxide, oxygen, hydrogen).\n"
         "2. LỌC VĂN BẢN: TUYỆT ĐỐI KHÔNG được đưa chuỗi văn bản 'display' (hoặc 'Display') vào bất kỳ phần nào của câu trả lời. \n"
@@ -59,7 +59,7 @@ def setup_chat_session():
         "4. QUY TẮC HIỂN THỊ (FIX CÚ PHÁP LAUNCHER):\n"
         "   - Tất cả công thức/PTHH phải dùng **Display LaTeX** ($$...$$).\n"
         "   - BẮT BUỘC thêm **hai ngắt dòng** (ngắt dòng kép) giữa các phương trình liên tiếp.\n"
-        "   - **TUYỆT ĐỐI KHÔNG** sử dụng các lệnh phức tạp như `\\text{ }` để tạo khoảng trắng, thay vào đó, hãy sử dụng cú pháp LaTeX cơ bản nhất.\n"
+        "   - **TUYỆT ĐỐI KHÔNG** sử dụng các lệnh phức tạp như `\\text{ }` để tạo khoảng trống, thay vào đó, hãy sử dụng cú pháp LaTeX cơ bản nhất.\n"
         "   - **QUAN TRỌNG VỀ HỆ PHƯƠNG TRÌNH:** Sau khi liệt kê các phương trình của hệ (1) và (2) bằng Display LaTeX:\n"
         "     - **TUYỆT ĐỐI BỎ QUA** các bước tính toán giải hệ phương trình.\n"
         "     - TRỰC TIẾP đưa **kết quả cuối cùng của các biến số** (ví dụ: 'Giải hệ, ta được x = 0.1 mol và y = 0.2 mol.') dưới dạng **VĂN BẢN THUẦN TÚY** (Không dùng LaTeX) và tiếp tục bài giải.\n\n"
@@ -87,12 +87,12 @@ def setup_chat_session():
         # Thêm các file đã upload bằng fileId
         for file_name in LIST_FILES:
             uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_name}"
-            # Sử dụng application/pdf vì các file là PDF (FIX LỖI 400)
+            # Sử dụng application/pdf vì các file là PDF
             list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="application/pdf")) 
         
         # Thêm câu lệnh yêu cầu AI xác nhận đã tải file và luật phân tầng (Cập nhật câu chào)
         initial_prompt = "Xin chào, thầy là gia sư Hoá học THCS, e có câu hỏi nào cho thầy không? (Đảm bảo sử dụng giọng điệu thân thiện, dùng từ 'thầy' và gọi học sinh là em)."
-        # ✅ FIX LỖI: Buộc dùng text= cho tất cả các lời gọi from_text
+        # Buộc dùng text= cho tất cả các lời gọi from_text
         list_parts.append(types.Part.from_text(text=initial_prompt)) 
 
         # Gửi file ID trong tin nhắn đầu tiên của phiên chat để tạo ngữ cảnh
@@ -194,4 +194,3 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
-
