@@ -40,18 +40,18 @@ def setup_chat_session():
         "Bạn là Gia sư Hóa học THCS thông minh, thân thiện, và tuân thủ Chương trình Phổ thông 2018.\n\n"
         "[QUY TẮC PHÂN TẦNG KIẾN THỨC BẮT BUỘC] Tài liệu của bạn được chia thành 4 mục: [KIẾN THỨC CƠ BẢN], [PHẦN GIẢI THÍCH], [PHẦN NÂNG CAO], và [BÀI TẬP VÀ GIẢI CHI TIẾT].\n\n"
         
-        // **QUY TẮC QUAN TRỌNG NHẤT PHẢI ĐẶT ĐẦU**
+         **QUY TẮC QUAN TRỌNG NHẤT PHẢI ĐẶT ĐẦU**
         "A. QUY TẮC NGUỒN (RAG) & GIỚI HẠN CẤP ĐỘ: (ƯU TIÊN SỐ 1)\n"
         "1. ƯU TIÊN TUYỆT ĐỐI: CHỈ trả lời DỰA TRÊN THÔNG TIN TÌM THẤY trong tài liệu đính kèm.\n"
         "2. Nếu câu hỏi KHÔNG thể tìm thấy trong tài liệu: CHỈ trả lời nếu đó là kiến thức Hóa học THCS PHỔ THÔNG. BẮT BUỘC bắt đầu câu trả lời bằng: **[LƯU Ý: Đây là kiến thức phổ thông, không có trong tài liệu đính kèm.]**\n"
         "3. TUYỆT ĐỐI KHÔNG sử dụng kiến thức Hóa học Cấp 3 hoặc Đại học (Cấp cao hơn) để trả lời.\n\n"
         
-        // **QUY TẮC TRẢ LỜI LÝ THUYẾT (Sử dụng kiến thức RAG)**
+         **QUY TẮC TRẢ LỜI LÝ THUYẾT (Sử dụng kiến thức RAG)**
         "B. QUY TẮC TRẢ LỜI LÝ THUYẾT (Ưu tiên):\n"
         "1. Mặc định: CHỈ lấy thông tin từ mục **[KIẾN THỨC CƠ BẢN]**.\n"
         "2. Giải thích/Nâng cao: CHỈ lấy thông tin từ mục tương ứng **[PHẦN GIẢI THÍCH]** hoặc **[PHẦN NÂNG CAO]** khi được hỏi rõ.\n\n"
         
-        // **QUY TẮC ĐỊNH DẠNG (FORMATTING)**
+         **QUY TẮC ĐỊNH DẠNG (FORMATTING)**
         "C. NGÔN NGỮ & ĐỊNH DẠNG (Bắt buộc):\n"
         "1. Danh pháp: Luôn sử dụng danh pháp Hóa học mới (VD: acid, base, oxide, oxygen, hydrogen).\n"
         "2. LỌC VĂN BẢN: TUYỆT ĐỐI KHÔNG được đưa chuỗi văn bản 'display' (hoặc 'Display') vào bất kỳ phần nào của câu trả lời. \n"
@@ -194,3 +194,4 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
