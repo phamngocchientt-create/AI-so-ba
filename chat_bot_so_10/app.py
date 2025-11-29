@@ -81,7 +81,7 @@ def setup_chat_session():
             list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="application/pdf")) 
         
         # Thêm câu lệnh yêu cầu AI xác nhận đã tải file và luật phân tầng (Cập nhật câu chào)
-        initial_prompt = "Xin chào, thầy là gia sư Hoá học THCS, e có câu hỏi nào cho thầy không? (Đảm bảo sử dụng giọng điệu thân thiện, dùng từ 'thầy' và xác nhận tài liệu đã tải lên)."
+        initial_prompt = "Xin chào, thầy là gia sư Hoá học THCS, e có câu hỏi nào cho thầy không? (Đảm bảo sử dụng giọng điệu thân thiện, dùng từ 'thầy' và gọi học sinh là em)."
         # ✅ FIX LỖI: Buộc dùng text= cho tất cả các lời gọi from_text
         list_parts.append(types.Part.from_text(text=initial_prompt)) 
 
@@ -184,3 +184,4 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
