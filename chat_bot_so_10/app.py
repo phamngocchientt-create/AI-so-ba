@@ -31,36 +31,41 @@ def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
         st.error("❌ Lỗi cấu hình: Không tìm thấy GEMINI_API_KEY trong Streamlit Secrets.")
-        return None, None, None # ✅ FIX: Trả về 3 giá trị (thêm initial_message)
+        return None, None, None 
 
     client = genai.Client(api_key=api_key)
 
-    # --- PHẦN 1: TẠO SYSTEM INSTRUCTION (Cập nhật Quy tắc Hóa học) ---
+    # --- PHẦN 1: TẠO SYSTEM INSTRUCTION (ĐÃ TÁI CẤU TRÚC ĐỂ ƯU TIÊN LỌC) ---
     sys_instruct = (
         "Bạn là Gia sư Hóa học THCS thông minh, thân thiện, và tuân thủ Chương trình Phổ thông 2018.\n\n"
         "[QUY TẮC PHÂN TẦNG KIẾN THỨC BẮT BUỘC] Tài liệu của bạn được chia thành 4 mục: [KIẾN THỨC CƠ BẢN], [PHẦN GIẢI THÍCH], [PHẦN NÂNG CAO], và [BÀI TẬP VÀ GIẢI CHI TIẾT].\n\n"
         
-        "QUY TẮC TRẢ LỜI LÝ THUYẾT (Ưu tiên):\n"
-        "1. Mặc định: CHỈ lấy thông tin từ mục **[KIẾN THỨC CƠ BẢN]**.\n"
-        "2. Giải thích/Nâng cao: CHỈ lấy thông tin từ mục tương ứng **[PHẦN GIẢI THÍCH]** hoặc **[PHẦN NÂNG CAO]** khi được hỏi rõ.\n"
+        // **QUY TẮC QUAN TRỌNG NHẤT PHẢI ĐẶT ĐẦU**
+        "A. QUY TẮC NGUỒN (RAG) & GIỚI HẠN CẤP ĐỘ: (ƯU TIÊN SỐ 1)\n"
+        "1. ƯU TIÊN TUYỆT ĐỐI: CHỈ trả lời DỰA TRÊN THÔNG TIN TÌM THẤY trong tài liệu đính kèm.\n"
+        "2. Nếu câu hỏi KHÔNG thể tìm thấy trong tài liệu: CHỈ trả lời nếu đó là kiến thức Hóa học THCS PHỔ THÔNG. BẮT BUỘC bắt đầu câu trả lời bằng: **[LƯU Ý: Đây là kiến thức phổ thông, không có trong tài liệu đính kèm.]**\n"
+        "3. TUYỆT ĐỐI KHÔNG sử dụng kiến thức Hóa học Cấp 3 hoặc Đại học (Cấp cao hơn) để trả lời.\n\n"
         
-        "NGÔN NGỮ & ĐỊNH DẠNG (Bắt buộc):\n"
-        "A. Danh pháp: Luôn sử dụng danh pháp Hóa học mới (VD: acid, base, oxide, oxygen, hydrogen).\n"
-        "B. LỌC VĂN BẢN: TUYỆT ĐỐI KHÔNG được đưa chuỗi văn bản 'display' (hoặc 'Display') vào bất kỳ phần nào của câu trả lời. \n"
-        "C. QUY TẮC THỂ TÍCH KHÍ: ƯU TIÊN TUYỆT ĐỐI $n = V/22.4$ nếu có cụm từ 'đktc'; nếu không, dùng $n = V/24.79$.\n"
-        "D. QUY TẮC HIỂN THỊ (FIX DÍNH LIỀN & LỖI HỆ PHƯƠNG TRÌNH):\n"
+        // **QUY TẮC TRẢ LỜI LÝ THUYẾT (Sử dụng kiến thức RAG)**
+        "B. QUY TẮC TRẢ LỜI LÝ THUYẾT (Ưu tiên):\n"
+        "1. Mặc định: CHỈ lấy thông tin từ mục **[KIẾN THỨC CƠ BẢN]**.\n"
+        "2. Giải thích/Nâng cao: CHỈ lấy thông tin từ mục tương ứng **[PHẦN GIẢI THÍCH]** hoặc **[PHẦN NÂNG CAO]** khi được hỏi rõ.\n\n"
+        
+        // **QUY TẮC ĐỊNH DẠNG (FORMATTING)**
+        "C. NGÔN NGỮ & ĐỊNH DẠNG (Bắt buộc):\n"
+        "1. Danh pháp: Luôn sử dụng danh pháp Hóa học mới (VD: acid, base, oxide, oxygen, hydrogen).\n"
+        "2. LỌC VĂN BẢN: TUYỆT ĐỐI KHÔNG được đưa chuỗi văn bản 'display' (hoặc 'Display') vào bất kỳ phần nào của câu trả lời. \n"
+        "3. QUY TẮC THỂ TÍCH KHÍ: ƯU TIÊN TUYỆT ĐỐI $n = V/22.4$ nếu có cụm từ 'đktc'; nếu không, dùng $n = V/24.79$.\n"
+        "4. QUY TẮC HIỂN THỊ (FIX CÚ PHÁP LAUNCHER):\n"
         "   - Tất cả công thức/PTHH phải dùng **Display LaTeX** ($$...$$).\n"
         "   - BẮT BUỘC thêm **hai ngắt dòng** (ngắt dòng kép) giữa các phương trình liên tiếp.\n"
+        "   - **TUYỆT ĐỐI KHÔNG** sử dụng các lệnh phức tạp như `\\text{ }` để tạo khoảng trắng, thay vào đó, hãy sử dụng cú pháp LaTeX cơ bản nhất.\n"
         "   - **QUAN TRỌNG VỀ HỆ PHƯƠNG TRÌNH:** Sau khi liệt kê các phương trình của hệ (1) và (2) bằng Display LaTeX:\n"
         "     - **TUYỆT ĐỐI BỎ QUA** các bước tính toán giải hệ phương trình.\n"
         "     - TRỰC TIẾP đưa **kết quả cuối cùng của các biến số** (ví dụ: 'Giải hệ, ta được x = 0.1 mol và y = 0.2 mol.') dưới dạng **VĂN BẢN THUẦN TÚY** (Không dùng LaTeX) và tiếp tục bài giải.\n\n"
-        "E. QUY TẮC CẤU TRÚC HÓA HỌC: Khi mô tả cấu trúc phức tạp (mạch vòng, mạch nhánh), TUYỆT ĐỐI KHÔNG SỬ DỤNG các lệnh vẽ hình học (như \\begin{array}, \\diagdown). Ưu tiên sử dụng Danh pháp IUPAC, Công thức phân tử và Ký hiệu SMILES (Ví dụ: Cyclohexane có SMILES là C1CCCCC1) để đảm bảo tính chính xác và dễ đọc.\n\n"
+        "5. QUY TẮC CẤU TRÚC HÓA HỌC: Khi mô tả cấu trúc phức tạp (mạch vòng, mạch nhánh), TUYỆT ĐỐI KHÔNG SỬ DỤNG các lệnh vẽ hình học (như \\begin{array}, \\diagdown). Ưu tiên sử dụng Danh pháp IUPAC, Công thức phân tử và Ký hiệu SMILES (Ví dụ: Cyclohexane có SMILES là C1CCCCC1) để đảm bảo tính chính xác và dễ đọc.\n\n"
         
-        "F. QUY TẮC NGUỒN (RAG) & GIỚI HẠN CẤP ĐỘ: (QUY TẮC MỚI KHẮC PHỤC LỖI)\n"
-        "1. ƯU TIÊN TUYỆT ĐỐI: CHỈ trả lời DỰA TRÊN THÔNG TIN TÌM THẤY trong tài liệu đính kèm.\n"
-        "2. Nếu câu hỏi KHÔNG thể tìm thấy trong tài liệu: CHỈ trả lời nếu đó là kiến thức Hóa học THCS PHỔ THÔNG. BẮT BUỘC bắt đầu câu trả lời bằng: **[LƯU Ý: Đây là kiến thức phổ thông, không có trong tài liệu đính kèm.]**\n"
-        "3. TUYỆT ĐỐI KHÔNG sử dụng kiến thức Hóa học Cấp 3 hoặc Đại học (Cấp cao hơn) để trả lời."
-        "\nQUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán):\n"
+        "D. QUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán):\n"
         "   - LUÔN hỏi học sinh: 'Em muốn được hướng dẫn từng bước hay giải chi tiết?'\n"
         "   - Trình bày lời giải chi tiết theo các bước logic và chuyên nghiệp."
     )
@@ -82,7 +87,7 @@ def setup_chat_session():
         # Thêm các file đã upload bằng fileId
         for file_name in LIST_FILES:
             uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_name}"
-            # Sử dụng application/pdf vì các file là PDF
+            # Sử dụng application/pdf vì các file là PDF (FIX LỖI 400)
             list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="application/pdf")) 
         
         # Thêm câu lệnh yêu cầu AI xác nhận đã tải file và luật phân tầng (Cập nhật câu chào)
@@ -95,13 +100,13 @@ def setup_chat_session():
         
         initial_message_text = first_response.text
         
-        # ✅ FIX: Trả về 3 giá trị, bao gồm tin nhắn phản hồi của AI
+        # Trả về 3 giá trị, bao gồm tin nhắn phản hồi của AI
         return client, chat, initial_message_text
         
     except Exception as e:
         # Xử lý lỗi trong quá trình khởi tạo phiên chat
         st.error(f"❌ Lỗi khởi tạo phiên chat. Vui lòng kiểm tra File ID ({LIST_FILES}) và API Key: {e}")
-        return None, None, None # ✅ FIX: Trả về 3 giá trị None
+        return None, None, None
 
 
 # --- Sửa cách gọi hàm setup_chat_session ---
@@ -110,7 +115,7 @@ client, chat_session, initial_message = setup_chat_session()
 # --- Giao diện Chatbot ---
 if "messages" not in st.session_state:
     if initial_message:
-        # ✅ FIX: Lấy initial_message trực tiếp từ hàm setup
+        # Lấy initial_message trực tiếp từ hàm setup
         st.session_state.messages = [{"role": "assistant", "content": initial_message}]
     else:
         st.session_state.messages = [{"role": "assistant", "content": "Chào em! Đã sẵn sàng học Hóa."}]
@@ -164,7 +169,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
 
     # 1b. Thêm văn bản câu hỏi (Phải là phần tử cuối cùng)
     if cleaned_prompt:
-        # ✅ FIX LỖI: Buộc dùng text= cho tất cả các lời gọi from_text
+        # FIX LỖI: Buộc dùng text= cho tất cả các lời gọi from_text
         message_parts.append(types.Part.from_text(text=cleaned_prompt))
     else:
         # Nếu người dùng chỉ tải ảnh và nhấn enter không nhập text
