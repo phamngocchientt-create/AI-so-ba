@@ -35,7 +35,7 @@ def setup_chat_session():
 
     client = genai.Client(api_key=api_key)
 
-    # --- PHẦN 1: TẠO SYSTEM INSTRUCTION (Tối giản và Cố định) ---
+    # --- PHẦN 1: TẠO SYSTEM INSTRUCTION (Cập nhật Quy tắc Hóa học) ---
     sys_instruct = (
         "Bạn là Gia sư Hóa học THCS thông minh, thân thiện, và tuân thủ Chương trình Phổ thông 2018.\n\n"
         "[QUY TẮC PHÂN TẦNG KIẾN THỨC BẮT BUỘC] Tài liệu của bạn được chia thành 4 mục: [KIẾN THỨC CƠ BẢN], [PHẦN GIẢI THÍCH], [PHẦN NÂNG CAO], và [BÀI TẬP VÀ GIẢI CHI TIẾT].\n\n"
@@ -54,7 +54,7 @@ def setup_chat_session():
         "   - **QUAN TRỌNG VỀ HỆ PHƯƠNG TRÌNH:** Sau khi liệt kê các phương trình của hệ (1) và (2) bằng Display LaTeX:\n"
         "     - **TUYỆT ĐỐI BỎ QUA** các bước tính toán giải hệ phương trình.\n"
         "     - TRỰC TIẾP đưa **kết quả cuối cùng của các biến số** (ví dụ: 'Giải hệ, ta được x = 0.1 mol và y = 0.2 mol.') dưới dạng **VĂN BẢN THUẦN TÚY** (Không dùng LaTeX) và tiếp tục bài giải.\n\n"
-        "E. QUY TẮC CẤU TRÚC HÓA HỌC: Khi mô tả cấu trúc phức tạp (mạch vòng, mạch nhánh), TUYỆT ĐỐI KHÔNG SỬ DỤNG các lệnh vẽ hình học (như \begin{array}, \diagdown). Ưu tiên sử dụng Danh pháp IUPAC, Công thức phân tử và Ký hiệu SMILES (Ví dụ: Cyclohexane có SMILES là C1CCCCC1) để đảm bảo tính chính xác và dễ đọc."
+        "E. QUY TẮC CẤU TRÚC HÓA HỌC: Khi mô tả cấu trúc phức tạp (mạch vòng, mạch nhánh), TUYỆT ĐỐI KHÔNG SỬ DỤNG các lệnh vẽ hình học (như \\begin{array}, \\diagdown). Ưu tiên sử dụng Danh pháp IUPAC, Công thức phân tử và Ký hiệu SMILES (Ví dụ: Cyclohexane có SMILES là C1CCCCC1) để đảm bảo tính chính xác và dễ đọc.\n"
         "QUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán):\n"
         "   - LUÔN hỏi học sinh: 'Em muốn được hướng dẫn từng bước hay giải chi tiết?'\n"
         "   - Trình bày lời giải chi tiết theo các bước logic và chuyên nghiệp."
@@ -80,8 +80,8 @@ def setup_chat_session():
             # ✅ FIX LỖI 400: Sử dụng application/pdf vì các file là PDF
             list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="application/pdf")) 
         
-        # Thêm câu lệnh yêu cầu AI xác nhận đã tải file và luật phân tầng
-        initial_prompt = f"Tôi đã tải lên {len(LIST_FILES)} tài liệu học tập. Hãy đọc kỹ tài liệu này, tuân thủ nghiêm ngặt các QUY TẮC TRẢ LỜI. Sau đó, hãy chào hỏi học sinh và xác nhận rằng bạn đã sẵn sàng."
+        # Thêm câu lệnh yêu cầu AI xác nhận đã tải file và luật phân tầng (Cập nhật câu chào)
+        initial_prompt = "Xin chào, thầy là gia sư Hoá học THCS, e có câu hỏi nào cho thầy không? (Đảm bảo sử dụng giọng điệu thân thiện, dùng từ 'thầy' và xác nhận tài liệu đã tải lên)."
         # ✅ FIX LỖI: Buộc dùng text= cho tất cả các lời gọi from_text
         list_parts.append(types.Part.from_text(text=initial_prompt)) 
 
@@ -158,8 +158,8 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
         
 
     # 1b. Thêm văn bản câu hỏi (Phải là phần tử cuối cùng)
-    # ✅ FIX LỖI: Buộc dùng text= cho tất cả các lời gọi from_text
     if cleaned_prompt:
+        # ✅ FIX LỖI: Buộc dùng text= cho tất cả các lời gọi from_text
         message_parts.append(types.Part.from_text(text=cleaned_prompt))
     else:
         # Nếu người dùng chỉ tải ảnh và nhấn enter không nhập text
@@ -184,4 +184,3 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
-
