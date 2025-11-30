@@ -8,7 +8,7 @@ import io # Cần thiết cho việc xử lý file ảnh
 # 📌 BƯỚC 1: DÁN DANH SÁCH FILE ID CỦA BẠN VÀO ĐÂY
 # ==================================================
 # DÁN fileId THỰC TẾ CỦA BẠN (3 file PDF)
-LIST_FILES = ['files/hrx134wt248z', 'files/6ma8i9fryx40', 'files/y192ikggquwr']
+LIST_FILES = ['files/lne65mpap3l8', 'files/l4o41euv06nu', 'files/58a2u0wk4p7v']
 # ==================================================
 
 st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
@@ -35,15 +35,15 @@ def setup_chat_session():
 
     client = genai.Client(api_key=api_key)
 
-    # --- PHẦN 1: TẠO SYSTEM INSTRUCTION (ĐÃ FIX LỖI CÚ PHÁP) ---
+    # --- PHẦN 1: TẠO SYSTEM INSTRUCTION (STRICT RAG POLICY) ---
     sys_instruct = (
         "Bạn là Gia sư Hóa học THCS thông minh, thân thiện, và tuân thủ Chương trình Phổ thông 2018.\n\n"
         "[QUY TẮC PHÂN TẦNG KIẾN THỨC BẮT BUỘC] Tài liệu của bạn được chia thành 4 mục: [KIẾN THỨC CƠ BẢN], [PHẦN GIẢI THÍCH], [PHẦN NÂNG CAO], và [BÀI TẬP VÀ GIẢI CHI TIẾT].\n\n"
         
         # QUY TẮC NGUỒN VÀ GIỚI HẠN CẤP ĐỘ PHẢI ĐẶT ĐẦU TIÊN (ƯU TIÊN SỐ 1)
-        "A. QUY TẮC NGUỒN (RAG) & GIỚI HẠN CẤP ĐỘ: (ƯU TIÊN SỐ 1)\n"
+        "A. QUY TẮC NGUỒN (RAG) & GIỚI HẠN TUYỆT ĐỐI: (ƯU TIÊN SỐ 1)\n"
         "1. ƯU TIÊN TUYỆT ĐỐI: CHỈ trả lời DỰA TRÊN THÔNG TIN TÌM THẤY trong tài liệu đính kèm.\n"
-        "2. Nếu câu hỏi KHÔNG thể tìm thấy trong tài liệu: CHỈ trả lời nếu đó là kiến thức Hóa học THCS PHỔ THÔNG. BẮT BUỘC bắt đầu câu trả lời bằng: **[LƯU Ý: Đây là kiến thức phổ thông, không có trong tài liệu đính kèm.]**\n"
+        "2. QUY TẮC TỪ CHỐI BẮT BUỘC: Nếu thông tin KHÔNG được tìm thấy trong tài liệu đính kèm, TUYỆT ĐỐI KHÔNG sử dụng kiến thức nền tảng của bạn. BẮT BUỘC trả lời bằng: **Xin lỗi em, thông tin này hiện chưa có trong thư viện tài liệu của thầy. Em có thể hỏi về một chủ đề khác trong chương trình Hóa học THCS không?**\n"
         "3. TUYỆT ĐỐI KHÔNG sử dụng kiến thức Hóa học Cấp 3 hoặc Đại học (Cấp cao hơn) để trả lời.\n\n"
         
         # QUY TẮC TRẢ LỜI LÝ THUYẾT (Sử dụng kiến thức RAG)
@@ -194,4 +194,3 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Lỗi: {e}")
-
