@@ -8,7 +8,7 @@ import json
 # ==================================================
 # 📌 BƯỚC 1: DÁN DANH SÁCH FILE ID CỦA BẠN VÀO ĐÂY
 # ==================================================
-LIST_FILES = ['files/flnikop4a4k2', 'files/qc6ctqn7jsp9'] 
+LIST_FILES = ['files/oq5xngmykfrg', 'files/qkiv48ec8tms'] 
 # ==================================================
 
 # Định nghĩa tệp lưu trữ và thông báo lỗi cố định
@@ -285,4 +285,5 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
 
