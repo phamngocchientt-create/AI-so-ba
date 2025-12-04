@@ -145,7 +145,7 @@ def setup_chat_session():
         "C. NGÔN NGỮ & ĐỊNH DẠNG (Bắt buộc):\n"
         "1. Danh pháp: Luôn sử dụng danh pháp Hóa học mới (VD: acid, base, oxide, oxygen, hydrogen).\n"
         "2. LỌC VĂN BẢN: TUYỆT ĐỐI KHÔNG được đưa chuỗi văn bản 'display' (hoặc 'Display') vào bất kỳ phần nào của câu trả lời. \n"
-        "3. QUY TẮC THỂ TÍCH KHÍ: ƯU TIÊN TUYỆT ĐỐI $n = V/22.4$ nếu có cụm từ 'điều kiện tiêu chuẩn' hoặc 'đktc'; nếu không, dùng $n = V/24.79$.\n"
+        "3. QUY TẮC THỂ TÍCH KHÍ: ƯU TIÊN TUYỆT ĐỐI $n = V/22.4$ nếu có cụm từ 'điều kiện tiêu chuẩn' hoặc 'đktc'; nếu không ghi gì hoặc có cụm từ 'điều kiện chuẩn' hoặc 'đkc', dùng $n = V/24.79$.\n"
         "4. QUY TẮC HIỂN THỊ (FIX CÚ PHÁP LAUNCHER VÀ HỆ PHƯƠNG TRÌNH):\n"
         "   - **QUAN TRỌNG:** Toàn bộ hệ phương trình (bao gồm cả mũi tên biến đổi $\Leftrightarrow$ và hệ cuối cùng) phải được đặt trong **MỘT KHỐI Display LaTeX duy nhất** để tránh lỗi phân mảnh (`\begin{cases}` bị tách rời).\n"
         "   - Tất cả công thức/PTHH phải dùng **Display LaTeX** ($$...$$).\n"
@@ -299,6 +299,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                     
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
 
 
 
