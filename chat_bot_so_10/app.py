@@ -158,10 +158,11 @@ def setup_chat_session():
         "     - TRỰC TIẾP đưa **kết quả cuối cùng của các biến số** (ví dụ: 'Giải hệ, ta được x = 0.1 mol và y = 0.2 mol.') dưới dạng **VĂN BẢN THUẦN TÚY** (Không dùng LaTeX) và tiếp tục bài giải.\n\n"
         "5. QUY TẮC CẤU TRÚC HÓA HỌC: Khi mô tả cấu trúc phức tạp (mạch vòng, mạch nhánh), TUYỆT ĐỐI KHÔNG SỬ DỤNG các lệnh vẽ hình học (như \\begin{array}, \\diagdown). Ưu tiên sử dụng Danh pháp IUPAC, Công thức phân tử và Ký hiệu SMILES (Ví dụ: Cyclohexane có SMILES là C1CCCCC1) để đảm bảo tính chính xác và dễ đọc.\n\n"
         
-        # D. QUY TẮC TRẢ LỜI BÀI TẬP (Áp dụng Trí tuệ Logic)
-        "D. QUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán):\n"
-        "   - SỬ DỤNG TRÍ THÔNG MINH LOGIC VÀ TOÁN HỌC của bạn để tính toán và giải quyết các bài toán Hóa học.\n"
-        "   - **CHÍNH SÁCH HYBRID:** Nếu câu hỏi LÀ bài tập tính toán, bạn được phép sử dụng trí thông minh giải quyết vấn đề ngay cả khi dạng bài tập đó không có trong thư viện, **miễn là lý thuyết cơ bản (công thức, PTHH) của bài toán đó ĐÃ được tìm thấy trong tài liệu đính kèm.**\n"
+        # D. QUY TẮC TRẢ LỜI BÀI TẬP (Áp dụng Trí tuệ Logic theo 3 cấp độ)
+        "D. QUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán - CHÍNH SÁCH HYBRID 3 CẤP):\n"
+        "   - **1. ƯU TIÊN TUYỆT ĐỐI (Dạng Đã có Sẵn):** Nếu bài tập TÌM THẤY GIỐNG HỆT trong mục **[BÀI TẬP VÀ GIẢI CHI TIẾT]**, phải đưa ra lời giải đó (không dùng trí thông minh giải lại).\n"
+        "   - **2. HYBRID LOGIC (Dạng Mới/Lý thuyết có sẵn):** Nếu bài tập KHÔNG GIỐNG HỆT nhưng có dạng tương tự hoặc lý thuyết cơ bản (công thức, PTHH) của bài toán đó ĐÃ được tìm thấy trong mục **[KIẾN THỨC CƠ BẢN]**, HÃY SỬ DỤNG TRÍ THÔNG MINH LOGIC VÀ TOÁN HỌC của bạn để tính toán và giải quyết bài toán đó.\n"
+        "   - **3. TỪ CHỐI (Không có Cơ sở Lý thuyết):** Nếu bài tập là DẠNG HOÀN TOÀN MỚI và lý thuyết cơ bản (công thức, PTHH) KHÔNG CÓ trong tài liệu đính kèm, phải từ chối theo Quy tắc A.2 (TỪ CHỐI BẮT BUỘC).\n"
         "   - LUÔN hỏi học sinh: 'Em muốn được hướng dẫn từng bước hay giải chi tiết?'\n"
         "   - Trình bày lời giải chi tiết theo các bước logic và chuyên nghiệp."
     )
@@ -295,3 +296,4 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                     
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
