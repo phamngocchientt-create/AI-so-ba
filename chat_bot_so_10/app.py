@@ -10,8 +10,6 @@ import json
 # ==================================================
 # Dùng list file hiện tại của bạn (Giữ nguyên)
 LIST_FILES = ['files/oq5xngmykfrg', 'files/qkiv48ec8tms'] 
-# LƯU Ý: Nếu LIST_FILES bạn dùng là 3 file PDF, bạn cần cập nhật lại chính xác.
-# Tôi dùng danh sách bạn cung cấp gần nhất
 # ==================================================
 
 # Định nghĩa tệp lưu trữ và thông báo lỗi cố định
@@ -120,7 +118,6 @@ def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
         st.error("❌ Lỗi cấu hình: Không tìm thấy GEMINI_API_KEY trong Streamlit Secrets.")
-        # CHỈ TRẢ VỀ 2 GIÁ TRỊ (client và chat)
         return None, None 
 
     client = genai.Client(api_key=api_key)
@@ -145,7 +142,12 @@ def setup_chat_session():
         "C. NGÔN NGỮ & ĐỊNH DẠNG (Bắt buộc):\n"
         "1. Danh pháp: Luôn sử dụng danh pháp Hóa học mới (VD: acid, base, oxide, oxygen, hydrogen).\n"
         "2. LỌC VĂN BẢN: TUYỆT ĐỐI KHÔNG được đưa chuỗi văn bản 'display' (hoặc 'Display') vào bất kỳ phần nào của câu trả lời. \n"
-        "3. QUY TẮC THỂ TÍCH KHÍ: ƯU TIÊN TUYỆT ĐỐI $n = V/22.4$ nếu có cụm từ 'điều kiện tiêu chuẩn' hoặc 'đktc'; nếu không ghi gì hoặc có cụm từ 'điều kiện chuẩn' hoặc 'đkc', dùng $n = V/24.79$.\n"
+        
+        # ✅ FIX: QUY TẮC THỂ TÍCH KHÍ ĐÃ ĐƯỢC TĂNG CƯỜNG
+        "3. QUY TẮC THỂ TÍCH KHÍ (CTPT 2018): \n"
+        "   - NGUYÊN TẮC TUYỆT ĐỐI: CHỈ sử dụng $V = n \cdot 22.4$ nếu đề bài ghi rõ **'điều kiện tiêu chuẩn'** (đktc).\n"
+        "   - MẶC ĐỊNH SỬ DỤNG: Trong mọi trường hợp khác (như **'điều kiện chuẩn'** (đkc), hoặc không ghi rõ), **BẮT BUỘC** sử dụng công thức $V = n \cdot 24.79$ (L/mol) theo Chương trình Phổ thông 2018.\n"
+
         "4. QUY TẮC HIỂN THỊ (FIX CÚ PHÁP LAUNCHER VÀ HỆ PHƯƠNG TRÌNH):\n"
         "   - **QUAN TRỌNG:** Toàn bộ hệ phương trình (bao gồm cả mũi tên biến đổi $\Leftrightarrow$ và hệ cuối cùng) phải được đặt trong **MỘT KHỐI Display LaTeX duy nhất** để tránh lỗi phân mảnh (`\begin{cases}` bị tách rời).\n"
         "   - Tất cả công thức/PTHH phải dùng **Display LaTeX** ($$...$$).\n"
@@ -178,7 +180,6 @@ def setup_chat_session():
         list_parts = []
         for file_name in LIST_FILES:
             uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_name}"
-            # LƯU Ý: Đã sửa lại để dùng file list cuối cùng
             list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="application/pdf")) 
         
         # SỬ DỤNG MINIMAL PROMPT để thiết lập RAG Context (AI chỉ cần xác nhận, không cần chào)
@@ -193,23 +194,18 @@ def setup_chat_session():
         
     except Exception as e:
         st.error(f"❌ Lỗi khởi tạo phiên chat. Vui lòng kiểm tra File ID ({LIST_FILES}) và API Key: {e}")
-        # CHỈ TRẢ VỀ 2 GIÁ TRỊ (client và chat)
         return None, None
 
 
 # --- KHỞI TẠO PHIÊN CHAT VÀ GIAO DIỆN CHÍNH ---
-# ✅ FIX: CHỈ NHẬN 2 GIÁ TRỊ TỪ HÀM SETUP
 client, chat_session = setup_chat_session() 
 
 if "messages" not in st.session_state:
     # ✅ FIX: LUÔN DÙNG CÂU CHÀO HARDCODE
     st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
 else:
-    # Nếu session đã tồn tại, không làm gì
     pass
     
-# ... (Phần code còn lại giữ nguyên) ...
-
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
@@ -299,8 +295,3 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                     
             except Exception as e:
                 st.error(f"Lỗi: {e}")
-
-
-
-
-
