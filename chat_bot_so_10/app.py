@@ -3,12 +3,11 @@ from google import genai
 from google.genai import types
 import os
 import io
-import json # Thư viện để lưu trữ dữ liệu bền vững
+import json 
 
 # ==================================================
 # 📌 BƯỚC 1: DÁN DANH SÁCH FILE ID CỦA BẠN VÀO ĐÂY
 # ==================================================
-# Thay thế bằng fileId thực tế của bạn
 LIST_FILES = ['files/tgd5y7hlkwo9', 'files/ldto0s443gu2'] 
 # ==================================================
 
@@ -16,6 +15,7 @@ LIST_FILES = ['files/tgd5y7hlkwo9', 'files/ldto0s443gu2']
 STORAGE_FILE = "missing_questions.json"
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
 ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư viện tài liệu của thầy. {ERROR_MESSAGE_TAG} Em có thể hỏi về một chủ đề khác trong chương trình Hóa học THCS không?"
+PASSWORD_KEY = "CLEAR_PASSWORD" # Khóa để lấy mật khẩu từ secrets
 
 # ==================================================
 # CÁC HÀM XỬ LÝ LƯU TRỮ DỮ LIỆU BỀN VỮNG (JSON)
@@ -24,15 +24,12 @@ ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư vi�
 def load_missing_questions():
     """Tải danh sách câu hỏi cần bổ sung từ tệp JSON."""
     try:
-        # Đảm bảo tệp tồn tại trước khi mở
         if os.path.exists(STORAGE_FILE):
             with open(STORAGE_FILE, 'r', encoding='utf-8') as f:
-                # Trả về dữ liệu nếu đọc thành công, nếu lỗi JSON (file rỗng/hỏng) thì trả về list rỗng
                 content = f.read()
                 return json.loads(content) if content else []
         return []
     except Exception as e:
-        # Nếu có lỗi (ví dụ: lỗi JSON parse, lỗi quyền truy cập), in ra console
         print(f"Lỗi khi tải dữ liệu từ {STORAGE_FILE}. Trả về danh sách rỗng: {e}")
         return []
 
@@ -40,10 +37,19 @@ def save_missing_questions(questions_list):
     """Lưu danh sách câu hỏi cần bổ sung vào tệp JSON."""
     try:
         with open(STORAGE_FILE, 'w', encoding='utf-8') as f:
-            # Ghi dữ liệu với định dạng đẹp (indent=4) và cho phép ký tự tiếng Việt (ensure_ascii=False)
             json.dump(questions_list, f, ensure_ascii=False, indent=4)
     except Exception as e:
         print(f"Lỗi khi lưu dữ liệu vào {STORAGE_FILE}: {e}")
+
+# ==================================================
+# HÀM XỬ LÝ XÓA DANH SÁCH (Được gọi sau khi xác thực)
+# ==================================================
+def clear_missing_questions():
+    """Xóa danh sách trong session state và lưu trạng thái rỗng vào JSON."""
+    st.session_state.missing_questions = []
+    save_missing_questions(st.session_state.missing_questions)
+    # Không dùng st.success/st.rerun ở đây để tránh gọi hàm callback nhiều lần
+    
 
 # ==================================================
 # KHỞI TẠO ỨNG DỤNG STREAMLIT
@@ -52,18 +58,9 @@ def save_missing_questions(questions_list):
 st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
 st.title("👨‍🔬 Gia sư Hóa học THCS - Phân hóa trình độ")
 
-# Khởi tạo session state cho các câu hỏi cần bổ sung BẰNG CÁCH TẢI TỪ FILE
+# Khởi tạo session state bằng cách tải từ file
 if "missing_questions" not in st.session_state:
     st.session_state.missing_questions = load_missing_questions()
-
-# ----------------------------------------------------
-# Xử lý nút xóa danh sách trong Sidebar
-# ----------------------------------------------------
-def clear_missing_questions():
-    st.session_state.missing_questions = []
-    save_missing_questions(st.session_state.missing_questions)
-    st.success("Đã xóa danh sách thành công! (File JSON đã được làm sạch)")
-    st.rerun()
 
 with st.sidebar:
     st.success(f"✅ Đã kết nối {len(LIST_FILES)} tài liệu.")
@@ -74,16 +71,35 @@ with st.sidebar:
     # ----------------------------------------------------
     st.markdown("---")
     st.header("📝 Câu hỏi Cần Bổ Sung Tài liệu")
+    
     if st.session_state.missing_questions:
         # Hiển thị các câu hỏi
         for i, q in enumerate(st.session_state.missing_questions):
             st.markdown(f"**{i+1}.** {q}")
             
-        # Nút xóa danh sách
-        st.button("Xóa Danh sách Đã Ghi nhận", type="primary", on_click=clear_missing_questions)
+        # ------------------------------------------------------------------
+        # 🔒 PHẦN MỚI: FORM NHẬP MẬT KHẨU ĐỂ XÓA DANH SÁCH
+        # ------------------------------------------------------------------
+        st.subheader("⚠️ Quản lý Dữ liệu (Yêu cầu Mật khẩu)")
+        
+        with st.form("clear_form"):
+            password = st.text_input("Nhập Mật khẩu quản trị để xóa", type="password")
+            submitted = st.form_submit_button("Xóa Toàn bộ Câu hỏi Đã Ghi nhận")
+            
+            if submitted:
+                # Lấy mật khẩu yêu cầu từ secrets (mặc định là "admin123" nếu chưa thiết lập)
+                required_password = st.secrets.get(PASSWORD_KEY, "admin123") 
+                
+                if password == required_password:
+                    clear_missing_questions() # Xóa và lưu vào JSON
+                    st.success("✅ Đã xóa danh sách thành công! Dữ liệu đã được làm sạch.")
+                    st.rerun() # Tải lại ứng dụng để cập nhật hiển thị
+                else:
+                    st.error("❌ Mật khẩu không chính xác. Không thể xóa danh sách.")
+        # ------------------------------------------------------------------
     else:
         st.write("Không có câu hỏi nào cần bổ sung tài liệu.")
-    # ----------------------------------------------------
+        
     st.markdown("---")
     
     with st.expander("Hướng dẫn phân tầng kiến thức"):
