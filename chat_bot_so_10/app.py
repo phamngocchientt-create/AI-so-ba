@@ -2,13 +2,13 @@ import streamlit as st
 from google import genai
 from google.genai import types
 import os
-import io
+import io 
 import json 
 
 # ==================================================
 # 📌 BƯỚC 1: DÁN DANH SÁCH FILE ID CỦA BẠN VÀO ĐÂY
 # ==================================================
-LIST_FILES = ['files/oq5xngmykfrg', 'files/qkiv48ec8tms'] 
+LIST_FILES = ['files/oq5xngmykfrg', 'files/qkiv48ec8tms'] # Dùng list file hiện tại của bạn
 # ==================================================
 
 # Định nghĩa tệp lưu trữ và thông báo lỗi cố định
@@ -16,6 +16,9 @@ STORAGE_FILE = "missing_questions.json"
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
 ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư viện tài liệu của thầy. {ERROR_MESSAGE_TAG} Em có thể hỏi về một chủ đề khác trong chương trình Hóa học THCS không?"
 PASSWORD_KEY = "CLEAR_PASSWORD" # Khóa để lấy mật khẩu từ secrets
+
+# ✅ FIX CÂU CHÀO: Định nghĩa câu chào chính xác để hardcode
+HARDCODED_GREETING = "Xin chào, thầy là Gia sư Hoá học THCS, em có câu hỏi nào cho thầy không"
 
 # ==================================================
 # CÁC HÀM XỬ LÝ LƯU TRỮ DỮ LIỆU BỀN VỮNG (JSON)
@@ -48,7 +51,6 @@ def clear_missing_questions():
     """Xóa danh sách trong session state và lưu trạng thái rỗng vào JSON."""
     st.session_state.missing_questions = []
     save_missing_questions(st.session_state.missing_questions)
-    # Không dùng st.success/st.rerun ở đây để tránh gọi hàm callback nhiều lần
     
 
 # ==================================================
@@ -87,7 +89,6 @@ with st.sidebar:
             submitted = st.form_submit_button("Xóa Toàn bộ Câu hỏi Đã Ghi nhận")
             
             if submitted:
-                # Lấy mật khẩu yêu cầu từ secrets (mặc định là "admin123" nếu chưa thiết lập)
                 required_password = st.secrets.get(PASSWORD_KEY, "admin123") 
                 
                 if password == required_password:
@@ -141,18 +142,19 @@ def setup_chat_session():
         "1. Danh pháp: Luôn sử dụng danh pháp Hóa học mới (VD: acid, base, oxide, oxygen, hydrogen).\n"
         "2. LỌC VĂN BẢN: TUYỆT ĐỐI KHÔNG được đưa chuỗi văn bản 'display' (hoặc 'Display') vào bất kỳ phần nào của câu trả lời. \n"
         "3. QUY TẮC THỂ TÍCH KHÍ: ƯU TIÊN TUYỆT ĐỐI $n = V/22.4$ nếu có cụm từ 'đktc'; nếu không, dùng $n = V/24.79$.\n"
-        "4. QUY TẮC HIỂN THỊ (FIX CÚ PHÁP LAUNCHER):\n"
-        "  - Tất cả công thức/PTHH phải dùng **Display LaTeX** ($$...$$).\n"
-        "  - BẮT BUỘT thêm **hai ngắt dòng** (ngắt dòng kép) giữa các phương trình liên tiếp.\n"
-        "  - **TUYỆT ĐỐI KHÔNG** sử dụng các lệnh phức tạp như `\\text{ }` để tạo khoảng trống, thay vào đó, hãy sử dụng cú pháp LaTeX cơ bản nhất.\n"
-        "  - **QUAN TRỌNG VỀ HỆ PHƯƠNG TRÌNH:** Sau khi liệt kê các phương trình của hệ (1) và (2) bằng Display LaTeX:\n"
-        "    - **TUYỆT ĐỐI BỎ QUA** các bước tính toán giải hệ phương trình.\n"
-        "    - TRỰC TIẾP đưa **kết quả cuối cùng của các biến số** (ví dụ: 'Giải hệ, ta được x = 0.1 mol và y = 0.2 mol.') dưới dạng **VĂN BẢN THUẦN TÚY** (Không dùng LaTeX) và tiếp tục bài giải.\n\n"
+        "4. QUY TẮC HIỂN THỊ (FIX CÚ PHÁP LAUNCHER VÀ HỆ PHƯƠNG TRÌNH):\n"
+        "   - **QUAN TRỌNG:** Toàn bộ hệ phương trình (bao gồm cả mũi tên biến đổi $\Leftrightarrow$ và hệ cuối cùng) phải được đặt trong **MỘT KHỐI Display LaTeX duy nhất** để tránh lỗi phân mảnh (`\begin{cases}` bị tách rời).\n"
+        "   - Tất cả công thức/PTHH phải dùng **Display LaTeX** ($$...$$).\n"
+        "   - BẮT BUỘC thêm **hai ngắt dòng** (ngắt dòng kép) giữa các phương trình độc lập.\n"
+        "   - **TUYỆT ĐỐI KHÔNG** sử dụng các lệnh phức tạp như `\\text{ }` để tạo khoảng trống, thay vào đó, hãy sử dụng cú pháp LaTeX cơ bản nhất.\n"
+        "   - **QUAN TRỌNG VỀ HỆ PHƯƠNG TRÌNH:** Sau khi liệt kê các phương trình của hệ (1) và (2) bằng Display LaTeX:\n"
+        "     - **TUYỆT ĐỐI BỎ QUA** các bước tính toán giải hệ phương trình.\n"
+        "     - TRỰC TIẾP đưa **kết quả cuối cùng của các biến số** (ví dụ: 'Giải hệ, ta được x = 0.1 mol và y = 0.2 mol.') dưới dạng **VĂN BẢN THUẦN TÚY** (Không dùng LaTeX) và tiếp tục bài giải.\n\n"
         "5. QUY TẮC CẤU TRÚC HÓA HỌC: Khi mô tả cấu trúc phức tạp (mạch vòng, mạch nhánh), TUYỆT ĐỐI KHÔNG SỬ DỤNG các lệnh vẽ hình học (như \\begin{array}, \\diagdown). Ưu tiên sử dụng Danh pháp IUPAC, Công thức phân tử và Ký hiệu SMILES (Ví dụ: Cyclohexane có SMILES là C1CCCCC1) để đảm bảo tính chính xác và dễ đọc.\n\n"
         
         "D. QUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán):\n"
-        "  - LUÔN hỏi học sinh: 'Em muốn được hướng dẫn từng bước hay giải chi tiết?'\n"
-        "  - Trình bày lời giải chi tiết theo các bước logic và chuyên nghiệp."
+        "  - LUÔN hỏi học sinh: 'Em muốn được hướng dẫn từng bước hay giải chi tiết?'\n"
+        "  - Trình bày lời giải chi tiết theo các bước logic và chuyên nghiệp."
     )
     
     # --- PHẦN 2: KHỞI TẠO CHAT SESSION (Config) ---
@@ -171,13 +173,15 @@ def setup_chat_session():
             uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_name}"
             list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="application/pdf")) 
         
-        initial_prompt = "Xin chào, thầy là gia sư Hoá học THCS, em có câu hỏi nào cho thầy không? (Đảm bảo sử dụng giọng điệu thân thiện, dùng từ 'thầy' và gọi học sinh là em)."
-        list_parts.append(types.Part.from_text(text=initial_prompt)) 
+        # SỬ DỤNG MINIMAL PROMPT để thiết lập RAG Context
+        initial_prompt_to_ai = "Xác nhận bạn đã tải lên tài liệu và sẽ tuân thủ nghiêm ngặt mọi quy tắc."
+        list_parts.append(types.Part.from_text(text=initial_prompt_to_ai)) 
 
+        # Gửi file ID trong tin nhắn đầu tiên của phiên chat để tạo ngữ cảnh
         first_response = chat.send_message(list_parts)
-        initial_message_text = first_response.text
         
-        return client, chat, initial_message_text
+        # Trả về câu chào hardcode
+        return client, chat, HARDCODED_GREETING
         
     except Exception as e:
         st.error(f"❌ Lỗi khởi tạo phiên chat. Vui lòng kiểm tra File ID ({LIST_FILES}) và API Key: {e}")
@@ -189,6 +193,7 @@ client, chat_session, initial_message = setup_chat_session()
 
 if "messages" not in st.session_state:
     if initial_message:
+        # Sử dụng câu chào hardcode chính xác
         st.session_state.messages = [{"role": "assistant", "content": initial_message}]
     else:
         st.session_state.messages = [{"role": "assistant", "content": "Chào em! Đã sẵn sàng học Hóa."}]
@@ -210,10 +215,10 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
         st.stop()
 
     cleaned_prompt = prompt.strip()
-
+    user_question_for_history = cleaned_prompt
+    
     # --- 1. CHUẨN BỊ TIN NHẮN (GỒM VĂN BẢN VÀ ẢNH) ---
     message_parts = []
-    user_question_for_history = cleaned_prompt
     
     # 1a. Thêm file ảnh (nếu có)
     if uploaded_file is not None:
@@ -258,18 +263,15 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                 
                 # KIỂM TRA PHẢN HỒI VÀ LƯU CÂU HỎI KHÔNG TRẢ LỜI ĐƯỢC
                 if ERROR_MESSAGE_TAG in response_text:
-                    # Loại bỏ ERROR_MESSAGE_TAG khỏi phản hồi trước khi hiển thị
                     display_text = response_text.replace(ERROR_MESSAGE_TAG, "").strip()
                     
-                    # Xác định câu hỏi gốc để lưu
                     if cleaned_prompt and cleaned_prompt != "Phân tích hình ảnh này.":
-                         question_to_save = cleaned_prompt
+                        question_to_save = cleaned_prompt
                     elif uploaded_file is not None:
-                         question_to_save = f"(Ảnh: {uploaded_file.name}) + {cleaned_prompt}"
+                        question_to_save = f"(Ảnh: {uploaded_file.name}) + {cleaned_prompt}"
                     else:
-                         question_to_save = cleaned_prompt
-                         
-                    # Chỉ lưu nếu câu hỏi chưa có trong danh sách
+                        question_to_save = cleaned_prompt
+                        
                     if question_to_save not in st.session_state.missing_questions:
                         st.session_state.missing_questions.append(question_to_save)
                         # GỌI HÀM LƯU DỮ LIỆU BỀN VỮNG
@@ -282,8 +284,6 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                     # Trả lời bình thường
                     st.markdown(response_text)
                     st.session_state.messages.append({"role": "assistant", "content": response_text})
-                
+                    
             except Exception as e:
                 st.error(f"Lỗi: {e}")
-
-
