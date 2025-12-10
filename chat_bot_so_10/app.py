@@ -185,7 +185,7 @@ def setup_chat_session():
         list_parts = []
         for file_name in LIST_FILES:
             uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_name}"
-            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="application/pdf")) 
+            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain")) 
         
         # SỬ DỤNG MINIMAL PROMPT để thiết lập RAG Context (AI chỉ cần xác nhận, không cần chào)
         initial_prompt_to_ai = "Hãy đọc kỹ tài liệu và tuân thủ nghiêm ngặt mọi quy tắc, đặc biệt là Quy tắc A."
@@ -298,6 +298,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                     
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
 
 
 
