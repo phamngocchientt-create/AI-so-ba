@@ -161,18 +161,16 @@ def setup_chat_session():
         
         # D. QUY TẮC TRẢ LỜI BÀI TẬP (Áp dụng Trí tuệ Logic theo 3 cấp độ)
         # D. QUY TẮC TRẢ LỜI BÀI TẬP (Áp dụng Trí tuệ Logic theo 3 cấp độ)
-"D. QUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán):\n"
-"   - BƯỚC 1 (QUAN TRỌNG NHẤT): Khi nhận được một bài tập tính toán, bạn TUYỆT ĐỐI KHÔNG ĐƯỢC GIẢI NGAY.\n"
-"   - BƯỚC 2: Bạn phải phản hồi bằng một câu chào và hỏi chính xác: 'Thầy đã nhận được bài tập của em. Em muốn thầy hướng dẫn từng bước để em tự giải hay muốn thầy đưa ra lời giải chi tiết ngay?'\n"
-"   - BƯỚC 3: CHỈ KHI học sinh trả lời lựa chọn, bạn mới bắt đầu thực hiện giải toán theo các cấp độ HYBRID đã nêu.\n"
-"   - NGOẠI LỆ: Nếu học sinh đã ghi rõ trong câu hỏi là 'giải chi tiết bài này' hoặc 'hướng dẫn em bài này' thì bạn mới được giải ngay.\n"
-        "D. QUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán - CHÍNH SÁCH HYBRID 3 CẤP):\n"
+        "D. QUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán):\n"
+        "   - BƯỚC 1 (QUAN TRỌNG NHẤT): Khi nhận được một bài tập tính toán, bạn TUYỆT ĐỐI KHÔNG ĐƯỢC GIẢI NGAY.\n"
+        "   - BƯỚC 2: Bạn phải phản hồi bằng một câu chào và hỏi chính xác: 'Thầy đã nhận được bài tập của em. Em muốn thầy hướng dẫn từng bước để em tự giải hay muốn thầy đưa ra lời giải chi tiết ngay?'\n"
+        "   - BƯỚC 3: CHỈ KHI học sinh trả lời lựa chọn, bạn mới bắt đầu thực hiện giải toán theo các cấp độ HYBRID đã nêu.\n"
+        "   - NGOẠI LỆ: Nếu học sinh đã ghi rõ trong câu hỏi là 'giải chi tiết bài này' hoặc 'hướng dẫn em bài này' thì bạn mới được giải ngay.\n"
         "   - SỬ DỤNG TRÍ THÔNG MINH LOGIC VÀ TOÁN HỌC của bạn để tính toán và giải quyết các bài toán Hóa học.\n"
         "   - **CHÍNH SÁCH HYBRID:** Nếu câu hỏi LÀ bài tập tính toán, bạn được phép sử dụng trí thông minh giải quyết vấn đề ngay cả khi dạng bài tập đó không có trong thư viện, **miễn là lý thuyết cơ bản (công thức, PTHH) của bài toán đó ĐÃ được tìm thấy trong tài liệu đính kèm.**\n"
         "   - **1. ƯU TIÊN TUYỆT ĐỐI (Dạng Đã có Sẵn):** Nếu bài tập TÌM THẤY GIỐNG HỆT trong mục **[BÀI TẬP VÀ GIẢI CHI TIẾT]**, phải đưa ra lời giải đó (không dùng trí thông minh giải lại).\n"
         "   - **2. HYBRID LOGIC (Dạng Mới/Lý thuyết có sẵn):** Nếu bài tập KHÔNG GIỐNG HỆT nhưng có dạng tương tự hoặc lý thuyết cơ bản (công thức, PTHH) của bài toán đó ĐÃ được tìm thấy trong mục **[KIẾN THỨC CƠ BẢN]**, HÃY SỬ DỤNG TRÍ THÔNG MINH LOGIC VÀ TOÁN HỌC của bạn để tính toán và giải quyết bài toán đó.\n"
         "   - **3. TỪ CHỐI (Không có Cơ sở Lý thuyết):** Nếu bài tập là DẠNG HOÀN TOÀN MỚI và lý thuyết cơ bản (công thức, PTHH) KHÔNG CÓ trong tài liệu đính kèm, phải từ chối theo Quy tắc A.2 (TỪ CHỐI BẮT BUỘC).\n"
-        "   - LUÔN hỏi học sinh: 'Em muốn được hướng dẫn từng bước hay giải chi tiết?'\n"
         "   - Trình bày lời giải chi tiết theo các bước logic và chuyên nghiệp."
     )
     
@@ -207,26 +205,36 @@ def setup_chat_session():
         st.error(f"❌ Lỗi khởi tạo phiên chat. Vui lòng kiểm tra File ID ({LIST_FILES}) và API Key: {e}")
         return None, None
 # --- KHỞI TẠO PHIÊN CHAT VÀ GIAO DIỆN CHÍNH ---
+# ==================================================
+# 🤖 KHỞI TẠO PHIÊN CHAT VÀ GIAO DIỆN
+# ==================================================
 client, chat_session = setup_chat_session() 
 
 if "messages" not in st.session_state:
-    # ✅ FIX: LUÔN DÙNG CÂU CHÀO HARDCODE
+    # Luôn dùng câu chào cố định
     st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
-else:
-    pass
-    
+
+# Hiển thị lịch sử chat
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# WIDGET TẢI FILE ẢNH
-uploaded_file = st.file_uploader(
-    "🖼️ Tải ảnh câu hỏi (tùy chọn)", 
-    type=["jpg", "jpeg", "png"],
-    key="image_uploader_widget"
-)
+# --- PHẦN FIX LỖI: CHUYỂN KHUNG TẢI ẢNH VÀO SIDEBAR ---
+# Lưu ý: Tôi dùng Sidebar để khung này luôn hiển thị cố định ở bên trái, không bị trôi khi chat.
+with st.sidebar:
+    st.markdown("---")
+    st.header("🖼️ Gửi đề bài bằng ảnh")
+    uploaded_file = st.file_uploader(
+        "Tải ảnh câu hỏi tại đây (tùy chọn)", 
+        type=["jpg", "jpeg", "png"],
+        key="image_uploader_fixed" # Dùng key mới để tránh xung đột
+    )
+    if uploaded_file:
+        st.image(uploaded_file, caption="Ảnh đang được chọn")
 
-
+# ==================================================
+# 💬 XỬ LÝ NHẬP LIỆU VÀ PHẢN HỒI
+# ==================================================
 if prompt := st.chat_input("Nhập câu hỏi..."):
     if not client:
         st.stop()
@@ -234,76 +242,61 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
     cleaned_prompt = prompt.strip()
     user_question_for_history = cleaned_prompt
     
-    # --- 1. CHUẨN BỊ TIN NHẮN (GỒM VĂN BẢN VÀ ẢNH) ---
+    # 1. CHUẨN BỊ TIN NHẮN (GỒM VĂN BẢN VÀ ẢNH)
     message_parts = []
     
-    # 1a. Thêm file ảnh (nếu có)
+    # Thêm ảnh từ Sidebar (nếu có)
     if uploaded_file is not None:
         try:
             image_bytes = uploaded_file.getvalue()
-            mime_type = uploaded_file.type if uploaded_file.type in ["image/jpeg", "image/png", "image/jpg"] else "image/jpeg"
-            
-            image_part = types.Part.from_bytes(
-                data=image_bytes,
-                mime_type=mime_type 
-            )
+            mime_type = uploaded_file.type
+            image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
             message_parts.append(image_part)
-            
             user_question_for_history = f"📝 Câu hỏi (kèm ảnh: {uploaded_file.name}): {cleaned_prompt}"
-            
         except Exception as e:
-            st.error(f"❌ Lỗi xử lý file ảnh: {e}. Vui lòng thử lại với file ảnh khác.")
+            st.error(f"❌ Lỗi xử lý ảnh: {e}")
             st.stop()
     
     st.session_state.messages.append({"role": "user", "content": user_question_for_history})
 
-    # 1b. Thêm văn bản câu hỏi (Phải là phần tử cuối cùng)
+    # Thêm văn bản câu hỏi
     if cleaned_prompt:
         message_parts.append(types.Part.from_text(text=cleaned_prompt))
     else:
         message_parts.append(types.Part.from_text(text="Phân tích hình ảnh này."))
 
-
-    # --- 2. HIỂN THỊ TIN NHẮN NGƯỜI DÙNG ---
+    # 2. HIỂN THỊ TIN NHẮN NGƯỜI DÙNG
     with st.chat_message("user"):
         if uploaded_file is not None:
-            st.image(uploaded_file, caption=f"Ảnh câu hỏi đã tải lên: {uploaded_file.name}")
+            st.image(uploaded_file, caption=f"Ảnh: {uploaded_file.name}")
         st.markdown(cleaned_prompt)
 
-
-    # --- 3. GỬI VÀ NHẬN PHẢN HỒI ---
+    # 3. GỬI VÀ NHẬN PHẢN HỒI TỪ AI
     with st.chat_message("assistant"):
-        with st.spinner("Đang phân tích ảnh và cấp độ câu hỏi..."):
+        with st.spinner("Thầy đang xem bài..."):
             try:
                 response = chat_session.send_message(message_parts)
                 response_text = response.text
                 
-                # KIỂM TRA PHẢN HỒI VÀ LƯU CÂU HỎI KHÔNG TRẢ LỜI ĐƯỢC
+                # Kiểm tra nếu tài liệu bị thiếu (RAG rules)
                 if ERROR_MESSAGE_TAG in response_text:
                     display_text = response_text.replace(ERROR_MESSAGE_TAG, "").strip()
+                    question_to_save = user_question_for_history
                     
-                    if cleaned_prompt and cleaned_prompt != "Phân tích hình ảnh này.":
-                        question_to_save = cleaned_prompt
-                    elif uploaded_file is not None:
-                        question_to_save = f"(Ảnh: {uploaded_file.name}) + {cleaned_prompt}"
-                    else:
-                        question_to_save = cleaned_prompt
-                        
                     if question_to_save not in st.session_state.missing_questions:
                         st.session_state.missing_questions.append(question_to_save)
-                        # GỌI HÀM LƯU DỮ LIỆU BỀN VỮNG
                         save_missing_questions(st.session_state.missing_questions)
-                        
+                    
                     st.markdown(display_text)
                     st.session_state.messages.append({"role": "assistant", "content": display_text})
-                    
                 else:
                     # Trả lời bình thường
                     st.markdown(response_text)
                     st.session_state.messages.append({"role": "assistant", "content": response_text})
                     
             except Exception as e:
-                st.error(f"Lỗi: {e}")
+                st.error(f"Lỗi phản hồi: {e}")
+
 
 
 
