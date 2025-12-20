@@ -222,31 +222,27 @@ for msg in st.session_state.messages:
 # --- PHẦN FIX LỖI: CHUYỂN KHUNG TẢI ẢNH VÀO SIDEBAR ---
 # Lưu ý: Tôi dùng Sidebar để khung này luôn hiển thị cố định ở bên trái, không bị trôi khi chat.
 with st.sidebar:
-    # 1. Khung tải ảnh đưa lên vị trí cao nhất
     st.header("🖼️ Gửi đề bài bằng ảnh")
+    # Khung tải ảnh nằm ở vị trí cao nhất
     uploaded_file = st.file_uploader(
         "Tải ảnh câu hỏi tại đây", 
         type=["jpg", "jpeg", "png"],
-        key="image_uploader_top" 
+        key="top_image_uploader"
     )
     if uploaded_file:
         st.image(uploaded_file, caption="Ảnh đang chọn")
     
-    st.markdown("---") # Đường kẻ phân cách
-
-    # 2. Thông báo trạng thái tài liệu
+    st.markdown("---")
     st.success(f"✅ Đã kết nối {len(LIST_FILES)} tài liệu.")
     st.info("🤖 Model: gemini-2.0-flash")
-    
     st.markdown("---")
 
-    # 3. Danh sách câu hỏi thiếu (Nếu có)
     st.header("📝 Câu hỏi Cần Bổ Sung")
     if st.session_state.missing_questions:
         for i, q in enumerate(st.session_state.missing_questions):
             st.markdown(f"**{i+1}.** {q}")
         
-        with st.form("clear_form"):
+        with st.form("clear_form_sidebar"):
             password = st.text_input("Mật khẩu để xóa", type="password")
             if st.form_submit_button("Xóa danh sách"):
                 if password == st.secrets.get(PASSWORD_KEY, "admin123"):
@@ -255,7 +251,7 @@ with st.sidebar:
                 else:
                     st.error("Sai mật khẩu")
     else:
-        st.write("Hiện chưa có câu hỏi nào bị thiếu.")
+        st.write("Chưa có câu hỏi thiếu.")
 
 # ==================================================
 # 💬 XỬ LÝ NHẬP LIỆU VÀ PHẢN HỒI
@@ -321,6 +317,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                     
             except Exception as e:
                 st.error(f"Lỗi phản hồi: {e}")
+
 
 
 
