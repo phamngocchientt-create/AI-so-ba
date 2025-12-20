@@ -204,119 +204,88 @@ def setup_chat_session():
     except Exception as e:
         st.error(f"❌ Lỗi khởi tạo phiên chat. Vui lòng kiểm tra File ID ({LIST_FILES}) và API Key: {e}")
         return None, None
-# --- KHỞI TẠO PHIÊN CHAT VÀ GIAO DIỆN CHÍNH ---
 # ==================================================
 # 🤖 KHỞI TẠO PHIÊN CHAT VÀ GIAO DIỆN
 # ==================================================
 client, chat_session = setup_chat_session() 
 
 if "messages" not in st.session_state:
-    # Luôn dùng câu chào cố định
     st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
 
-# Hiển thị lịch sử chat
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+# 1. Tạo một container để chứa lịch sử chat (giúp phần này có thể cuộn)
+chat_container = st.container()
 
-# --- PHẦN FIX LỖI: CHUYỂN KHUNG TẢI ẢNH VÀO SIDEBAR ---
-# Lưu ý: Tôi dùng Sidebar để khung này luôn hiển thị cố định ở bên trái, không bị trôi khi chat.
-with st.sidebar:
-    st.header("🖼️ Gửi đề bài bằng ảnh")
-    # Khung tải ảnh nằm ở vị trí cao nhất
-    uploaded_file = st.file_uploader(
-        "Tải ảnh câu hỏi tại đây", 
-        type=["jpg", "jpeg", "png"],
-        key="top_image_uploader"
-    )
-    if uploaded_file:
-        st.image(uploaded_file, caption="Ảnh đang chọn")
-    
-    st.markdown("---")
-    st.success(f"✅ Đã kết nối {len(LIST_FILES)} tài liệu.")
-    st.info("🤖 Model: gemini-2.0-flash")
-    st.markdown("---")
+# 2. Tạo một khu vực cố định ở dưới cùng cho Widget tải ảnh
+# Trên điện thoại, phần này sẽ luôn hiện ra trước khi đến khung nhập liệu
+st.markdown("---")
+uploaded_file = st.file_uploader(
+    "📷 Chụp hoặc gửi ảnh đề bài tại đây", 
+    type=["jpg", "jpeg", "png"],
+    key="fixed_bottom_uploader"
+)
 
-    st.header("📝 Câu hỏi Cần Bổ Sung")
-    if st.session_state.missing_questions:
-        for i, q in enumerate(st.session_state.missing_questions):
-            st.markdown(f"**{i+1}.** {q}")
-        
-        with st.form("clear_form_sidebar"):
-            password = st.text_input("Mật khẩu để xóa", type="password")
-            if st.form_submit_button("Xóa danh sách"):
-                if password == st.secrets.get(PASSWORD_KEY, "admin123"):
-                    clear_missing_questions()
-                    st.rerun()
-                else:
-                    st.error("Sai mật khẩu")
-    else:
-        st.write("Chưa có câu hỏi thiếu.")
+# 3. Khung nhập liệu (Chat Input) - Luôn nằm dưới cùng
+prompt = st.chat_input("Nhập câu hỏi cho thầy...")
+
+# 4. Hiển thị tin nhắn trong container đã tạo
+with chat_container:
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
 
 # ==================================================
-# 💬 XỬ LÝ NHẬP LIỆU VÀ PHẢN HỒI
+# 💬 XỬ LÝ KHI CÓ TIN NHẮN MỚI
 # ==================================================
-if prompt := st.chat_input("Nhập câu hỏi..."):
+if prompt:
     if not client:
         st.stop()
 
     cleaned_prompt = prompt.strip()
     user_question_for_history = cleaned_prompt
     
-    # 1. CHUẨN BỊ TIN NHẮN (GỒM VĂN BẢN VÀ ẢNH)
     message_parts = []
     
-    # Thêm ảnh từ Sidebar (nếu có)
+    # Xử lý ảnh (lấy từ widget cố định ở dưới)
     if uploaded_file is not None:
         try:
             image_bytes = uploaded_file.getvalue()
-            mime_type = uploaded_file.type
-            image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+            image_part = types.Part.from_bytes(data=image_bytes, mime_type=uploaded_file.type)
             message_parts.append(image_part)
-            user_question_for_history = f"📝 Câu hỏi (kèm ảnh: {uploaded_file.name}): {cleaned_prompt}"
+            user_question_for_history = f"📝 (Có ảnh kèm theo) {cleaned_prompt}"
         except Exception as e:
-            st.error(f"❌ Lỗi xử lý ảnh: {e}")
+            st.error(f"❌ Lỗi ảnh: {e}")
             st.stop()
     
+    # Lưu vào lịch sử
     st.session_state.messages.append({"role": "user", "content": user_question_for_history})
 
-    # Thêm văn bản câu hỏi
-    if cleaned_prompt:
-        message_parts.append(types.Part.from_text(text=cleaned_prompt))
-    else:
-        message_parts.append(types.Part.from_text(text="Phân tích hình ảnh này."))
+    # Hiển thị tin nhắn vừa gửi
+    with chat_container:
+        with st.chat_message("user"):
+            if uploaded_file is not None:
+                st.image(uploaded_file, width=300)
+            st.markdown(cleaned_prompt)
 
-    # 2. HIỂN THỊ TIN NHẮN NGƯỜI DÙNG
-    with st.chat_message("user"):
-        if uploaded_file is not None:
-            st.image(uploaded_file, caption=f"Ảnh: {uploaded_file.name}")
-        st.markdown(cleaned_prompt)
+        # Gửi và nhận phản hồi từ AI
+        with st.chat_message("assistant"):
+            with st.spinner("Thầy đang xem bài..."):
+                try:
+                    message_parts.append(types.Part.from_text(text=cleaned_prompt))
+                    response = chat_session.send_message(message_parts)
+                    res_text = response.text
+                    
+                    # Logic lưu câu hỏi thiếu (RAG)
+                    if ERROR_MESSAGE_TAG in res_text:
+                        res_text = res_text.replace(ERROR_MESSAGE_TAG, "").strip()
+                        if user_question_for_history not in st.session_state.missing_questions:
+                            st.session_state.missing_questions.append(user_question_for_history)
+                            save_missing_questions(st.session_state.missing_questions)
 
-    # 3. GỬI VÀ NHẬN PHẢN HỒI TỪ AI
-    with st.chat_message("assistant"):
-        with st.spinner("Thầy đang xem bài..."):
-            try:
-                response = chat_session.send_message(message_parts)
-                response_text = response.text
-                
-                # Kiểm tra nếu tài liệu bị thiếu (RAG rules)
-                if ERROR_MESSAGE_TAG in response_text:
-                    display_text = response_text.replace(ERROR_MESSAGE_TAG, "").strip()
-                    question_to_save = user_question_for_history
-                    
-                    if question_to_save not in st.session_state.missing_questions:
-                        st.session_state.missing_questions.append(question_to_save)
-                        save_missing_questions(st.session_state.missing_questions)
-                    
-                    st.markdown(display_text)
-                    st.session_state.messages.append({"role": "assistant", "content": display_text})
-                else:
-                    # Trả lời bình thường
-                    st.markdown(response_text)
-                    st.session_state.messages.append({"role": "assistant", "content": response_text})
-                    
-            except Exception as e:
-                st.error(f"Lỗi phản hồi: {e}")
+                    st.markdown(res_text)
+                    st.session_state.messages.append({"role": "assistant", "content": res_text})
+                except Exception as e:
+                    st.error(f"Lỗi: {e}")
+
 
 
 
