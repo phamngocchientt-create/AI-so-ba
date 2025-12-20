@@ -160,6 +160,12 @@ def setup_chat_session():
         "5. QUY TẮC CẤU TRÚC HÓA HỌC: Khi mô tả cấu trúc phức tạp (mạch vòng, mạch nhánh), TUYỆT ĐỐI KHÔNG SỬ DỤNG các lệnh vẽ hình học (như \\begin{{array}}, \\diagdown). Ưu tiên sử dụng Danh pháp IUPAC, Công thức phân tử và Ký hiệu SMILES (Ví dụ: Cyclohexane có SMILES là C1CCCCC1) để đảm bảo tính chính xác và dễ đọc.\n\n"
         
         # D. QUY TẮC TRẢ LỜI BÀI TẬP (Áp dụng Trí tuệ Logic theo 3 cấp độ)
+        # D. QUY TẮC TRẢ LỜI BÀI TẬP (Áp dụng Trí tuệ Logic theo 3 cấp độ)
+"D. QUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán):\n"
+"   - BƯỚC 1 (QUAN TRỌNG NHẤT): Khi nhận được một bài tập tính toán, bạn TUYỆT ĐỐI KHÔNG ĐƯỢC GIẢI NGAY.\n"
+"   - BƯỚC 2: Bạn phải phản hồi bằng một câu chào và hỏi chính xác: 'Thầy đã nhận được bài tập của em. Em muốn thầy hướng dẫn từng bước để em tự giải hay muốn thầy đưa ra lời giải chi tiết ngay?'\n"
+"   - BƯỚC 3: CHỈ KHI học sinh trả lời lựa chọn, bạn mới bắt đầu thực hiện giải toán theo các cấp độ HYBRID đã nêu.\n"
+"   - NGOẠI LỆ: Nếu học sinh đã ghi rõ trong câu hỏi là 'giải chi tiết bài này' hoặc 'hướng dẫn em bài này' thì bạn mới được giải ngay.\n"
         "D. QUY TẮC TRẢ LỜI BÀI TẬP (Có số liệu/yêu cầu tính toán - CHÍNH SÁCH HYBRID 3 CẤP):\n"
         "   - SỬ DỤNG TRÍ THÔNG MINH LOGIC VÀ TOÁN HỌC của bạn để tính toán và giải quyết các bài toán Hóa học.\n"
         "   - **CHÍNH SÁCH HYBRID:** Nếu câu hỏi LÀ bài tập tính toán, bạn được phép sử dụng trí thông minh giải quyết vấn đề ngay cả khi dạng bài tập đó không có trong thư viện, **miễn là lý thuyết cơ bản (công thức, PTHH) của bài toán đó ĐÃ được tìm thấy trong tài liệu đính kèm.**\n"
@@ -298,6 +304,7 @@ if prompt := st.chat_input("Nhập câu hỏi..."):
                     
             except Exception as e:
                 st.error(f"Lỗi: {e}")
+
 
 
 
