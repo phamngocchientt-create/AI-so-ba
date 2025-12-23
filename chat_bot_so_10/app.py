@@ -8,7 +8,7 @@ import json
 # ==================================================
 # 📌 BƯỚC 1: DANH SÁCH FILE ID (Giữ nguyên)
 # ==================================================
-LIST_FILES = ['files/rfuliiz0dem3', 'files/rtqq575l7433'] 
+LIST_FILES = ['files/vcgy207niuv1'] 
 # ==================================================
 
 STORAGE_FILE = "missing_questions.json"
@@ -200,4 +200,5 @@ if prompt:
                     st.session_state.messages.append({"role": "assistant", "content": res_text})
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
+
 
