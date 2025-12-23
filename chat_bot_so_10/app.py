@@ -51,7 +51,7 @@ if "missing_questions" not in st.session_state:
 
 with st.sidebar:
     st.success(f"✅ Đã kết nối {len(LIST_FILES)} tài liệu.")
-    st.info("🤖 Model: gemini-2.0-flash")
+    st.info("🤖 Model: gemini-1.5-flash")
     st.markdown("---")
     st.header("📝 Câu hỏi Cần Bổ Sung Tài liệu")
     
@@ -200,3 +200,4 @@ if prompt:
                     st.session_state.messages.append({"role": "assistant", "content": res_text})
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
+
