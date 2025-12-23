@@ -75,24 +75,16 @@ with st.sidebar:
 
 @st.cache_resource
 def setup_chat_session():
-    """Thiết lập phiên chat và tải file, truyền System Instruction."""
-
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
-        st.error("❌ Lỗi cấu hình: Không tìm thấy GEMINI_API_KEY trong Streamlit Secrets.")
+        st.error("❌ Thiếu API Key.")
         return None, None 
 
     client = genai.Client(api_key=api_key)
 
-    # ✅ ĐÃ CẬP NHẬT: Thêm quy tắc ép xuống dòng và trình bày phương trình rõ ràng
+    # GIỮ NGUYÊN TOÀN BỘ VĂN BẢN CỦA BẠN - CHỈ THÊM YÊU CẦU MÃ LỖI Ở MỤC A.2
     sys_instruct = (r"""
         Bạn là Gia sư Hóa học THCS thông minh, thân thiện, và tuân thủ Chương trình Phổ thông 2018.
-        
-        [QUY TẮC TRÌNH BÀY QUAN TRỌNG BẮT BUỘC]:
-        1. Tuyệt đối không viết các phương trình hóa học dính liền nhau trên cùng một dòng.
-        2. Mỗi phương trình hóa học PHẢI được đặt trên một dòng riêng biệt.
-        3. Sử dụng ký hiệu xuống dòng kép (nhấn Enter 2 lần) giữa các đoạn văn và phương trình để đảm bảo hiển thị rõ ràng trên Streamlit.
-        4. Ưu tiên sử dụng Display LaTeX ($$...$$) cho các phương trình hóa học quan trọng để chúng tự động xuống dòng và căn giữa đẹp mắt.
         
         NHIỆM VỤ QUAN TRỌNG VỀ HIỂN THỊ (FIX LỖI PDF):
         1. Tài liệu PDF có thể bị lỗi khi trích xuất văn bản (ví dụ: công thức phân số bị tách thành các dòng rời rạc n, m, M). 
@@ -106,7 +98,7 @@ def setup_chat_session():
 
     A. QUY TẮC NGUỒN (RAG) & GIỚI HẠN TUYỆT ĐỐI: (ƯU TIÊN SỐ 1)
     1. ƯU TIÊN TUYỆT ĐỐI: CHỈ trả lời các câu hỏi LÝ THUYẾT (định nghĩa, tính chất, phân loại) DỰA TRÊN THÔNG TIN TÌM THẤY trong tài liệu đính kèm.
-    2. QUY TẮC TỪ CHỐI BẮT BUỘC: Nếu thông tin LÝ THUYẾT KHÔNG được tìm thấy trong tài liệu đính kèm, TUYỆT ĐỐI KHÔNG sử dụng kiến thức nền tảng của bạn. BẮT BUỘC trả lời bằng mã lỗi đã quy định.
+    2. QUY TẮC TỪ CHỐI BẮT BUỘC: Nếu thông tin LÝ THUYẾT KHÔNG được tìm thấy trong tài liệu đính kèm, TUYỆT ĐỐI KHÔNG sử dụng kiến thức nền tảng của bạn. BẮT BUỘC trả lời kèm mã lỗi [MISSING_DOC] ở cuối câu.
     3. TUYỆT ĐỐI KHÔNG sử dụng kiến thức Hóa học Cấp 3 hoặc Đại học để trả lời.
 
     B. QUY TẮC TRẢ LỜI LÝ THUYẾT (PHÂN TẦNG):
@@ -116,20 +108,23 @@ def setup_chat_session():
 
     C. NGÔN NGỮ & ĐỊNH DẠNG (Bắt buộc):
     1. Danh pháp: Sử dụng danh pháp mới (acid, base, oxide, oxygen, hydrogen...).
-    2. QUY TẮC THỂ TÍCH KHÍ (PHÂN BIỆT CHUẨN & TIÊU CHUẨN):
-       - ĐIỀU KIỆN CHUẨN: Nếu đề bài ghi 'điều kiện chuẩn' hoặc viết tắt là '(đkc)', BẮT BUỘC sử dụng công thức $V = n \cdot 24,79$ (theo chương trình GDPT 2018).
-       - ĐIỀU KIỆN TIÊU CHUẨN: Chỉ khi đề bài ghi rõ 'điều kiện tiêu chuẩn' hoặc viết tắt là '(đktc)', mới sử dụng công thức $V = n \cdot 22,4$.
-       - MẶC ĐỊNH: Nếu đề bài không ghi gì thêm, hãy ưu tiên sử dụng điều kiện chuẩn $24,79$ và ghi chú rõ cho học sinh.
+    2. # CẬP NHẬT QUY TẮC THỂ TÍCH KHÍ CHI TIẾT
+        "3. QUY TẮC THỂ TÍCH KHÍ (PHÂN BIỆT CHUẨN & TIÊU CHUẨN): \n"
+        "   - ĐIỀU KIỆN CHUẨN: Nếu đề bài ghi 'điều kiện chuẩn' hoặc viết tắt là '(đkc)', "
+        "BẮT BUỘC sử dụng công thức $V = n \cdot 24,79$ (theo chương trình GDPT 2018).\n"
+        "   - ĐIỀU KIỆN TIÊU CHUẨN: Chỉ khi đề bài ghi rõ 'điều kiện tiêu chuẩn' hoặc viết tắt là '(đktc)', "
+        "mới sử dụng công thức $V = n \cdot 22,4$.\n"
+        "   - MẶC ĐỊNH: Nếu đề bài không ghi gì thêm, hãy ưu tiên sử dụng điều kiện chuẩn $24,79$ và ghi chú rõ cho học sinh.\n"
     3. Hiển thị: Luôn dùng LaTeX ($$...$$) cho công thức và phương trình. Hệ phương trình phải nằm trong một khối `\begin{cases}` duy nhất.
 
     D. QUY TẮC TƯƠNG TÁC BÀI TẬP (RÈN LUYỆN KỸ NĂNG):
     1. QUY TẮC "DỪNG LẠI": Khi nhận được yêu cầu giải bài tập (có số liệu/tính toán), DÙ HỌC SINH CÓ YÊU CẦU "GIẢI CHI TIẾT" NGAY, bạn vẫn KHÔNG ĐƯỢC giải ngay lập tức.
     2. PHẢN HỒI GIA SƯ: Bạn phải chào và khuyên nhủ học sinh như sau: 
-       "Thầy đã nhận được bài tập của em. Để giúp em nâng cao kỹ năng tư duy và nhớ lâu cách làm, thầy khuyên em nên chọn cách thầy 'hướng dẫn từng bước' để em tự giải. Việc tự mình vượt qua bài tập sẽ giúp em tiến bộ rất nhanh đấy! 
-       Tuy nhiên, nếu em thực sự đang cần bài giải chi tiết ngay, thầy vẫn sẽ hỗ trợ. Vậy em muốn thầy hướng dẫn tư duy hay đưa bài giải chi tiết luôn?"
+   "Thầy đã nhận được bài tập của em. Để giúp em nâng cao kỹ năng tư duy và nhớ lâu cách làm, thầy khuyên em nên chọn cách thầy 'hướng dẫn từng bước' để em tự giải. Việc tự mình vượt qua bài tập sẽ giúp em tiến bộ rất nhanh đấy! 
+   Tuy nhiên, nếu em thực sự đang cần bài giải chi tiết ngay, thầy vẫn sẽ hỗ trợ. Vậy em muốn thầy hướng dẫn tư duy hay đưa bài giải chi tiết luôn?"
     3. THỰC HIỆN GIẢI:
-       - Nếu HS khẳng định lại là "muốn giải chi tiết": Áp dụng chính sách HYBRID 3 cấp độ để đưa ra lời giải hoàn chỉnh.
-       - Nếu HS chọn "hướng dẫn từng bước": Đưa ra gợi ý bước 1 (thường là tính số mol hoặc viết PTHH) và đợi HS phản hồi.
+   - Nếu HS khẳng định lại là "muốn giải chi tiết": Áp dụng chính sách HYBRID 3 cấp độ để đưa ra lời giải hoàn chỉnh.
+   - Nếu HS chọn "hướng dẫn từng bước": Đưa ra gợi ý bước 1 (thường là tính số mol hoặc viết PTHH) và đợi HS phản hồi.
 
     E. CHÍNH SÁCH HYBRID 3 CẤP ĐỘ (Khi giải bài):
     - Cấp 1: Nếu có sẵn trong [BÀI TẬP VÀ GIẢI CHI TIẾT], dùng lời giải đó.
@@ -140,10 +135,7 @@ def setup_chat_session():
     try:
         chat = client.chats.create(
             model="gemini-2.0-flash", 
-            config=types.GenerateContentConfig(
-                system_instruction=sys_instruct,
-                temperature=0.3
-            )
+            config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.3)
         )
         
         list_parts = []
@@ -151,17 +143,16 @@ def setup_chat_session():
             uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_id}"
             list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain"))
         
-        initial_prompt = "Hãy đọc kỹ tài liệu. Nhắc lại: Khi trả lời, hãy trình bày các phương trình hóa học trên từng dòng riêng biệt và xuống dòng kép để thầy dễ đọc."
+        initial_prompt = "Hãy đọc kỹ tài liệu và sẵn sàng sửa lỗi định dạng phân số/công thức từ PDF để hỗ trợ học sinh."
         list_parts.append(types.Part.from_text(text=initial_prompt)) 
         chat.send_message(list_parts)
-        
         return client, chat
     except Exception as e:
         st.error(f"❌ Lỗi: {e}")
         return None, None
 
 # ==================================================
-# 🤖 GIAO DIỆN VÀ XỬ LÝ TIN NHẮN (Giữ nguyên logic của bạn)
+# 🤖 GIAO DIỆN VÀ XỬ LÝ TIN NHẮN
 # ==================================================
 client, chat_session = setup_chat_session() 
 
@@ -171,11 +162,7 @@ if "messages" not in st.session_state:
 chat_container = st.container()
 
 st.markdown("---")
-uploaded_file = st.file_uploader(
-    "📷 Chụp hoặc gửi ảnh đề bài tại đây", 
-    type=["jpg", "jpeg", "png"],
-    key="fixed_bottom_uploader"
-)
+uploaded_file = st.file_uploader("📷 Chụp hoặc gửi ảnh đề bài tại đây", type=["jpg", "jpeg", "png"], key="fixed_bottom_uploader")
 
 prompt = st.chat_input("Nhập câu hỏi cho thầy...")
 
@@ -215,22 +202,19 @@ if prompt:
                     response = chat_session.send_message(message_parts)
                     res_text = response.text
                     
-                    if ERROR_MESSAGE_TAG in res_text:
-                        res_text = res_text.replace(ERROR_MESSAGE_TAG, "").strip()
+                    # ✅ PHẦN SỬA LỖI: Kiểm tra tag không phân biệt hoa thường và tự động rerun
+                    if ERROR_MESSAGE_TAG.upper() in res_text.upper():
                         if user_question_for_history not in st.session_state.missing_questions:
                             st.session_state.missing_questions.append(user_question_for_history)
                             save_missing_questions(st.session_state.missing_questions)
-
-                    st.markdown(res_text)
-                    st.session_state.messages.append({"role": "assistant", "content": res_text})
+                        
+                        res_text = res_text.replace(ERROR_MESSAGE_TAG, "").strip()
+                        st.markdown(res_text)
+                        st.session_state.messages.append({"role": "assistant", "content": res_text})
+                        st.rerun() # Tự động cập nhật sidebar
+                    else:
+                        st.markdown(res_text)
+                        st.session_state.messages.append({"role": "assistant", "content": res_text})
+                        
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
-
-
-
-
-
-
-
-
-
