@@ -9,7 +9,7 @@ import json
 # 📌 BƯỚC 1: DÁN DANH SÁCH FILE ID CỦA BẠN VÀO ĐÂY
 # ==================================================
 # Dùng list file hiện tại của bạn (Giữ nguyên)
-LIST_FILES = ['files/ejkt0cxjqomb', 'files/oi69n8hf4g73'] 
+LIST_FILES = ['files/rfuliiz0dem3', 'files/rtqq575l7433'] 
 # ==================================================
 
 # Định nghĩa tệp lưu trữ và thông báo lỗi cố định
@@ -294,6 +294,7 @@ if prompt:
                     st.session_state.messages.append({"role": "assistant", "content": res_text})
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
+
 
 
 
