@@ -187,9 +187,18 @@ def setup_chat_session():
         
         # --- PHẦN 3: GỬI FILE ID và YÊU CẦU XÁC NHẬN (Trong Tin nhắn đầu tiên) ---
         list_parts = []
-        for file_name in LIST_FILES:
-            uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_name}"
-            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain")) 
+        for file_id in LIST_FILES:
+            uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_id}"
+            
+            file_lower = file_id.lower()
+            if "pdf" in file_lower:
+                current_mime = "application/pdf"
+            elif "md" in file_lower:
+                current_mime = "text/markdown" # Thêm dòng này để đọc file Markdown
+            else:
+                current_mime = "text/plain"
+                
+            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type=current_mime)) 
         
         # SỬ DỤNG MINIMAL PROMPT để thiết lập RAG Context (AI chỉ cần xác nhận, không cần chào)
         initial_prompt_to_ai = "Hãy đọc kỹ tài liệu và tuân thủ nghiêm ngặt mọi quy tắc, đặc biệt là Quy tắc A."
@@ -285,6 +294,7 @@ if prompt:
                     st.session_state.messages.append({"role": "assistant", "content": res_text})
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
+
 
 
 
