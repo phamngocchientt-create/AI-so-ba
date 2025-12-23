@@ -144,7 +144,7 @@ def setup_chat_session():
         list_parts = []
         for file_id in LIST_FILES:
             uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_id}"
-            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="application/pdf"))
+            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain"))
         
         initial_prompt = "Hãy đọc kỹ tài liệu và sẵn sàng sửa lỗi định dạng phân số/công thức từ PDF để hỗ trợ học sinh."
         list_parts.append(types.Part.from_text(text=initial_prompt)) 
@@ -220,6 +220,7 @@ if prompt:
                     st.session_state.messages.append({"role": "assistant", "content": res_text})
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
+
 
 
 
