@@ -93,6 +93,13 @@ def setup_chat_session():
            - Nếu thấy 'H2SO4' hãy sửa thành $H_2SO_4$.
         3. Luôn sử dụng LaTeX ($$...$$) cho tất cả công thức và phương trình hóa học.
     [QUY TẮC HIỂN THỊ BẮT BUỘC]:
+        1. BẮT BUỘC nhấn Enter 2 lần (tạo một dòng trống) giữa các đoạn văn bản và giữa các khối phương trình.
+        2. Mỗi phương trình hóa học BẮT BUỘC phải nằm trong một khối LaTeX riêng biệt bằng dấu đô la kép: 
+           $$ phương trình $$
+        3. Tuyệt đối không viết văn bản và phương trình trên cùng một dòng.
+        4. Đối với hệ phương trình, BẮT BUỘC sử dụng:
+           $$ \begin{cases} pt1 \\ pt2 \end{cases} $$
+    [QUY TẮC HIỂN THỊ BẮT BUỘC]:
         1. Mỗi phương trình hóa học BẮT BUỘC phải nằm trong một khối LaTeX riêng biệt bằng dấu đô la kép: $$ phương trình $$. Tuyệt đối không viết dính chùm nhiều phương trình trên một dòng.
         2. Nhấn Enter 2 lần (xuống dòng kép) giữa các đoạn văn và khối phương trình.
         3. Đối với hệ phương trình, BẮT BUỘC sử dụng cấu trúc:
@@ -224,5 +231,6 @@ if prompt:
                         
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
+
 
 
