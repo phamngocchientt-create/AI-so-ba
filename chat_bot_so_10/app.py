@@ -88,7 +88,7 @@ def setup_chat_session():
         
    [QUY TẮC HIỂN THỊ - CHỐNG DÍNH CHỮ]:
         1. Mỗi phương trình hóa học PHẢI nằm trong khối LaTeX riêng biệt: $$ phương trình $$.
-        2. Sau mỗi khối $$...$$ hoặc mỗi đoạn văn, BẮT BUỘC xuống dòng 2 lần (\n\n).
+        2. Sau mỗi khối $$...$$ hoặc mỗi đoạn văn, BẮT BUỘC xuống dòng 2 lần.
         3. Hệ phương trình BẮT BUỘC dùng cấu trúc chuẩn:
            $$ \begin{cases} pt1 \\ pt2 \end{cases} $$
         4. Tự động sửa lỗi hiển thị từ PDF (ví dụ: 'H2SO4' -> $H_2SO_4$, 'n = m/M' -> $n = \frac{m}{M}$).
@@ -224,6 +224,7 @@ if prompt:
                         
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
+
 
 
 
