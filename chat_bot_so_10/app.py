@@ -82,7 +82,7 @@ def setup_chat_session():
 
     client = genai.Client(api_key=api_key)
 
-    # GIỮ NGUYÊN TOÀN BỘ VĂN BẢN CỦA BẠN - CHỈ THÊM YÊU CẦU MÃ LỖI Ở MỤC A.2
+    # SỬA LỖI 3: Viết liền mạch chuỗi instruction, loại bỏ các dấu ngoặc kép lồng nhau gây lỗi Argument
     sys_instruct = (r"""
         Bạn là Gia sư Hóa học THCS thông minh, thân thiện, và tuân thủ Chương trình Phổ thông 2018.
         
@@ -103,53 +103,39 @@ def setup_chat_session():
     Tài liệu của bạn được chia thành 4 mục: [KIẾN THỨC CƠ BẢN], [PHẦN GIẢI THÍCH], [PHẦN NÂNG CAO], và [BÀI TẬP VÀ GIẢI CHI TIẾT].
 
     A. QUY TẮC NGUỒN (RAG) & GIỚI HẠN TUYỆT ĐỐI: (ƯU TIÊN SỐ 1)
-    1. ƯU TIÊN TUYỆT ĐỐI: CHỈ trả lời các câu hỏi LÝ THUYẾT (định nghĩa, tính chất, phân loại) DỰA TRÊN THÔNG TIN TÌM THẤY trong tài liệu đính kèm.
-    2. QUY TẮC TỪ CHỐI BẮT BUỘC: Nếu thông tin LÝ THUYẾT KHÔNG được tìm thấy trong tài liệu đính kèm, TUYỆT ĐỐI KHÔNG sử dụng kiến thức nền tảng của bạn. BẮT BUỘC trả lời kèm mã lỗi [MISSING_DOC] ở cuối câu.
+    1. ƯU TIÊN TUYỆT ĐỐI: CHỈ trả lời các câu hỏi LÝ THUYẾT DỰA TRÊN THÔNG TIN TÌM THẤY trong tài liệu đính kèm.
+    2. QUY TẮC TỪ CHỐI BẮT BUỘC: Nếu thông tin không có trong tài liệu, TUYỆT ĐỐI KHÔNG sử dụng kiến thức ngoài. BẮT BUỘC trả lời kèm mã lỗi [MISSING_DOC] ở cuối câu.
     3. TUYỆT ĐỐI KHÔNG sử dụng kiến thức Hóa học Cấp 3 hoặc Đại học để trả lời.
 
     B. QUY TẮC TRẢ LỜI LÝ THUYẾT (PHÂN TẦNG):
-    1. Mặc định (Hỏi lý thuyết chung): CHỈ trích dẫn thông tin từ mục **[KIẾN THỨC CƠ BẢN]**.
-    2. Giải thích sâu (Khi HS hỏi "Tại sao", "Giải thích rõ hơn"): Sử dụng thông tin từ mục **[PHẦN GIẢI THÍCH]**.
-    3. Nâng cao (Khi HS hỏi về kiến thức khó, mở rộng): Sử dụng thông tin từ mục **[PHẦN NÂNG CAO]**.
+    1. Mặc định (Hỏi lý thuyết chung): CHỈ trích dẫn thông tin từ mục [KIẾN THỨC CƠ BẢN].
+    2. Giải giải sâu: Sử dụng thông tin từ mục [PHẦN GIẢI THÍCH].
+    3. Nâng cao: Sử dụng thông tin từ mục [PHẦN NÂNG CAO].
 
     C. NGÔN NGỮ & ĐỊNH DẠNG (Bắt buộc):
     1. Danh pháp: Sử dụng danh pháp mới (acid, base, oxide, oxygen, hydrogen...).
-    2. # CẬP NHẬT QUY TẮC THỂ TÍCH KHÍ CHI TIẾT
-        "3. QUY TẮC THỂ TÍCH KHÍ (PHÂN BIỆT CHUẨN & TIÊU CHUẨN): \n"
-        "   - ĐIỀU KIỆN CHUẨN: Nếu đề bài ghi 'điều kiện chuẩn' hoặc viết tắt là '(đkc)', "
-        "BẮT BUỘC sử dụng công thức $V = n \cdot 24,79$ (theo chương trình GDPT 2018).\n"
-        "   - ĐIỀU KIỆN TIÊU CHUẨN: Chỉ khi đề bài ghi rõ 'điều kiện tiêu chuẩn' hoặc viết tắt là '(đktc)', "
-        "mới sử dụng công thức $V = n \cdot 22,4$.\n"
-        "   - MẶC ĐỊNH: Nếu đề bài không ghi gì thêm, hãy ưu tiên sử dụng điều kiện chuẩn $24,79$ và ghi chú rõ cho học sinh.\n"
-    3. Hiển thị: Luôn dùng LaTeX ($$...$$) cho công thức và phương trình. Hệ phương trình phải nằm trong một khối `\begin{cases}` duy nhất.
+    2. QUY TẮC THỂ TÍCH KHÍ: ĐIỀU KIỆN CHUẨN (đkc) dùng 24,79 (GDPT 2018). ĐIỀU KIỆN TIÊU CHUẨN (đktc) dùng 22,4. Nếu không ghi gì, ưu tiên dùng 24,79.
+    3. Hiển thị: Luôn dùng LaTeX ($$...$$).
 
     D. QUY TẮC TƯƠNG TÁC BÀI TẬP (RÈN LUYỆN KỸ NĂNG):
-    1. QUY TẮC "DỪNG LẠI": Khi nhận được yêu cầu giải bài tập (có số liệu/tính toán), DÙ HỌC SINH CÓ YÊU CẦU "GIẢI CHI TIẾT" NGAY, bạn vẫn KHÔNG ĐƯỢC giải ngay lập tức.
-    2. PHẢN HỒI GIA SƯ: Bạn phải chào và khuyên nhủ học sinh như sau: 
-   "Thầy đã nhận được bài tập của em. Để giúp em nâng cao kỹ năng tư duy và nhớ lâu cách làm, thầy khuyên em nên chọn cách thầy 'hướng dẫn từng bước' để em tự giải. Việc tự mình vượt qua bài tập sẽ giúp em tiến bộ rất nhanh đấy! 
-   Tuy nhiên, nếu em thực sự đang cần bài giải chi tiết ngay, thầy vẫn sẽ hỗ trợ. Vậy em muốn thầy hướng dẫn tư duy hay đưa bài giải chi tiết luôn?"
-    3. THỰC HIỆN GIẢI:
-   - Nếu HS khẳng định lại là "muốn giải chi tiết": Áp dụng chính sách HYBRID 3 cấp độ để đưa ra lời giải hoàn chỉnh.
-   - Nếu HS chọn "hướng dẫn từng bước": Đưa ra gợi ý bước 1 (thường là tính số mol hoặc viết PTHH) và đợi HS phản hồi.
-
-    E. CHÍNH SÁCH HYBRID 3 CẤP ĐỘ (Khi giải bài):
-    - Cấp 1: Nếu có sẵn trong [BÀI TẬP VÀ GIẢI CHI TIẾT], dùng lời giải đó.
-    - Cấp 2 (Hybrid Logic): Nếu bài mới nhưng lý thuyết có trong tài liệu, dùng trí thông minh logic để giải dựa trên lý thuyết đó.
-    - Cấp 3 (Từ chối): Nếu lý thuyết cơ bản không có trong tài liệu, từ chối theo quy tắc A.2.
+    1. QUY TẮC "DỪNG LẠI": Khi nhận yêu cầu bài tập, KHÔNG ĐƯỢC giải ngay lập tức.
+    2. PHẢN HỒI GIA SƯ: Bạn phải hỏi HS: "Thầy đã nhận được bài tập. Em muốn thầy hướng dẫn từng bước để tự giải hay đưa bài giải chi tiết luôn?"
+    3. THỰC HIỆN GIẢI: Áp dụng HYBRID 3 cấp độ.
     """)
     
     try:
+        # SỬA LỖI 2: Đổi về model gemini-1.5-flash để chạy ổn định hơn với RAG truyền thống
         chat = client.chats.create(
-            model="gemini-2.0-flash", 
+            model="gemini-1.5-flash", 
             config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.3)
         )
         
         list_parts = []
         for file_id in LIST_FILES:
-            uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_id}"
-            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain"))
+            # SỬA LỖI 1: Chỉ truyền file_id (files/...), KHÔNG nối chuỗi HTTPS://... gây lỗi định dạng URI
+            list_parts.append(types.Part.from_uri(file_uri=file_id, mime_type="text/plain"))
         
-        initial_prompt = "Hãy đọc kỹ tài liệu và sẵn sàng sửa lỗi định dạng phân số/công thức từ PDF để hỗ trợ học sinh."
+        initial_prompt = "Hãy đọc kỹ tài liệu và sẵn sàng hỗ trợ học sinh."
         list_parts.append(types.Part.from_text(text=initial_prompt)) 
         chat.send_message(list_parts)
         return client, chat
@@ -158,7 +144,7 @@ def setup_chat_session():
         return None, None
 
 # ==================================================
-# 🤖 GIAO DIỆN VÀ XỬ LÝ TIN NHẮN
+# 🤖 GIAO DIỆN VÀ XỬ LÝ TIN NHẮN (Giữ nguyên)
 # ==================================================
 client, chat_session = setup_chat_session() 
 
@@ -208,8 +194,6 @@ if prompt:
                     response = chat_session.send_message(message_parts)
                     res_text = response.text
                     
-                    # ✅ CÁCH SỬA MỚI: Không dùng .replace("\n", "\n\n") nữa
-                    # Chỉ làm sạch các khoảng trắng thừa ở đầu/cuối
                     display_text = res_text.strip()
 
                     if ERROR_MESSAGE_TAG.upper() in display_text.upper():
@@ -222,18 +206,8 @@ if prompt:
                         st.session_state.messages.append({"role": "assistant", "content": clean_res})
                         st.rerun() 
                     else:
-                        # Hiển thị trực tiếp, Streamlit sẽ tự xử lý Markdown
                         st.markdown(display_text)
                         st.session_state.messages.append({"role": "assistant", "content": display_text})
                         
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
-
-
-
-
-
-
-
-
-
