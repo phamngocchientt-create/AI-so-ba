@@ -208,22 +208,27 @@ if prompt:
                     response = chat_session.send_message(message_parts)
                     res_text = response.text
                     
-                    # ✅ PHẦN SỬA LỖI: Kiểm tra tag không phân biệt hoa thường và tự động rerun
-                    if ERROR_MESSAGE_TAG.upper() in res_text.upper():
+                    # ✅ CÁCH SỬA MỚI: Không dùng .replace("\n", "\n\n") nữa
+                    # Chỉ làm sạch các khoảng trắng thừa ở đầu/cuối
+                    display_text = res_text.strip()
+
+                    if ERROR_MESSAGE_TAG.upper() in display_text.upper():
                         if user_question_for_history not in st.session_state.missing_questions:
                             st.session_state.missing_questions.append(user_question_for_history)
                             save_missing_questions(st.session_state.missing_questions)
                         
-                        res_text = res_text.replace(ERROR_MESSAGE_TAG, "").strip()
-                        st.markdown(res_text)
-                        st.session_state.messages.append({"role": "assistant", "content": res_text})
-                        st.rerun() # Tự động cập nhật sidebar
+                        clean_res = display_text.replace(ERROR_MESSAGE_TAG, "").strip()
+                        st.markdown(clean_res)
+                        st.session_state.messages.append({"role": "assistant", "content": clean_res})
+                        st.rerun() 
                     else:
-                        st.markdown(res_text)
-                        st.session_state.messages.append({"role": "assistant", "content": res_text})
+                        # Hiển thị trực tiếp, Streamlit sẽ tự xử lý Markdown
+                        st.markdown(display_text)
+                        st.session_state.messages.append({"role": "assistant", "content": display_text})
                         
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
+
 
 
 
