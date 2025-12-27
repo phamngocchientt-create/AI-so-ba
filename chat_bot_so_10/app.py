@@ -8,7 +8,7 @@ import json
 # ==================================================
 # 📌 BƯỚC 1: DANH SÁCH FILE ID (Giữ nguyên)
 # ==================================================
-LIST_FILES = ['files/0n83iqs1kqdb', 'files/s9nom7asb5fc']
+LIST_FILES = ['files/wqu0kuc4m160', 'files/gd22b8nu4xrd']
 # ==================================================
 
 STORAGE_FILE = "missing_questions.json"
@@ -51,7 +51,7 @@ if "missing_questions" not in st.session_state:
 
 with st.sidebar:
     st.success(f"✅ Đã kết nối {len(LIST_FILES)} tài liệu.")
-    st.info("🤖 Model: gemini-1.5-flash")
+    st.info("🤖 Model: gemini-2.0-flash")
     st.markdown("---")
     st.header("📝 Câu hỏi Cần Bổ Sung Tài liệu")
     
@@ -226,6 +226,7 @@ if prompt:
                         
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
+
 
 
 
