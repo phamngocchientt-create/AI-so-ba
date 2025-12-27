@@ -136,8 +136,7 @@ def setup_chat_session():
     - Cấp 3 (Từ chối): Nếu lý thuyết cơ bản không có trong tài liệu, từ chối theo quy tắc A.2.
     """)   
    
-    try:
-        # SỬA LỖI 1: Để chạy ổn định nhất trên thư viện genai mới, dùng model ID chuẩn
+        try:
         chat = client.chats.create(
             model="gemini-1.5-flash", 
             config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.3)
@@ -145,8 +144,8 @@ def setup_chat_session():
         
         list_parts = []
         for file_id in LIST_FILES:
-            # SỬA LỖI 2: Với SDK mới, chỉ truyền file_id (files/...), KHÔNG dùng URL https://...
-            list_parts.append(types.Part.from_uri(file_uri=file_id, mime_type="text/plain"))
+            uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_id}"
+            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain"))
         
         initial_prompt = "Hãy đọc kỹ tài liệu và sẵn sàng sửa lỗi định dạng phân số/công thức từ PDF để hỗ trợ học sinh."
         list_parts.append(types.Part.from_text(text=initial_prompt)) 
@@ -227,6 +226,7 @@ if prompt:
                         
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
+
 
 
 
