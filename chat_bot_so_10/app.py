@@ -134,8 +134,8 @@ def setup_chat_session():
     - Cấp 1: Nếu có sẵn trong [BÀI TẬP VÀ GIẢI CHI TIẾT], dùng lời giải đó.
     - Cấp 2 (Hybrid Logic): Nếu bài mới nhưng lý thuyết có trong tài liệu, dùng trí thông minh logic để giải dựa trên lý thuyết đó.
     - Cấp 3 (Từ chối): Nếu lý thuyết cơ bản không có trong tài liệu, từ chối theo quy tắc A.2.
-    """)   
-   
+    """)
+    
     try:
         chat = client.chats.create(
             model="gemini-2.0-flash", 
@@ -226,13 +226,6 @@ if prompt:
                         
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
-
-
-
-
-
-
-
 
 
 
