@@ -138,7 +138,7 @@ def setup_chat_session():
    
         try:
         chat = client.chats.create(
-            model="gemini-1.5-flash", 
+            model="gemini-2.0-flash", 
             config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.3)
         )
         
@@ -226,6 +226,7 @@ if prompt:
                         
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
+
 
 
 
