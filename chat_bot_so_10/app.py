@@ -8,7 +8,7 @@ import json
 # ==================================================
 # 📌 BƯỚC 1: DANH SÁCH FILE ID (Giữ nguyên)
 # ==================================================
-LIST_FILES = ['files/vz7g6umjllqi', 'files/ec61ovzbypnz']
+LIST_FILES = ['files/d8vgygo19gj4', 'files/n89rpojvwe8z']
 # ==================================================
 
 STORAGE_FILE = "missing_questions.json"
@@ -226,6 +226,7 @@ if prompt:
                         
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
+
 
 
 
