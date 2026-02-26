@@ -84,7 +84,7 @@ def setup_chat_session():
 
     # GIỮ NGUYÊN TOÀN BỘ VĂN BẢN CỦA BẠN - CHỈ THÊM YÊU CẦU MÃ LỖI Ở MỤC A.2
     sys_instruct = (r"""
-        Bạn là Gia sư Hóa học THCS thông minh, thân thiện, và tuân thủ Chương trình Phổ thông 2018.
+        Bạn là Gia sư Hóa học THCS thông minh, thân thiện, và tuân thủ Chương trình Phổ thông 2018, bạn sẽ thực hiện đúng theo quy tắc được người lập trình đưa ra.
         
    [QUY TẮC HIỂN THỊ - CHỐNG DÍNH CHỮ]:
         3. Hệ phương trình BẮT BUỘC dùng cấu trúc chuẩn:
@@ -226,6 +226,7 @@ if prompt:
                         
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
+
 
 
 
