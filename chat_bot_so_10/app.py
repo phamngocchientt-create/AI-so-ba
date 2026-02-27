@@ -6,92 +6,80 @@ import json
 from datetime import datetime
 
 # ==================================================
-# 📌 CẤU HÌNH FILE & BIẾN HỆ THỐNG
+# 📌 CẤU HÌNH HỆ THỐNG
 # ==================================================
 LIST_FILES = ['files/suw8ark9dxlc', 'files/iykl36ub3fzf']
 STORAGE_FILE = "missing_questions.json"
-HISTORY_FILE = "chat_history.json" # Lưu lịch sử để không bị mất khi web reload
+HISTORY_FILE = "chat_history.json"  # File lưu trữ lịch sử chat bền vững
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
 ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư viện tài liệu của thầy. {ERROR_MESSAGE_TAG} Em có thể hỏi về một chủ đề khác trong chương trình Hóa học THCS không?"
 PASSWORD_KEY = "CLEAR_PASSWORD" 
 HARDCODED_GREETING = "Xin chào, thầy là Gia sư Hoá học THCS, em có câu hỏi nào cho thầy không"
 
-# --- HÀM XỬ LÝ LƯU TRỮ CÂU HỎI THIẾU ---
-def load_missing_questions():
-    if os.path.exists(STORAGE_FILE):
+# --- HÀM XỬ LÝ JSON (Đọc/Ghi từ file để không mất dữ liệu) ---
+def load_data(file_path, default_value):
+    if os.path.exists(file_path):
         try:
-            with open(STORAGE_FILE, 'r', encoding='utf-8') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
-        except: return []
-    return []
+        except: return default_value
+    return default_value
 
-def save_missing_questions(questions_list):
-    with open(STORAGE_FILE, 'w', encoding='utf-8') as f:
-        json.dump(questions_list, f, ensure_ascii=False, indent=4)
-
-# --- HÀM XỬ LÝ LỊCH SỬ CHAT (CHỐNG MẤT TIN NHẮN) ---
-def load_chat_history():
-    if os.path.exists(HISTORY_FILE):
-        try:
-            with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except: pass
-    return [{"role": "assistant", "content": HARDCODED_GREETING}]
-
-def save_chat_history(messages):
-    with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
-        json.dump(messages, f, ensure_ascii=False, indent=4)
+def save_data(file_path, data):
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
 
 # ==================================================
-# 🏗️ KHỞI TẠO ỨNG DỤNG
+# 🏗️ KHỞI TẠO ỨNG DỤNG STREAMLIT
 # ==================================================
 st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
 st.title("👨‍🔬 Gia sư Hóa học THCS - Phân hóa trình độ")
 
-# Khởi tạo trạng thái từ FILE thay vì RAM
+# Khởi tạo trạng thái từ FILE (Nếu RAM trống thì bốc từ ổ cứng lên)
 if "missing_questions" not in st.session_state:
-    st.session_state.missing_questions = load_missing_questions()
+    st.session_state.missing_questions = load_data(STORAGE_FILE, [])
 
 if "messages" not in st.session_state:
-    st.session_state.messages = load_chat_history()
+    st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
 
 # --- SIDEBAR QUẢN LÝ ---
 with st.sidebar:
     st.success(f"✅ Đã kết nối {len(LIST_FILES)} tài liệu.")
     
+    # Nút xóa lịch sử chat (Chỉ xóa khi chủ động nhấn)
     if st.button("🗑️ Xóa lịch sử Chat"):
         st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
-        save_chat_history(st.session_state.messages)
+        save_data(HISTORY_FILE, st.session_state.messages)
         st.rerun()
 
     st.markdown("---")
     st.header("📝 Câu hỏi Cần Bổ Sung")
     
-    # Hiển thị danh sách câu hỏi lỗi
     if st.session_state.missing_questions:
         for i, q in enumerate(st.session_state.missing_questions):
             st.markdown(f"**{i+1}.** {q}")
         
         with st.form("clear_form"):
-            password = st.text_input("Mật khẩu để xóa", type="password")
+            password = st.text_input("Mật khẩu để xóa danh sách lỗi", type="password")
             if st.form_submit_button("Xóa Toàn bộ Log"):
                 if password == st.secrets.get(PASSWORD_KEY, "admin123"):
                     st.session_state.missing_questions = []
-                    save_missing_questions([])
-                    st.success("✅ Đã dọn dẹp!")
+                    save_data(STORAGE_FILE, [])
+                    st.success("✅ Đã xóa!")
                     st.rerun()
                 else: st.error("❌ Sai mật khẩu.")
     else:
         st.write("Không có câu hỏi nào cần bổ sung.")
 
-# --- CẤU HÌNH CHAT SESSION (CHỈ CHẠY 1 LẦN) ---
+# --- CẤU HÌNH CHAT SESSION (Dùng cache_resource để nạp tài liệu 1 lần duy nhất) ---
 @st.cache_resource
 def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key: return None, None 
 
     client = genai.Client(api_key=api_key)
-    # Giữ nguyên prompt cũ của bạn nhưng giảm temperature để bot bớt "chém gió"
+    
+    # Giữ nguyên System Instruction tâm huyết của bạn
     sys_instruct = (r"""
         Bạn là Gia sư Hóa học THCS thông minh, thân thiện, và tuân thủ Chương trình Phổ thông 2018, bạn sẽ thực hiện đúng theo quy tắc được người lập trình đưa ra.
         
@@ -148,12 +136,12 @@ def setup_chat_session():
     try:
         chat = client.chats.create(
             model="gemini-2.0-flash", 
-            config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.1)
+            config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.2)
         )
         
-        # Nạp tài liệu lần đầu
+        # Nạp tài liệu vào phiên chat ngay từ đầu
         list_parts = [types.Part.from_uri(file_uri=f"https://generativelanguage.googleapis.com/v1beta/{f}", mime_type="text/plain") for f in LIST_FILES]
-        list_parts.append(types.Part.from_text(text="Hãy học thuộc tài liệu này. Nếu câu hỏi không có trong đây, trả lời có kèm mã [MISSING_DOC]."))
+        list_parts.append(types.Part.from_text(text="Nạp tài liệu. Nếu kiến thức lý thuyết không có trong đây, dùng mã [MISSING_DOC]."))
         chat.send_message(list_parts)
         return client, chat
     except Exception as e:
@@ -163,7 +151,7 @@ def setup_chat_session():
 client, chat_session = setup_chat_session()
 
 # ==================================================
-# 🤖 XỬ LÝ GIAO DIỆN CHAT
+# 🤖 GIAO DIỆN CHAT
 # ==================================================
 chat_container = st.container()
 
@@ -172,47 +160,43 @@ with chat_container:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-prompt = st.chat_input("Nhập câu hỏi cho thầy...")
+st.markdown("---")
 uploaded_file = st.file_uploader("📷 Gửi ảnh đề bài", type=["jpg", "jpeg", "png"])
+prompt = st.chat_input("Nhập câu hỏi cho thầy...")
 
 if prompt:
     if not client: st.stop()
-    
     cleaned_prompt = prompt.strip()
     message_parts = []
     
-    # Xử lý ảnh nếu có
+    # Xử lý nội dung hiển thị cho User
+    user_display = cleaned_prompt
     if uploaded_file:
         image_part = types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=uploaded_file.type)
         message_parts.append(image_part)
-        display_user_msg = f"📝 (Kèm ảnh) {cleaned_prompt}"
-    else:
-        display_user_msg = cleaned_prompt
+        user_display = f"📝 (Kèm ảnh) {cleaned_prompt}"
 
-    # Lưu và hiển thị câu hỏi của User
-    st.session_state.messages.append({"role": "user", "content": display_user_msg})
-    save_chat_history(st.session_state.messages)
-    
+    # Cập nhật lịch sử vào Session và FILE ngay lập tức
+    st.session_state.messages.append({"role": "user", "content": user_display})
+    save_data(HISTORY_FILE, st.session_state.messages)
+
     with chat_container:
         with st.chat_message("user"):
-            st.markdown(display_user_msg)
+            st.markdown(user_display)
 
-    # Phản hồi của Assistant
     with st.chat_message("assistant"):
-        with st.spinner("Thầy đang suy nghĩ..."):
+        with st.spinner("Thầy đang xem bài..."):
             try:
                 message_parts.append(types.Part.from_text(text=cleaned_prompt))
                 response = chat_session.send_message(message_parts)
                 res_text = response.text.strip()
-                
-                # Kiểm tra lỗi thiếu tài liệu
+
+                # Kiểm tra xem có vi phạm quy tắc nguồn không
                 if ERROR_MESSAGE_TAG.upper() in res_text.upper():
-                    # Đọc file -> Thêm mới -> Lưu (để không mất dữ liệu cũ)
-                    current_missing = load_missing_questions()
-                    if cleaned_prompt not in current_missing:
-                        current_missing.append(f"{datetime.now().strftime('%d/%m')} - {cleaned_prompt}")
-                        save_missing_questions(current_missing)
-                        st.session_state.missing_questions = current_missing
+                    # Lưu vào danh sách cần bổ sung (không lưu trùng)
+                    if cleaned_prompt not in st.session_state.missing_questions:
+                        st.session_state.missing_questions.append(cleaned_prompt)
+                        save_data(STORAGE_FILE, st.session_state.missing_questions)
                     
                     final_res = ERROR_MESSAGE
                 else:
@@ -220,7 +204,7 @@ if prompt:
 
                 st.markdown(final_res)
                 st.session_state.messages.append({"role": "assistant", "content": final_res})
-                save_chat_history(st.session_state.messages) # Lưu lại ngay lập tức
+                save_data(HISTORY_FILE, st.session_state.messages) # Lưu lại để không mất
                 
             except Exception as e:
-                st.error(f"Lỗi kết nối: {e}")
+                st.error(f"Lỗi: {e}")
