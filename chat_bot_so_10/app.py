@@ -133,25 +133,31 @@ Khi nhận đề bài (số liệu/hình ảnh):
 client, chat_session = setup_chat_session() 
 
 # ==================================================
-# 🤖 GIAO DIỆN VÀ XỬ LÝ TIN NHẮN
+# 🤖 GIAO DIỆN VÀ XỬ LÝ TIN NHẮN (ĐÃ CẬP NHẬT CỐ ĐỊNH VỊ TRÍ)
 # ==================================================
-chat_container = st.container()
 
-with chat_container:
+# 1. Tạo container cho lịch sử chat - Container này phải nằm TRÊN khung upload
+chat_placeholder = st.container()
+
+# 2. Hiển thị lịch sử chat từ file/session vào trong container
+with chat_placeholder:
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
+# 3. Khu vực nhập liệu luôn nằm DƯỚI container chat
 st.markdown("---")
+# Đặt file_uploader ở đây để nó luôn xuất hiện sau cùng của đoạn chat
 uploaded_file = st.file_uploader("📷 Chụp hoặc gửi ảnh đề bài", type=["jpg", "jpeg", "png"], key="fixed_bottom_uploader")
 prompt = st.chat_input("Nhập câu hỏi cho thầy...")
 
+# 4. Xử lý logic khi có câu hỏi mới
 if prompt:
     if not client: st.stop()
     cleaned_prompt = prompt.strip()
     message_parts = []
     
-    # Xử lý hiển thị tin nhắn User
+    # Xử lý nội dung User (Có ảnh hoặc không)
     user_msg_content = cleaned_prompt
     if uploaded_file:
         image_part = types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=uploaded_file.type)
@@ -162,33 +168,37 @@ if prompt:
     st.session_state.messages.append({"role": "user", "content": user_msg_content})
     save_data(HISTORY_FILE, st.session_state.messages)
 
-    with chat_container:
+    # Hiển thị câu hỏi mới vào container chat ngay lập tức
+    with chat_placeholder:
         with st.chat_message("user"):
             if uploaded_file: st.image(uploaded_file, width=300)
             st.markdown(cleaned_prompt)
 
-    with st.chat_message("assistant"):
-        with st.spinner("Thầy đang xem bài..."):
-            try:
-                message_parts.append(types.Part.from_text(text=cleaned_prompt))
-                response = chat_session.send_message(message_parts)
-                res_text = response.text.strip()
-                
-                if ERROR_MESSAGE_TAG.upper() in res_text.upper():
-                    # Lưu log lỗi (Không trùng lặp)
-                    if cleaned_prompt not in st.session_state.missing_questions:
-                        st.session_state.missing_questions.append(cleaned_prompt)
-                        save_data(STORAGE_FILE, st.session_state.missing_questions)
+        # Xử lý phản hồi của Assistant
+        with st.chat_message("assistant"):
+            with st.spinner("Thầy đang xem bài..."):
+                try:
+                    message_parts.append(types.Part.from_text(text=cleaned_prompt))
+                    response = chat_session.send_message(message_parts)
+                    res_text = response.text.strip()
                     
-                    final_res = ERROR_MESSAGE
-                else:
-                    final_res = res_text
+                    if ERROR_MESSAGE_TAG.upper() in res_text.upper():
+                        if cleaned_prompt not in st.session_state.missing_questions:
+                            st.session_state.missing_questions.append(cleaned_prompt)
+                            save_data(STORAGE_FILE, st.session_state.missing_questions)
+                        final_res = ERROR_MESSAGE
+                    else:
+                        final_res = res_text
 
-                st.markdown(final_res)
-                # Lưu phản hồi thầy vào lịch sử
-                st.session_state.messages.append({"role": "assistant", "content": final_res})
-                save_data(HISTORY_FILE, st.session_state.messages)
-                
-            except Exception as e:
-                st.error(f"Lỗi: {e}")
+                    st.markdown(final_res)
+                    # Lưu phản hồi thầy vào lịch sử
+                    st.session_state.messages.append({"role": "assistant", "content": final_res})
+                    save_data(HISTORY_FILE, st.session_state.messages)
+                    
+                    # Rerun để dọn dẹp khung upload và đẩy lịch sử chat lên trên khung input
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"Lỗi: {e}")
+
 
