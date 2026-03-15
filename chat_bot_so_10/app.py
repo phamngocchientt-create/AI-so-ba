@@ -8,7 +8,7 @@ import json
 # ==================================================
 # 📌 CẤU HÌNH HỆ THỐNG
 # ==================================================
-LIST_FILES = ['files/vj9ws9ustydy', 'files/k2sjeb97vbv6']
+LIST_FILES = ['files/db3g2p3cmim6', 'files/u2cbf53xuyif']
 STORAGE_FILE = "missing_questions.json"
 HISTORY_FILE = "chat_history.json"  # File mới để lưu lịch sử chat
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
@@ -213,6 +213,7 @@ if prompt:
                     
                 except Exception as e:
                     st.error(f"Lỗi: {e}")
+
 
 
 
