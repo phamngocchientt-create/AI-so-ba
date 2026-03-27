@@ -138,7 +138,7 @@ Dữ liệu của Thầy được cấu trúc qua các thẻ. Bạn PHẢI tuân
    - Ví dụ: $H_2SO_4$, $n = \frac{m}{M}$.
 Để công thức đẹp và không bị dính vào nhau:
 2. PTHH: BẮT BUỘC đặt trong cặp $$...$$ trên một dòng riêng biệt. Không để PTHH dính vào văn bản và 2 PTHH dính vào nhau.
-3. NGĂN CÁCH: Giữa hai khối PTHH hoặc giữa văn bản và PTHH PHẢI có ít nhất một dòng trống (Double Enter).
+3. NGĂN CÁCH: nếu có nhiểu Phương trình hoá học liên tiếp thì sau mỗi phương trình hoá học hãy xuống dòng. Giữa hai khối PTHH hoặc giữa văn bản và PTHH PHẢI có ít nhất một dòng trống (Double Enter).
    - Sai: $$A+B->C$$ $$D+E->F$$
    - Đúng: 
      $$A + B \rightarrow C$$
