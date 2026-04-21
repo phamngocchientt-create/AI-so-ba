@@ -4,12 +4,13 @@ from google.genai import types
 import os
 import io 
 import json 
-import time  # Thêm thư viện thời gian để chống lỗi 429
+import time
 
 # ==================================================
 # 📌 CẤU HÌNH HỆ THỐNG
 # ==================================================
-LIST_FILES = ['files/qtkb5el1kzuo', 'files/99c3izk5v98v']
+# Lưu ý: Thầy để 2 file .txt vào thư mục files/ trong project nhé
+LIST_FILES_LOCAL = ['files/qtkb5el1kzuo.txt', 'files/99c3izk5v98v.txt'] 
 STORAGE_FILE = "missing_questions.json"
 HISTORY_FILE = "chat_history.json" 
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
@@ -45,7 +46,7 @@ if "messages" not in st.session_state:
     st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
 
 with st.sidebar:
-    st.success(f"✅ Đã kết nối {len(LIST_FILES)} tài liệu.")
+    st.success(f"✅ Đã kết nối tri thức từ thư viện.")
     if st.button("🗑️ Xóa lịch sử Chat"):
         st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
         save_data(HISTORY_FILE, st.session_state.messages)
@@ -69,17 +70,25 @@ with st.sidebar:
         st.write("Không có câu hỏi nào cần bổ sung.")
 
 # ==================================================
-# ⚙️ CẤU HÌNH CHAT SESSION (ĐÃ FIX LỖI 429 & 404)
+# ⚙️ CẤU HÌNH CHAT SESSION (PHƯƠNG PHÁP NẠP TRỰC TIẾP - CHỐNG LỖI 429)
 # ==================================================
 @st.cache_resource
 def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key: return None, None 
 
-    # Sửa lỗi 404 bằng cách ép đúng version cho SDK mới
+    # Ép dùng v1beta để ổn định cho cả Gemini 2.0 và 1.5
     client = genai.Client(api_key=api_key, http_options={'api_version': 'v1beta'})
     
-    sys_instruct = (r"""
+    # ĐỌC NỘI DUNG FILE VĂN BẢN (Đây là chìa khóa để hết lỗi 429)
+    knowledge_text = ""
+    for file_path in LIST_FILES_LOCAL:
+        if os.path.exists(file_path):
+            with open(file_path, "r", encoding="utf-8") as f:
+                knowledge_text += f"\n--- NỘI DUNG TỪ FILE {file_path} ---\n"
+                knowledge_text += f.read() + "\n"
+
+    sys_instruct = (f"""
 # 🎭 VAI TRÒ & DANH TÍNH
 Bạn là "Gia sư ảo" chuyên phân môn Hóa học THCS, hoạt động theo kiến thức chương trình GDPT 2018, lưu ý hãy sử dụng danh pháp quốc tế theo chương trình GDPT 2018. 
 - Phong cách: Một thầy giáo tâm huyết, xưng "Thầy", gọi "Em". 
@@ -91,9 +100,9 @@ Khi học sinh hỏi bài tập, bạn không được giải ngay. Hãy thực 
 
 ## Bước 1: Chào đón & Chẩn đoán
 Xác định dạng bài và khen ngợi sự chủ động của em. Sau đó, đưa ra 3 lựa chọn để em quyết định cách học:
-- Lựa chọn A: Thầy hướng dẫn em tư duy từng bước một (Khuyên dùng để hiểu sâu).
-- Lựa chọn B: Thầy đưa ra "bản đồ" (phác thảo các bước giải) để em tự đi.
-- Lựa chọn C: Thầy đưa bài giải chi tiết để em đối chiếu (Chỉ dùng khi em thực sự bí).
+- **Lựa chọn A:** Thầy hướng dẫn em tư duy từng bước một (Khuyên dùng để hiểu sâu).
+- **Lựa chọn B:** Thầy đưa ra "bản đồ" (phác thảo các bước giải) để em tự đi.
+- **Lựa chọn C:** Thầy đưa bài giải chi tiết để em đối chiếu (Chỉ dùng khi em thực sự bí).
 
 ## Bước 2: Dẫn dắt (Nếu em chọn A hoặc B)
 - Tuyệt đối không làm thay các phép tính cộng, trừ, nhân, chia. 
@@ -131,47 +140,41 @@ Dữ liệu của Thầy được cấu trúc qua các thẻ. Bạn PHẢI tuân
 
 # 📐 QUY TẮC HIỂN THỊ & LATEX (BẮT BUỘC)
 Để tránh lỗi hiển thị code và dính chữ, bạn phải tuân thủ:
-1. Công thức hóa học/Toán học: Phải bọc trong $...$ hoặc $$...$$. 
+1. Công thức hóa học/Toán học: Phải bọc trong $...$ (nếu ở cùng dòng) hoặc $$...$$ (nếu đứng riêng). 
    - Ví dụ: $H_2SO_4$, $n = \frac{m}{M}$.
-2. PTHH: BẮT BUỘC đặt trong cặp $$...$$ trên một dòng riêng biệt.
-3. NGĂN CÁCH: Sau mỗi phương trình hoá học hãy xuống dòng. Giữa văn bản và PTHH PHẢI có ít nhất một dòng trống.
-4. Đơn vị: Viết bình thường: 10 g, 0,5 mol.
-5. Tuyệt đối: Không hiển thị mã code thô.
+Để công thức đẹp và không bị dính vào nhau:
+2. PTHH: BẮT BUỘC đặt trong cặp $$...$$ trên một dòng riêng biệt. Không để PTHH dính vào văn bản và 2 PTHH dính vào nhau.
+3. NGĂN CÁCH: nếu có nhiểu Phương trình hoá học liên tiếp thì sau mỗi phương trình hoá học hãy xuống dòng. Giữa hai khối PTHH hoặc giữa văn bản và PTHH PHẢI có ít nhất một dòng trống (Double Enter). Giữa lời giải và công thức hoặc phép tính nên xuống dòng, giữa các công thức hoặc phép tính khác nhau nên xuống dòng.
+   - Sai: $$A+B->C$$ $$D+E->F$$
+   - Đúng: 
+     $$A + B \rightarrow C$$
+     
+     $$D + E \rightarrow F$$
+4. Đơn vị: Không dùng LaTeX cho đơn vị đơn giản (g, mol, L, g/mol). Viết bình thường: 10 g, 0,5 mol.
+5. Tuyệt đối: Không hiển thị các ký hiệu như `\ce`, `\text` hay code MathType thô. Nếu tệp nguồn bị lỗi dính chữ, bạn phải tự dùng tư duy để tách chữ và định dạng lại cho đẹp.
 
 # 📚 QUY TẮC TRI THỨC (RAG & GIỚI HẠN)
-1. NGUỒN KIẾN THỨC: Chỉ trả lời dựa trên kho tri thức (.txt). 
-2. XỬ LÝ KHI THIẾU DỮ LIỆU: Phản hồi "Xin lỗi em, thông tin này hiện chưa có..." và kèm mã [MISSING_DOC].
-3. CHUẨN IUPAC: Luôn dùng danh pháp tiếng Anh và điều kiện chuẩn (24,79 L).
+1. NGUỒN KIẾN THỨC: Chỉ trả lời dựa trên kho tri thức đã được nạp trên thư viện dưới dạng file (.txt). 
+2. XỬ LÝ KHI THIẾU DỮ LIỆU: Nếu câu hỏi nằm ngoài thư viện, hãy phản hồi: "Câu hỏi này rất thú vị, nhưng hiện tại 'kho tàng' của thầy chưa cập nhật chuyên đề này. Thầy sẽ cập nhật tài liệu phần này sớm nhất có thể. Em thử hỏi thầy về các chủ đề khác trong chương trình Hóa 8 - 9 nhé!"
+   - ĐỒNG THỜI: Cuối câu trả lời, hãy thêm thẻ ẩn `[MISSING_TOPIC: Tên chủ đề]` để hệ thống ghi nhận bổ sung tài liệu.
+3. KHÔNG NHẮC ĐẾN TÀI LIỆU NGUỒN: Tuyệt đối không nói "Dựa vào tài liệu thầy cung cấp" hay "Trong file này...". Hãy coi kiến thức đó là kiến thức chung của thầy và em đã học trên lớp.
+4. CHUẨN IUPAC: Luôn dùng danh pháp tiếng Anh (Aluminium, Oxide, Hydrogen...) và điều kiện chuẩn (24,79 L). Chỉ dùng $22,4$ nếu đề bài ghi rõ "đktc" hoặc "điều kiện tiêu chuẩn".
+
+# ⚡ TƯ DUY SUY LUẬN CÓ ĐIỀU KIỆN
+Bạn không phải là máy trích xuất văn bản. Bạn là mô hình ngôn ngữ lớn:
+- Hãy sử dụng khả năng tính toán và logic của mình để giải các bài toán mới dựa trên "Luật" là các công thức trong file.
 
 # ❤️ PHONG CÁCH SƯ PHẠM
-- Ngôn ngữ: Nhẹ nhàng, khích lệ. Kết thúc bằng một câu hỏi gợi mở.
-    """)
+- Ngôn ngữ: Nhẹ nhàng, khích lệ ("Thầy tin em làm được", "Giỏi lắm", "Cố gắng lên nhé").
+- Kết thúc: Luôn kết thúc bằng một câu hỏi gợi mở để duy trì luồng tư duy của học sinh.
+""")
 
     try:
+        # Khởi tạo chat trực tiếp với tri thức đã nạp vào "não"
         chat = client.chats.create(
-            model="gemini-2.0-flash", # Có thể đổi thành "gemini-1.5-flash" nếu 2.0 quá tải
+            model="gemini-2.0-flash", 
             config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.2)
         )
-        
-        # Nạp tài liệu với cơ chế Retry chống lỗi 429
-        list_parts = []
-        for file_id in LIST_FILES:
-            uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_id}"
-            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain"))
-        list_parts.append(types.Part.from_text(text="Nạp tài liệu. Chỉ trả lời dựa trên đây."))
-
-        # Thử nạp tài liệu tối đa 3 lần nếu gặp lỗi 429
-        for attempt in range(3):
-            try:
-                time.sleep(2) # Nghỉ 2 giây để Google không bị "sốc"
-                chat.send_message(list_parts)
-                break 
-            except Exception as e:
-                if "429" in str(e) and attempt < 2:
-                    time.sleep(5) # Đợi 5 giây rồi thử lại lần nữa
-                    continue
-                else: raise e
-
         return client, chat
     except Exception as e:
         st.error(f"❌ Lỗi khởi tạo: {e}")
@@ -217,7 +220,7 @@ if prompt:
                 try:
                     message_parts.append(types.Part.from_text(text=cleaned_prompt))
                     
-                    # Xử lý Retry cho lỗi 429 khi đang chat
+                    # Gọi AI với cơ chế tự thử lại nếu gặp lỗi 429
                     response = None
                     for attempt in range(3):
                         try:
@@ -231,7 +234,7 @@ if prompt:
 
                     res_text = response.text.strip()
                     
-                    if ERROR_MESSAGE_TAG.upper() in res_text.upper():
+                    if ERROR_MESSAGE_TAG in res_text or "[MISSING_DOC]" in res_text:
                         if cleaned_prompt not in st.session_state.missing_questions:
                             st.session_state.missing_questions.append(cleaned_prompt)
                             save_data(STORAGE_FILE, st.session_state.missing_questions)
@@ -245,4 +248,4 @@ if prompt:
                     st.rerun()
                     
                 except Exception as e:
-                    st.error
+                    st.error(f"Lỗi: {e}")
