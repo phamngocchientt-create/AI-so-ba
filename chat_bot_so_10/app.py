@@ -4,19 +4,19 @@ from google.genai import types
 import os
 import io 
 import json 
+import time
 
 # ==================================================
 # 📌 CẤU HÌNH HỆ THỐNG
 # ==================================================
-LIST_FILES = ['files/w16fh68m7t43']
 STORAGE_FILE = "missing_questions.json"
-HISTORY_FILE = "chat_history.json"  # File mới để lưu lịch sử chat
+HISTORY_FILE = "chat_history.json" 
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
 ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư viện tài liệu của thầy. Thầy sẽ sớm cập nhật kiến thức này nhanh nhất có thể. {ERROR_MESSAGE_TAG} Em có thể hỏi về một chủ đề khác trong chương trình Hóa học THCS không?"
 PASSWORD_KEY = "CLEAR_PASSWORD" 
 HARDCODED_GREETING = "Xin chào, thầy là Gia sư Hoá học THCS, em có câu hỏi nào cho thầy không"
 
-# --- HÀM XỬ LÝ JSON (Chống mất dữ liệu) ---
+# --- HÀM XỬ LÝ JSON ---
 def load_data(file_path, default_value):
     if os.path.exists(file_path):
         try:
@@ -37,7 +37,6 @@ def save_data(file_path, data):
 st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
 st.title("👨‍🔬 Gia sư Hóa học THCS - Phân hóa trình độ")
 
-# Khởi tạo trạng thái từ FILE thay vì RAM trống
 if "missing_questions" not in st.session_state:
     st.session_state.missing_questions = load_data(STORAGE_FILE, [])
 
@@ -45,9 +44,10 @@ if "messages" not in st.session_state:
     st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
 
 with st.sidebar:
-    st.success(f"✅ Đã kết nối {len(LIST_FILES)} tài liệu.")
+    # Tự động quét và báo cáo số lượng tài liệu .txt trong thư mục files/
+    txt_files = [f for f in os.listdir("files") if f.endswith(".txt")] if os.path.exists("files") else []
+    st.success(f"✅ Đã kết nối {len(txt_files)} tài liệu tri thức.")
     
-    # Nút xóa lịch sử (Dành cho học sinh muốn bắt đầu lại)
     if st.button("🗑️ Xóa lịch sử Chat"):
         st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
         save_data(HISTORY_FILE, st.session_state.messages)
@@ -55,11 +55,9 @@ with st.sidebar:
 
     st.markdown("---")
     st.header("📝 Câu hỏi Cần Bổ Sung")
-    
     if st.session_state.missing_questions:
         for i, q in enumerate(st.session_state.missing_questions):
             st.markdown(f"**{i+1}.** {q}")
-        
         with st.form("clear_form"):
             password = st.text_input("Mật khẩu để xóa", type="password")
             if st.form_submit_button("Xóa Toàn bộ"):
@@ -73,17 +71,28 @@ with st.sidebar:
         st.write("Không có câu hỏi nào cần bổ sung.")
 
 # ==================================================
-# ⚙️ CẤU HÌNH CHAT SESSION (NẠP TÀI LIỆU 1 LẦN)
+# ⚙️ CẤU HÌNH CHAT SESSION (NẠP TRỰC TIẾP - CHỐNG LỖI 429)
 # ==================================================
 @st.cache_resource
 def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key: return None, None 
 
-    client = genai.Client(api_key=api_key)
+    # Dùng v1beta để hỗ trợ tốt nhất cho Gemini 2.0
+    client = genai.Client(api_key=api_key, http_options={'api_version': 'v1beta'})
     
-    # Giữ nguyên System Instruction tâm huyết của bạn
-    sys_instruct = (r"""
+    # --- ĐỌC TÀI LIỆU TRỰC TIẾP TỪ THƯ MỤC FILES/ ---
+    knowledge_base = ""
+    if os.path.exists("files"):
+        for filename in os.listdir("files"):
+            if filename.endswith(".txt"):
+                try:
+                    with open(os.path.join("files", filename), "r", encoding="utf-8") as f:
+                        knowledge_base += f"\n\n--- DỮ LIỆU TỪ FILE {filename} ---\n" + f.read()
+                except: pass
+
+    # --- GIỮ NGUYÊN PROMPT CỦA THẦY ---
+    prompt_engineering = (r"""
 # 🎭 VAI TRÒ & DANH TÍNH
 Bạn là "Gia sư ảo" chuyên phân môn Hóa học THCS, hoạt động theo kiến thức chương trình GDPT 2018, lưu ý hãy sử dụng danh pháp quốc tế theo chương trình GDPT 2018. 
 - Phong cách: Một thầy giáo tâm huyết, xưng "Thầy", gọi "Em". 
@@ -135,50 +144,30 @@ Dữ liệu của Thầy được cấu trúc qua các thẻ. Bạn PHẢI tuân
 
 # 📐 QUY TẮC HIỂN THỊ & LATEX (BẮT BUỘC)
 Để tránh lỗi hiển thị code và dính chữ, bạn phải tuân thủ:
-1. Công thức hóa học/Toán học: Phải bọc trong $...$ (nếu ở cùng dòng) hoặc $$...$$ (nếu đứng riêng). 
+1. Công thức hóa học/Toán học: Phải bọc trong $...$ hoặc $$...$$. 
    - Ví dụ: $H_2SO_4$, $n = \frac{m}{M}$.
-Để công thức đẹp và không bị dính vào nhau:
-2. PTHH: BẮT BUỘC đặt trong cặp $$...$$ trên một dòng riêng biệt. Không để PTHH dính vào văn bản và 2 PTHH dính vào nhau.
-3. NGĂN CÁCH: nếu có nhiểu Phương trình hoá học liên tiếp thì sau mỗi phương trình hoá học hãy xuống dòng. Giữa hai khối PTHH hoặc giữa văn bản và PTHH PHẢI có ít nhất một dòng trống (Double Enter). Giữa lời giải và công thức hoặc phép tính nên xuống dòng, giữa các công thức hoặc phép tính khác nhau nên xuống dòng.
-   - Sai: $$A+B->C$$ $$D+E->F$$
-   - Đúng: 
-     $$A + B \rightarrow C$$
-     
-     $$D + E \rightarrow F$$
-4. Đơn vị: Không dùng LaTeX cho đơn vị đơn giản (g, mol, L, g/mol). Viết bình thường: 10 g, 0,5 mol.
-5. Tuyệt đối: Không hiển thị các ký hiệu như `\ce`, `\text` hay code MathType thô. Nếu tệp nguồn bị lỗi dính chữ, bạn phải tự dùng tư duy để tách chữ và định dạng lại cho đẹp.
+2. PTHH: BẮT BUỘC đặt trong cặp $$...$$ trên một dòng riêng biệt. Không để PTHH dính vào văn bản.
+3. NGĂN CÁCH: Giữa hai khối PTHH hoặc giữa văn bản và PTHH PHẢI có ít nhất một dòng trống.
+4. Đơn vị: Viết bình thường: 10 g, 0,5 mol.
+5. Tuyệt đối: Không hiển thị mã code thô.
 
 # 📚 QUY TẮC TRI THỨC (RAG & GIỚI HẠN)
-1. NGUỒN KIẾN THỨC: Chỉ trả lời dựa trên kho tri thức đã được nạp trên thư viện dưới dạng file (.txt). 
-2. XỬ LÝ KHI THIẾU DỮ LIỆU: Nếu câu hỏi nằm ngoài thư viện, hãy phản hồi: "Câu hỏi này rất thú vị, nhưng hiện tại 'kho tàng' của thầy chưa cập nhật chuyên đề này. Thầy sẽ cập nhật tài liệu phần này sớm nhất có thể. Em thử hỏi thầy về các chủ đề khác trong chương trình Hóa 8 - 9 nhé!"
-   - ĐỒNG THỜI: Cuối câu trả lời, hãy thêm thẻ ẩn `[MISSING_TOPIC: Tên chủ đề]` để hệ thống ghi nhận bổ sung tài liệu.
-3. KHÔNG NHẮC ĐẾN TÀI LIỆU NGUỒN: Tuyệt đối không nói "Dựa vào tài liệu thầy cung cấp" hay "Trong file này...". Hãy coi kiến thức đó là kiến thức chung của thầy và em đã học trên lớp.
-4. CHUẨN IUPAC: Luôn dùng danh pháp tiếng Anh (Aluminium, Oxide, Hydrogen...) và điều kiện chuẩn (24,79 L). Chỉ dùng $22,4$ nếu đề bài ghi rõ "đktc" hoặc "điều kiện tiêu chuẩn".
-
-# ⚡ TƯ DUY SUY LUẬN CÓ ĐIỀU KIỆN
-Bạn không phải là máy trích xuất văn bản. Bạn là mô hình ngôn ngữ lớn:
-- Hãy sử dụng khả năng tính toán và logic của mình để giải các bài toán mới dựa trên "Luật" là các công thức trong file.
+1. NGUỒN KIẾN THỨC: Chỉ trả lời dựa trên kho tri thức đã được nạp bên dưới. 
+2. XỬ LÝ KHI THIẾU DỮ LIỆU: Phản hồi theo mẫu ERROR_MESSAGE đã định và kèm mã [MISSING_DOC].
+3. CHUẨN IUPAC: Luôn dùng danh pháp tiếng Anh và điều kiện chuẩn (24,79 L).
 
 # ❤️ PHONG CÁCH SƯ PHẠM
-- Ngôn ngữ: Nhẹ nhàng, khích lệ ("Thầy tin em làm được", "Giỏi lắm", "Cố gắng lên nhé").
-- Kết thúc: Luôn kết thúc bằng một câu hỏi gợi mở để duy trì luồng tư duy của học sinh.
-
+- Ngôn ngữ: Nhẹ nhàng, khích lệ. Kết thúc bằng một câu hỏi gợi mở.
     """)
+
+    # Kết hợp Prompt và Tài liệu (Dùng dấu + để an toàn tuyệt đối với dấu ngoặc nhọn LaTeX)
+    full_instruction = prompt_engineering + "\n\n# 📚 KHO TRI THỨC ĐƯỢC NẠP (DỮ LIỆU GỐC):\n" + knowledge_base
 
     try:
         chat = client.chats.create(
             model="gemini-2.0-flash", 
-            config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.2)
+            config=types.GenerateContentConfig(system_instruction=full_instruction, temperature=0.2)
         )
-        
-        # Nạp tài liệu vào phiên chat ngay từ đầu
-        list_parts = []
-        for file_id in LIST_FILES:
-            uri_path = f"https://generativelanguage.googleapis.com/v1beta/{file_id}"
-            list_parts.append(types.Part.from_uri(file_uri=uri_path, mime_type="text/plain"))
-        
-        list_parts.append(types.Part.from_text(text="Nạp tài liệu. Chỉ trả lời dựa trên đây. Nếu thiếu dùng mã [MISSING_DOC]."))
-        chat.send_message(list_parts)
         return client, chat
     except Exception as e:
         st.error(f"❌ Lỗi khởi tạo: {e}")
@@ -187,53 +176,55 @@ Bạn không phải là máy trích xuất văn bản. Bạn là mô hình ngôn
 client, chat_session = setup_chat_session() 
 
 # ==================================================
-# 🤖 GIAO DIỆN VÀ XỬ LÝ TIN NHẮN (ĐÃ CẬP NHẬT CỐ ĐỊNH VỊ TRÍ)
+# 🤖 GIAO DIỆN VÀ XỬ LÝ TIN NHẮN
 # ==================================================
-
-# 1. Tạo container cho lịch sử chat - Container này phải nằm TRÊN khung upload
 chat_placeholder = st.container()
 
-# 2. Hiển thị lịch sử chat từ file/session vào trong container
 with chat_placeholder:
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-# 3. Khu vực nhập liệu luôn nằm DƯỚI container chat
 st.markdown("---")
-# Đặt file_uploader ở đây để nó luôn xuất hiện sau cùng của đoạn chat
 uploaded_file = st.file_uploader("📷 Chụp hoặc gửi ảnh đề bài", type=["jpg", "jpeg", "png"], key="fixed_bottom_uploader")
 prompt = st.chat_input("Nhập câu hỏi cho thầy...")
 
-# 4. Xử lý logic khi có câu hỏi mới
 if prompt:
     if not client: st.stop()
     cleaned_prompt = prompt.strip()
     message_parts = []
     
-    # Xử lý nội dung User (Có ảnh hoặc không)
     user_msg_content = cleaned_prompt
     if uploaded_file:
         image_part = types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=uploaded_file.type)
         message_parts.append(image_part)
         user_msg_content = f"📝 (Kèm ảnh) {cleaned_prompt}"
     
-    # Lưu vào lịch sử (RAM + FILE)
     st.session_state.messages.append({"role": "user", "content": user_msg_content})
     save_data(HISTORY_FILE, st.session_state.messages)
 
-    # Hiển thị câu hỏi mới vào container chat ngay lập tức
     with chat_placeholder:
         with st.chat_message("user"):
             if uploaded_file: st.image(uploaded_file, width=300)
             st.markdown(cleaned_prompt)
 
-        # Xử lý phản hồi của Assistant
         with st.chat_message("assistant"):
             with st.spinner("Thầy đang xem bài..."):
                 try:
                     message_parts.append(types.Part.from_text(text=cleaned_prompt))
-                    response = chat_session.send_message(message_parts)
+                    
+                    # Cơ chế Tự động thử lại (Retry) nếu học sinh hỏi quá nhanh gây lỗi 429
+                    response = None
+                    for attempt in range(3):
+                        try:
+                            response = chat_session.send_message(message_parts)
+                            break
+                        except Exception as e:
+                            if "429" in str(e) and attempt < 2:
+                                time.sleep(5)
+                                continue
+                            else: raise e
+
                     res_text = response.text.strip()
                     
                     if ERROR_MESSAGE_TAG.upper() in res_text.upper():
@@ -245,21 +236,9 @@ if prompt:
                         final_res = res_text
 
                     st.markdown(final_res)
-                    # Lưu phản hồi thầy vào lịch sử
                     st.session_state.messages.append({"role": "assistant", "content": final_res})
                     save_data(HISTORY_FILE, st.session_state.messages)
-                    
-                    # Rerun để dọn dẹp khung upload và đẩy lịch sử chat lên trên khung input
                     st.rerun()
                     
                 except Exception as e:
-                    st.error(f"Lỗi: {e}")
-
-
-
-
-
-
-
-
-
+                    st.error(f"Lỗi kết nối: {e}. Em hãy đợi 10 giây rồi thử lại nhé!")
