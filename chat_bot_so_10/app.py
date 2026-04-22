@@ -14,7 +14,7 @@ HISTORY_FILE = "chat_history.json"
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
 ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư viện tài liệu của thầy. Thầy sẽ sớm cập nhật kiến thức này nhanh nhất có thể. {ERROR_MESSAGE_TAG} Em có thể hỏi về một chủ đề khác trong chương trình Hóa học THCS không?"
 PASSWORD_KEY = "CLEAR_PASSWORD" 
-HARDCODED_GREETING = "Xin chào, thầy là Gia sư Hoá học THCS, em có câu hỏi nào cho thầy không"
+HARDCODED_GREETING = "Xin chào, thầy là Gia sư Hoá học THCS trường Phan Chu Trinh, em có câu hỏi nào cho thầy không?"
 
 # --- HÀM XỬ LÝ JSON ---
 def load_data(file_path, default_value):
@@ -35,7 +35,7 @@ def save_data(file_path, data):
 # KHỞI TẠO ỨNG DỤNG STREAMLIT
 # ==================================================
 st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
-st.title("👨‍🔬 Gia sư Hóa học THCS - Phân hóa trình độ")
+st.title("👨‍🔬 Gia sư Hóa học THCS - Phan Chu Trinh")
 
 if "missing_questions" not in st.session_state:
     st.session_state.missing_questions = load_data(STORAGE_FILE, [])
@@ -43,11 +43,72 @@ if "missing_questions" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
 
-with st.sidebar:
-    # Tự động quét và báo cáo số lượng tài liệu .txt trong thư mục files/
-    txt_files = [f for f in os.listdir("files") if f.endswith(".txt")] if os.path.exists("files") else []
-    st.success(f"✅ Đã kết nối {len(txt_files)} tài liệu tri thức.")
+# ==================================================
+# ⚙️ CẤU HÌNH CHAT SESSION (BẢN CƯỜNG HÓA GROUNDING)
+# ==================================================
+@st.cache_resource
+def setup_chat_session():
+    api_key = st.secrets.get("GEMINI_API_KEY")
+    if not api_key: return None, None, 0
+
+    client = genai.Client(api_key=api_key, http_options={'api_version': 'v1beta'})
     
+    # --- ĐỌC TÀI LIỆU TRỰC TIẾP ---
+    knowledge_base = ""
+    if os.path.exists("files"):
+        for filename in os.listdir("files"):
+            if filename.endswith(".txt"):
+                try:
+                    with open(os.path.join("files", filename), "r", encoding="utf-8") as f:
+                        knowledge_base += f"\n\n--- NGUỒN TRI THỨC ({filename}) ---\n" + f.read()
+                except: pass
+
+    # LỆNH ÉP AI TUÂN THỦ DỮ LIỆU FILE (Grounding)
+    strict_rule = (r"""
+# 🚨 QUY TẮC TỐI THƯỢNG
+1. Bạn BẮT BUỘC phải ưu tiên sử dụng thông tin trong phần "KHO TRI THỨC ĐƯỢC NẠP" bên dưới để trả lời.
+2. Nếu câu hỏi của học sinh KHÔNG CÓ trong kho tri thức đó, bạn phải từ chối khéo léo bằng mẫu ERROR_MESSAGE và kèm mã [MISSING_DOC].
+3. TUYỆT ĐỐI KHÔNG dùng kiến thức nâng cao bên ngoài nếu tài liệu không đề cập.
+""")
+
+    # Giữ nguyên Prompt tâm huyết của Thầy
+    prompt_engineering = (r"""
+# 🎭 VAI TRÒ & DANH TÍNH
+Bạn là "Gia sư ảo" chuyên phân môn Hóa học THCS, hoạt động theo kiến thức chương trình GDPT 2018, lưu ý hãy sử dụng danh pháp quốc tế theo chương trình GDPT 2018. 
+- Phong cách: Một thầy giáo tâm huyết, xưng "Thầy", gọi "Em". 
+- Ngôn ngữ: Gần gũi, khích lệ nhưng khoa học, đúng chuẩn sư phạm trường Phan Chu Trinh.
+- Mục tiêu: Không dạy thay, chỉ dẫn dắt để học sinh tự tìm ra ánh sáng tri thức.
+
+# 🎓 CHIẾN LƯỢC SƯ PHẠM (SCAFFOLDING 3 CẤP ĐỘ)
+[... Nội dung 3 lựa chọn A, B, C của Thầy ...]
+
+# 🧩 CHIẾN LƯỢC TRUY XUẤT PHÂN TẦNG (XML TAG LOGIC)
+[... Các quy tắc thẻ <co_ban>, <huong_dan_giai> của Thầy ...]
+
+# 📐 QUY TẮC HIỂN THỊ & LATEX
+[... Các quy tắc bọc $ và $$ của Thầy ...]
+    """)
+
+    # Kết hợp: Lệnh ép -> Prompt Thầy -> Tài liệu
+    full_instruction = strict_rule + prompt_engineering + "\n\n# 📚 KHO TRI THỨC ĐƯỢC NẠP (DỮ LIỆU GỐC):\n" + knowledge_base
+
+    try:
+        chat = client.chats.create(
+            model="gemini-2.0-flash", 
+            config=types.GenerateContentConfig(system_instruction=full_instruction, temperature=0.0)
+        )
+        return client, chat, len(knowledge_base)
+    except Exception as e:
+        st.error(f"❌ Lỗi khởi tạo: {e}")
+        return None, None, 0
+
+client, chat_session, total_chars = setup_chat_session() 
+
+# ==================================================
+# 🤖 GIAO DIỆN BÊN TRÁI (SIDEBAR)
+# ==================================================
+with st.sidebar:
+    st.info(f"📊 Thư viện tri thức: {total_chars} ký tự đã được nạp.")
     if st.button("🗑️ Xóa lịch sử Chat"):
         st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
         save_data(HISTORY_FILE, st.session_state.messages)
@@ -71,112 +132,7 @@ with st.sidebar:
         st.write("Không có câu hỏi nào cần bổ sung.")
 
 # ==================================================
-# ⚙️ CẤU HÌNH CHAT SESSION (NẠP TRỰC TIẾP - CHỐNG LỖI 429)
-# ==================================================
-@st.cache_resource
-def setup_chat_session():
-    api_key = st.secrets.get("GEMINI_API_KEY")
-    if not api_key: return None, None 
-
-    # Dùng v1beta để hỗ trợ tốt nhất cho Gemini 2.0
-    client = genai.Client(api_key=api_key, http_options={'api_version': 'v1beta'})
-    
-    # --- ĐỌC TÀI LIỆU TRỰC TIẾP TỪ THƯ MỤC FILES/ ---
-    knowledge_base = ""
-    if os.path.exists("files"):
-        for filename in os.listdir("files"):
-            if filename.endswith(".txt"):
-                try:
-                    with open(os.path.join("files", filename), "r", encoding="utf-8") as f:
-                        knowledge_base += f"\n\n--- DỮ LIỆU TỪ FILE {filename} ---\n" + f.read()
-                except: pass
-
-    # --- GIỮ NGUYÊN PROMPT CỦA THẦY ---
-    prompt_engineering = (r"""
-# 🎭 VAI TRÒ & DANH TÍNH
-Bạn là "Gia sư ảo" chuyên phân môn Hóa học THCS, hoạt động theo kiến thức chương trình GDPT 2018, lưu ý hãy sử dụng danh pháp quốc tế theo chương trình GDPT 2018. 
-- Phong cách: Một thầy giáo tâm huyết, xưng "Thầy", gọi "Em". 
-- Ngôn ngữ: Gần gũi, khích lệ nhưng khoa học, đúng chuẩn sư phạm trường Phan Chu Trinh.
-- Mục tiêu: Không dạy thay, chỉ dẫn dắt để học sinh tự tìm ra ánh sáng tri thức.
-
-# 🎓 CHIẾN LƯỢC SƯ PHẠM (SCAFFOLDING 3 CẤP ĐỘ)
-Khi học sinh hỏi bài tập, bạn không được giải ngay. Hãy thực hiện theo quy trình:
-
-## Bước 1: Chào đón & Chẩn đoán
-Xác định dạng bài và khen ngợi sự chủ động của em. Sau đó, đưa ra 3 lựa chọn để em quyết định cách học:
-- **Lựa chọn A:** Thầy hướng dẫn em tư duy từng bước một (Khuyên dùng để hiểu sâu).
-- **Lựa chọn B:** Thầy đưa ra "bản đồ" (phác thảo các bước giải) để em tự đi.
-- **Lựa chọn C:** Thầy đưa bài giải chi tiết để em đối chiếu (Chỉ dùng khi em thực sự bí).
-
-## Bước 2: Dẫn dắt (Nếu em chọn A hoặc B)
-- Tuyệt đối không làm thay các phép tính cộng, trừ, nhân, chia. 
-- Hãy hỏi ngược lại: "Để tính số mol của $O_2$, em nhớ công thức nào liên quan đến thể tích ở điều kiện chuẩn không?"
-- Chỉ cung cấp "cần câu", không cung cấp "con cá".
-
-## Bước 3: Kiểm soát chất lượng
-- Nếu học sinh đưa ra kết quả sai, hãy nhẹ nhàng chỉ ra lỗi sai ở bước nào (ví dụ: quên cân bằng, nhầm khối lượng mol).
-- Luôn kết thúc bằng một câu khích lệ và hỏi xem em có muốn thầy giải thích thêm phần nào không.
-
-# 🧩 CHIẾN LƯỢC TRUY XUẤT PHÂN TẦNG (XML TAG LOGIC)
-Dữ liệu của Thầy được cấu trúc qua các thẻ. Bạn PHẢI tuân thủ quy tắc gắp dữ liệu sau:
-
-1. CÂU HỎI KHÁI NIỆM/ĐỊNH NGHĨA:
-   - Ưu tiên: Sử dụng kiến thức trong thẻ `<co_ban>`.
-   - HÀNH ĐỘNG: TRẢ LỜI TRỰC TIẾP và ĐẦY ĐỦ. Không hỏi ngược khi học sinh đang cần nạp kiến thức mới. 
-   - Mở rộng: Nếu học sinh hỏi "tại sao" hoặc tỏ ý chưa hiểu, hãy dùng nội dung trong thẻ `<giai_thich>`.
-   - KẾT THÚC: Đưa ra một ví dụ minh họa hoặc một câu hỏi nhỏ để kiểm tra xem học sinh đã hiểu khái niệm đó chưa.
-
-2. CÂU HỎI BÀI TẬP/VẬN DỤNG:
-   - Ưu tiên: Sử dụng nội dung trong thẻ `<huong_dan_giai>`.
-   - Quy tắc thép: Tuyệt đối không trích xuất thẻ `<bai_giai_chi_tiet>` ở lượt trả lời đầu tiên. Hãy dùng thẻ hướng dẫn để tạo "Giàn giáo tri thức" (Scaffolding).
-   - Chỉ đưa `<bai_giai_chi_tiet>` khi học sinh chọn "Lựa chọn C" hoặc đã thử giải nhưng sai hoàn toàn.
-   - Lưu ý khi đưa ra bài giải chi tiết nếu học sinh yêu cầu, thì chỉ đưa ra 1 bài giải với đầy đủ lời giải, công thức áp dụng và phép tính, không ghi các bước nữa (Bước 1, Bước 2, Bước 3,...)
-   - CÁCH LÀM (VẬN DỤNG THÔNG MINH): 
-      * Nếu bài tập đó chưa có mẫu trong file, hãy sử dụng CÔNG THỨC và LÝ THUYẾT có sẵn trong thư viện để phân tích -> Từ đó đưa ra lời giải hợp lí cho HS.
-      * Nhận diện các đại lượng đề bài cho -> Đối chiếu với công thức trong file -> Hướng dẫn học sinh tính toán, giải bài tập. 
-      * Trường hợp nếu là một bài tập quá khó, vượt qua tầm với của bạn, thì hãy từ chối, đừng đưa kiến thức mà bạn ko chắc chắn nó có đúng hay không.
-    - QUY TRÌNH HƯỚNG DẪN:
-      * Chào đón và xác định dạng bài: "Thầy đã nhận được bài của em về [Chủ đề]..."
-      * Gợi mở bước 1: "Để giải bài này, trước hết em hãy nhìn vào công thức [Tên công thức] trong bài học, em thử tính số mol của chất X trước nhé?"
-      * Tuyệt đối KHÔNG đưa bài giải chi tiết ngay từ câu đầu tiên trừ khi học sinh yêu cầu khẩn thiết.
-3. CÂU HỎI MỞ RỘNG/HỌC SINH GIỎI:
-   - Chỉ sử dụng nội dung trong thẻ `<nang_cao>` khi học sinh yêu cầu bài tập khó hoặc hỏi về các trường hợp đặc biệt.
-
-# 📐 QUY TẮC HIỂN THỊ & LATEX (BẮT BUỘC)
-Để tránh lỗi hiển thị code và dính chữ, bạn phải tuân thủ:
-1. Công thức hóa học/Toán học: Phải bọc trong $...$ hoặc $$...$$. 
-   - Ví dụ: $H_2SO_4$, $n = \frac{m}{M}$.
-2. PTHH: BẮT BUỘC đặt trong cặp $$...$$ trên một dòng riêng biệt. Không để PTHH dính vào văn bản.
-3. NGĂN CÁCH: Giữa hai khối PTHH hoặc giữa văn bản và PTHH PHẢI có ít nhất một dòng trống.
-4. Đơn vị: Viết bình thường: 10 g, 0,5 mol.
-5. Tuyệt đối: Không hiển thị mã code thô.
-
-# 📚 QUY TẮC TRI THỨC (RAG & GIỚI HẠN)
-1. NGUỒN KIẾN THỨC: Chỉ trả lời dựa trên kho tri thức đã được nạp bên dưới. 
-2. XỬ LÝ KHI THIẾU DỮ LIỆU: Phản hồi theo mẫu ERROR_MESSAGE đã định và kèm mã [MISSING_DOC].
-3. CHUẨN IUPAC: Luôn dùng danh pháp tiếng Anh và điều kiện chuẩn (24,79 L).
-
-# ❤️ PHONG CÁCH SƯ PHẠM
-- Ngôn ngữ: Nhẹ nhàng, khích lệ. Kết thúc bằng một câu hỏi gợi mở.
-    """)
-
-    # Kết hợp Prompt và Tài liệu (Dùng dấu + để an toàn tuyệt đối với dấu ngoặc nhọn LaTeX)
-    full_instruction = prompt_engineering + "\n\n# 📚 KHO TRI THỨC ĐƯỢC NẠP (DỮ LIỆU GỐC):\n" + knowledge_base
-
-    try:
-        chat = client.chats.create(
-            model="gemini-2.0-flash", 
-            config=types.GenerateContentConfig(system_instruction=full_instruction, temperature=0.2)
-        )
-        return client, chat
-    except Exception as e:
-        st.error(f"❌ Lỗi khởi tạo: {e}")
-        return None, None
-
-client, chat_session = setup_chat_session() 
-
-# ==================================================
-# 🤖 GIAO DIỆN VÀ XỬ LÝ TIN NHẮN
+# 🤖 XỬ LÝ TIN NHẮN
 # ==================================================
 chat_placeholder = st.container()
 
@@ -186,7 +142,7 @@ with chat_placeholder:
             st.markdown(msg["content"])
 
 st.markdown("---")
-uploaded_file = st.file_uploader("📷 Chụp hoặc gửi ảnh đề bài", type=["jpg", "jpeg", "png"], key="fixed_bottom_uploader")
+uploaded_file = st.file_uploader("📷 Gửi ảnh đề bài", type=["jpg", "jpeg", "png"], key="fixed_bottom_uploader")
 prompt = st.chat_input("Nhập câu hỏi cho thầy...")
 
 if prompt:
@@ -213,7 +169,6 @@ if prompt:
                 try:
                     message_parts.append(types.Part.from_text(text=cleaned_prompt))
                     
-                    # Cơ chế Tự động thử lại (Retry) nếu học sinh hỏi quá nhanh gây lỗi 429
                     response = None
                     for attempt in range(3):
                         try:
@@ -241,4 +196,4 @@ if prompt:
                     st.rerun()
                     
                 except Exception as e:
-                    st.error(f"Lỗi kết nối: {e}. Em hãy đợi 10 giây rồi thử lại nhé!")
+                    st.error(f"Lỗi: {e}")
