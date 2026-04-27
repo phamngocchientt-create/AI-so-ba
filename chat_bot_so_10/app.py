@@ -16,7 +16,6 @@ ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư vi�
 PASSWORD_KEY = "CLEAR_PASSWORD" 
 HARDCODED_GREETING = "Xin chào em, thầy là Gia sư Hoá học THCS trường Phan Chu Trinh. Thầy đã sẵn sàng đồng hành cùng em rồi đây!"
 
-# --- HÀM XỬ LÝ DỮ LIỆU ---
 def load_data(file_path, default_value):
     if os.path.exists(file_path):
         try:
@@ -32,7 +31,7 @@ def save_data(file_path, data):
     except: pass
 
 # ==================================================
-# 📌 2. KHỞI TẠO GIAO DIỆN STREAMLIT
+# 📌 2. KHỞI TẠO GIAO DIỆN
 # ==================================================
 st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
 st.title("👨‍🔬 Gia sư Hóa học THCS - Trường Phan Chu Trinh")
@@ -44,18 +43,20 @@ if "messages" not in st.session_state:
     st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
 
 # ==================================================
-# 📌 3. CẤU HÌNH CHAT SESSION (BẢN SƯ PHẠM ĐẸP MẮT)
+# 📌 3. CẤU HÌNH CHAT SESSION (FIX LỖI 429 & ĐỊNH DẠNG)
 # ==================================================
 @st.cache_resource
 def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key: return None, None, 0
 
+    # Dùng v1beta để ổn định nhất
     client = genai.Client(api_key=api_key, http_options={'api_version': 'v1beta'})
     
-    # --- NẠP TÀI LIỆU TỪ THƯ MỤC 'files' ---
+    # Tự động tìm file trong thư mục 'files'
     current_dir = os.path.dirname(os.path.abspath(__file__))
     files_dir = os.path.join(current_dir, "files")
+    
     knowledge_base = ""
     if os.path.exists(files_dir):
         for filename in os.listdir(files_dir):
@@ -65,34 +66,30 @@ def setup_chat_session():
                         knowledge_base += f"\n\n--- DỮ LIỆU FILE {filename} ---\n" + f.read()
                 except: pass
 
-    # --- NỘI DUNG PROMPT ENGINEERING (ĐÃ TỐI ƯU HIỂN THỊ) ---
+    # PROMPT ENGINEERING: ÉP ĐỊNH DẠNG ĐẸP & CHỈ DÙNG FILE
     sys_instruct = (r"""
-# 🚨 QUY TẮC HIỂN THỊ (QUAN TRỌNG NHẤT)
-1. TUYỆT ĐỐI KHÔNG trích dẫn nguyên văn các thẻ như <co_ban>, <huong_dan_giai> ra màn hình. Đó chỉ là dữ liệu nội bộ.
-2. Hãy đóng vai một người Thầy giảng bài: Diễn đạt lại kiến thức bằng ngôn ngữ tự nhiên, đẹp mắt, dễ hiểu.
-3. Sử dụng Markdown (đậm, nghiêng, bảng, danh sách) để trình bày lời giải thật rõ ràng.
-4. Ưu tiên sử dụng kiến thức trong "KHO TRI THỨC ĐƯỢC NẠP" bên dưới. Nếu không có, hãy báo [MISSING_DOC].
+# 🚨 QUY TẮC HIỂN THỊ TRỰC QUAN (QUAN TRỌNG NHẤT)
+1. KHÔNG hiển thị các thẻ như <co_ban>, <huong_dan_giai>, <bai_giai_chi_tiet> ra màn hình.
+2. Trình bày lời giảng bằng ngôn ngữ tự nhiên của một giáo viên tâm huyết.
+3. Sử dụng Markdown: Bôi đậm (**), gạch đầu dòng (*), và BẢNG BIỂU khi so sánh hoặc liệt kê.
+4. PTHH: Luôn đặt trong cặp $$...$$ trên một dòng riêng để hiển thị đẹp nhất.
+5. Chỉ trả lời dựa trên "KHO TRI THỨC ĐƯỢC NẠP" bên dưới. Nếu không có, hãy báo [MISSING_DOC].
 
-# 🎭 VAI TRÒ & DANH TÍNH
-Bạn là "Gia sư ảo" môn Hóa học THCS trường Phan Chu Trinh. Xưng "Thầy", gọi "Em".
-Phong cách: Tâm huyết, khích lệ, đúng chuẩn sư phạm.
+# 🎭 VAI TRÒ
+Bạn là "Gia sư ảo" Hóa học THCS trường Phan Chu Trinh. Xưng "Thầy", gọi "Em".
 
 # 🎓 CHIẾN LƯỢC SƯ PHẠM (SCAFFOLDING)
-- Bước 1: Chẩn đoán & đưa ra 3 lựa chọn A (Tư duy), B (Bản đồ giải), C (Đáp án chi tiết).
-- Bước 2: Dẫn dắt bằng câu hỏi gợi mở, tuyệt đối không làm hộ phép tính.
-
-# 📐 QUY TẮC LATEX & TRÌNH BÀY
-- Công thức hóa học: Phải bọc trong $...$ (Ví dụ: $H_2SO_4$).
-- Công thức tính toán: Phải bọc trong $...$ (Ví dụ: $n = \frac{m}{M}$).
-- PTHH: Phải nằm trên một dòng riêng, bọc trong $$...$$ và cách dòng trống với văn bản.
-- Danh pháp: IUPAC (Oxide, Aluminium...). Điều kiện chuẩn: 24,79 L.
+Khi HS hỏi bài tập:
+- Bước 1: Khen ngợi và đưa 3 lựa chọn A (Tư duy), B (Bản đồ), C (Chi tiết).
+- Bước 2: Dẫn dắt, KHÔNG làm hộ các phép tính.
     """)
 
-    full_instruction = sys_instruct + "\n\n# 📚 KHO TRI THỨC ĐƯỢC NẠP (DỮ LIỆU GỐC):\n" + knowledge_base
+    full_instruction = sys_instruct + "\n\n# 📚 KHO TRI THỨC ĐƯỢC NẠP:\n" + knowledge_base
 
     try:
+        # CHUYỂN SANG gemini-1.5-flash ĐỂ HẾT LỖI 429
         chat = client.chats.create(
-            model="gemini-2.0-flash", 
+            model="gemini-1.5-flash", 
             config=types.GenerateContentConfig(system_instruction=full_instruction, temperature=0.0)
         )
         return client, chat, len(knowledge_base)
@@ -102,20 +99,26 @@ Phong cách: Tâm huyết, khích lệ, đúng chuẩn sư phạm.
 client, chat_session, total_chars = setup_chat_session() 
 
 # ==================================================
-# 📌 4. SIDEBAR & KHUNG CHAT
+# 📌 4. SIDEBAR & GIAO DIỆN CHAT
 # ==================================================
 with st.sidebar:
     if total_chars > 0:
-        st.success(f"✅ Đã nạp {total_chars} ký tự tri thức.")
+        st.success(f"✅ Thư viện: {total_chars} ký tự.")
     else:
-        st.error("❌ 0 ký tự: Thầy hãy kiểm tra lại file .txt trong thư mục 'files'")
+        st.error("❌ Thầy hãy kiểm tra thư mục 'files' trên GitHub!")
 
     if st.button("🗑️ Xóa lịch sử Chat"):
         st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
         save_data(HISTORY_FILE, st.session_state.messages)
         st.rerun()
 
-# Hiển thị lịch sử Chat
+    st.markdown("---")
+    st.header("📝 Câu hỏi Cần Bổ Sung")
+    if st.session_state.missing_questions:
+        for i, q in enumerate(st.session_state.missing_questions):
+            st.markdown(f"**{i+1}.** {q}")
+
+# Hiển thị Chat
 chat_placeholder = st.container()
 with chat_placeholder:
     for msg in st.session_state.messages:
@@ -123,16 +126,15 @@ with chat_placeholder:
             st.markdown(msg["content"])
 
 st.markdown("---")
-# Đảm bảo khung chat luôn hiện ở cuối
 uploaded_file = st.file_uploader("📷 Gửi ảnh đề bài", type=["jpg", "jpeg", "png"])
 prompt = st.chat_input("Nhập câu hỏi cho thầy...")
 
 # ==================================================
-# 📌 5. XỬ LÝ LOGIC
+# 📌 5. XỬ LÝ TIN NHẮN (THÊM RETRY & SLEEP)
 # ==================================================
 if prompt:
     if client is None:
-        st.error("⚠️ Không thể kết nối AI. Thầy kiểm tra lại GEMINI_API_KEY nhé!")
+        st.error("⚠️ Thầy kiểm tra GEMINI_API_KEY trong Secrets nhé!")
     else:
         cleaned_prompt = prompt.strip()
         message_parts = []
@@ -154,6 +156,8 @@ if prompt:
             with st.chat_message("assistant"):
                 with st.spinner("Thầy đang xem bài..."):
                     try:
+                        # Khoảng nghỉ 1 giây để tránh lỗi 429 theo giây
+                        time.sleep(1) 
                         message_parts.append(types.Part.from_text(text=cleaned_prompt))
                         
                         response = None
