@@ -9,7 +9,7 @@ import time
 # 📌 1. CẤU HÌNH HỆ THỐNG
 # ==================================================
 HISTORY_FILE = "chat_history.json" 
-HARDCODED_GREETING = "Xin chào em, thầy là Gia sư Hoá học THCS trường Phan Chu Trinh. Thầy đã sẵn sàng đồng hành cùng em theo chương trình GDPT 2018 rồi đây!"
+HARDCODED_GREETING = "Chào em! Thầy là Gia sư Hoá học trường Phan Chu Trinh. Thầy sẽ đồng hành cùng em theo chuẩn GDPT 2018. Em cần thầy giúp gì nào?"
 
 def load_data(file_path, default_value):
     if os.path.exists(file_path):
@@ -24,14 +24,14 @@ def save_data(file_path, data):
             json.dump(data, f, ensure_ascii=False, indent=4)
     except: pass
 
-st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
-st.title("👨‍🔬 Gia sư Hóa học THCS - GDPT 2018")
+st.set_page_config(page_title="Gia sư Hóa học Phan Chu Trinh", layout="wide")
+st.title("👨‍🔬 Gia sư Hóa học THCS - Chuẩn GDPT 2018")
 
 if "messages" not in st.session_state:
     st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
 
 # ==================================================
-# ⚙️ 2. CẤU HÌNH CHAT SESSION (LUẬT CHƠI GDPT 2018)
+# ⚙️ 2. CẤU HÌNH AI (KHÔNG DÙNG FILE RIÊNG)
 # ==================================================
 @st.cache_resource
 def setup_chat_session():
@@ -40,38 +40,39 @@ def setup_chat_session():
 
     client = genai.Client(api_key=api_key)
     
-    # --- PROMPT ENGINEERING: ÉP KHUÔN GDPT 2018 ---
+    # --- PROMPT ÉP KHUÔN GDPT 2018 ---
     sys_instruct = (r"""
-# 🎭 VAI TRÒ & PHONG CÁCH
-Bạn là "Gia sư ảo" môn Hóa học THCS, phục vụ học sinh theo chương trình GDPT 2018 của Việt Nam. 
-- Xưng "Thầy", gọi "Em". 
-- Phong cách: Tâm huyết, đúng chuẩn sư phạm trường Phan Chu Trinh.
+# 🎭 VAI TRÒ
+Bạn là "Gia sư ảo" chuyên phân môn Hóa học THCS (lớp 8, 9) và Sinh học (lớp 6), làm việc tại trường Phan Chu Trinh.
+Xưng "Thầy", gọi "Em". Ngôn ngữ ấm áp, đúng chuẩn sư phạm.
 
-# 📖 CHUẨN KIẾN THỨC GDPT 2018 (BẮT BUỘC)
-1. DANH PHÁP: Sử dụng hoàn toàn danh pháp quốc tế IUPAC. (Ví dụ: Oxygen, Hydrogen, Aluminium, Oxide, Sulfate...). KHÔNG dùng tên cũ như Nhôm, Sắt, Đồng...
-2. ĐIỀU KIỆN CHUẨN (ĐKC): Thể tích mol của chất khí ở $25^\circ\text{C}, 1\text{ bar}$ là $24,79 \text{ L/mol}$. Đây là giá trị mặc định cho mọi bài toán.
-3. ĐIỀU KIỆN TIÊU CHUẨN (ĐKTC): CHỈ sử dụng con số $22,4 \text{ L/mol}$ khi học sinh yêu cầu đích danh cụm từ "Điều kiện tiêu chuẩn".
+# 📖 QUY TẮC CHUYÊN MÔN GDPT 2018
+1. DANH PHÁP: Dùng 100% tiếng Anh IUPAC (Aluminium, Hydrogen, Iron(III) oxide...). KHÔNG dùng tên cũ.
+2. ĐIỀU KIỆN CHUẨN (ĐKC): Mặc định hằng số $24,79 \text{ L/mol}$ (tại $25^\circ\text{C}, 1 \text{ bar}$).
+3. ĐIỀU KIỆN TIÊU CHUẨN (ĐKTC): Chỉ dùng $22,4 \text{ L/mol}$ nếu học sinh nhắc đích danh cụm từ này.
+4. ĐƠN VỊ: Dùng amu cho khối lượng nguyên tử, bar cho áp suất (theo SGK mới).
 
-# 🎓 CHIẾN LƯỢC SƯ PHẠM
-1. HỎI LÝ THUYẾT: Trả lời trực tiếp, rõ ràng bằng kiến thức cơ bản. Chỉ giải thích sâu khi em muốn hiểu bản chất.
-2. BÀI TẬP (Tính toán/Lý thuyết): Tuyệt đối không giải ngay. Hãy hỏi: "Em muốn thầy hướng dẫn tư duy hay nhận bài giải chi tiết?". Khuyên em nên nhận hướng dẫn để tự hiểu bài.
+# 🎓 CHIẾN LƯỢC GIẢNG DẠY
+- CÂU HỎI LÝ THUYẾT: Trả lời ngay, ngắn gọn, dễ hiểu.
+- BÀI TẬP: Tuyệt đối không giải luôn. Hãy hỏi: "Em muốn thầy hướng dẫn từng bước (tư duy) hay xem bài giải chi tiết?". Khuyến khích em tự làm.
 
-# 📐 QUY TẮC TRÌNH BÀY
-- In đậm (**): Các đề mục lớn (I, II, III), các bước (a, b, c) hoặc các số thứ tự (1, 2, 3). Các đề mục này phải đứng riêng dòng.
-- LaTeX: Công thức hóa học/Toán học phải bọc trong $...$ hoặc $$...$$.
-- PTHH: Phải nằm trên dòng riêng, bọc trong $$...$$, các PTHH không được viết dính vào nhau.
+# 📐 TRÌNH BÀY
+- In đậm (**) các đề mục lớn (I, II, III...) và các bước (1, 2, 3...). Tách dòng rõ ràng.
+- PTHH: Nằm trên dòng riêng, bọc trong $$...$$.
+- Công thức: Bọc trong $...$.
     """)
 
-    try:
-        # Dùng Gemini 2.0 Flash bản chuẩn nhất 2026
-        chat = client.chats.create(
-            model="gemini-2.0-flash", 
-            config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.0)
-        )
-        return client, chat
-    except Exception as e:
-        st.error(f"⚠️ Lỗi kết nối AI: {e}")
-        return None, None
+    # Thử dùng 2.0 Flash, nếu lỗi thì tự động lùi về 1.5 Flash (Bản ổn định nhất)
+    for model_name in ["gemini-2.0-flash", "gemini-1.5-flash"]:
+        try:
+            chat = client.chats.create(
+                model=model_name, 
+                config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.2)
+            )
+            return client, chat
+        except:
+            continue
+    return None, None
 
 client, chat_session = setup_chat_session() 
 
@@ -79,13 +80,15 @@ client, chat_session = setup_chat_session()
 # 🎨 3. GIAO DIỆN & SIDEBAR
 # ==================================================
 with st.sidebar:
-    st.info("💡 Trợ lý đang hoạt động theo chuẩn GDPT 2018 (IUPAC & 24,79L)")
+    st.header("⚙️ Cài đặt")
+    st.success("✅ Chế độ: GDPT 2018 (IUPAC)")
+    st.info("💡 Đang dùng: $24,79 \text{ L/mol}$")
     if st.button("🗑️ Xóa lịch sử Chat"):
         st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
         if os.path.exists(HISTORY_FILE): os.remove(HISTORY_FILE)
         st.rerun()
 
-# Hiển thị Chat
+# Hiển thị tin nhắn
 chat_placeholder = st.container()
 with chat_placeholder:
     for msg in st.session_state.messages:
@@ -94,10 +97,10 @@ with chat_placeholder:
 
 st.markdown("---")
 uploaded_file = st.file_uploader("📷 Gửi ảnh đề bài", type=["jpg", "jpeg", "png"], key="file_up")
-prompt = st.chat_input("Nhập câu hỏi cho thầy...")
+prompt = st.chat_input("Hỏi thầy về Hóa học/Sinh học đi em...")
 
 # ==================================================
-# 🚀 4. XỬ LÝ LOGIC
+# 🚀 4. XỬ LÝ GỬI TIN NHẮN
 # ==================================================
 if prompt:
     if not client:
