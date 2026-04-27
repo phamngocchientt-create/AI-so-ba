@@ -14,7 +14,7 @@ HISTORY_FILE = "chat_history.json"
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
 ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư viện tài liệu của thầy. {ERROR_MESSAGE_TAG} Em có thể hỏi về một chủ đề khác không?"
 PASSWORD_KEY = "CLEAR_PASSWORD" 
-HARDCODED_GREETING = "Xin chào em, thầy là Gia sư Hoá học THCS trường Phan Chu Trinh. Thầy rất vui được hỗ trợ em!"
+HARDCODED_GREETING = "Xin chào em, thầy là Gia sư Hoá học THCS trường Phan Chu Trinh. Thầy đã sẵn sàng để giúp em học tốt hơn!"
 
 # --- HÀM XỬ LÝ DỮ LIỆU ---
 def load_data(file_path, default_value):
@@ -32,7 +32,7 @@ def save_data(file_path, data):
     except: pass
 
 # ==================================================
-# 📌 2. KHỞI TẠO GIAO DIỆN (LUÔN HIỆN KHUNG CHAT)
+# 📌 2. KHỞI TẠO GIAO DIỆN
 # ==================================================
 st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
 st.title("👨‍🔬 Gia sư Hóa học THCS - Trường Phan Chu Trinh")
@@ -44,17 +44,17 @@ if "messages" not in st.session_state:
     st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
 
 # ==================================================
-# 📌 3. CẤU HÌNH CHAT SESSION (FIX TRIỆT ĐỂ 404/400)
+# 📌 3. CẤU HÌNH CHAT SESSION (BẢN FIX TRIỆT ĐỂ 404)
 # ==================================================
 @st.cache_resource
 def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key: return None, None, 0
 
-    # KHÔNG dùng http_options api_version để tránh lỗi 400/404
+    # KHÔNG ép phiên bản v1 hay v1beta ở đây để tránh lỗi 404
     client = genai.Client(api_key=api_key)
     
-    # Tìm file tri thức
+    # Tự động quét file tri thức
     current_dir = os.path.dirname(os.path.abspath(__file__))
     files_dir = os.path.join(current_dir, "files")
     knowledge_base = ""
@@ -62,38 +62,39 @@ def setup_chat_session():
         for filename in os.listdir(files_dir):
             if filename.endswith(".txt"):
                 try:
-                    with open(os.path.join(files_dir, filename), "r", encoding="utf-8") as f:
+                    file_path = os.path.join(files_dir, filename)
+                    with open(file_path, "r", encoding="utf-8") as f:
                         knowledge_base += f"\n\n--- DỮ LIỆU FILE {filename} ---\n" + f.read()
                 except: pass
 
-    # PROMPT ÉP ĐỊNH DẠNG ĐẸP (KHÔNG HIỆN THẺ XML)
+    # PROMPT ÉP ĐỊNH DẠNG SƯ PHẠM (KHÔNG HIỆN THẺ XML)
     sys_instruct = (r"""
-# 🚨 QUY TẮC HIỂN THỊ (QUAN TRỌNG)
+# 🚨 QUY TẮC HIỂN THỊ (BẮT BUỘC)
 - BẠN LÀ THẦY GIÁO, KHÔNG PHẢI MÁY TRÍCH XUẤT.
-- TUYỆT ĐỐI KHÔNG hiển thị các thẻ như <co_ban>, <huong_dan_giai>, <bai_giai_chi_tiet> ra màn hình.
-- Hãy tiêu hóa kiến thức đó và trả lời bằng ngôn ngữ sư phạm ấm áp.
-- Sử dụng Markdown: bảng biểu (cho so sánh), gạch đầu dòng (cho danh sách).
+- TUYỆT ĐỐI KHÔNG hiển thị các thẻ XML như <co_ban>, <huong_dan_giai>...
+- Hãy trình bày câu trả lời đẹp mắt bằng Markdown: bảng biểu (so sánh), gạch đầu dòng (liệt kê).
 - PTHH: Đặt trong $$...$$ trên dòng riêng. Công thức: $...$.
 
 # 🎓 CHIẾN LƯỢC SƯ PHẠM
-- Luôn đưa ra 3 lựa chọn A, B, C khi HS hỏi bài tập.
-- Chỉ dùng kiến thức trong KHO TRI THỨC bên dưới. Nếu thiếu, báo [MISSING_DOC].
+- Bạn là Gia sư ảo trường Phan Chu Trinh, xưng "Thầy", gọi "Em".
+- Luôn đưa ra 3 lựa chọn A (Tư duy), B (Bản đồ giải), C (Đáp án chi tiết) khi học sinh hỏi bài tập.
+- Chỉ sử dụng kiến thức trong KHO TRI THỨC được nạp bên dưới. Nếu thiếu, báo [MISSING_DOC].
     """)
 
     full_instruction = sys_instruct + "\n\n# 📚 KHO TRI THỨC:\n" + knowledge_base
 
     try:
-        # Dùng model chuẩn: gemini-1.5-flash
+        # Sử dụng Gemini 1.5 Flash - Bản ổn định nhất cho SKKN
         chat = client.chats.create(
             model="gemini-1.5-flash", 
             config=types.GenerateContentConfig(system_instruction=full_instruction, temperature=0.0)
         )
         return client, chat, len(knowledge_base)
     except Exception as e:
-        # Nếu lỗi 404 vẫn xảy ra, thử model 2.0 flash như phương án dự phòng
+        # Phương án dự phòng cuối cùng nếu 1.5 vẫn lỗi (Dùng 1.5 Flash-8B)
         try:
             chat = client.chats.create(
-                model="gemini-2.0-flash",
+                model="gemini-1.5-flash-8b",
                 config=types.GenerateContentConfig(system_instruction=full_instruction, temperature=0.0)
             )
             return client, chat, len(knowledge_base)
@@ -107,7 +108,7 @@ client, chat_session, total_chars = setup_chat_session()
 # ==================================================
 with st.sidebar:
     if total_chars > 0:
-        st.success(f"✅ Thư viện: {total_chars} ký tự.")
+        st.success(f"✅ Thư viện: {total_chars} ký tự đã nạp.")
     else:
         st.error("❌ 0 ký tự: Thầy kiểm tra lại thư mục 'files' nhé!")
 
@@ -124,16 +125,15 @@ with chat_placeholder:
             st.markdown(msg["content"])
 
 st.markdown("---")
-# Đảm bảo khung này luôn hiện
 uploaded_file = st.file_uploader("📷 Gửi ảnh đề bài", type=["jpg", "jpeg", "png"])
 prompt = st.chat_input("Nhập câu hỏi cho thầy...")
 
 # ==================================================
-# 📌 5. XỬ LÝ TIN NHẮN (CƠ CHẾ RETRY + ANTI 429)
+# 📌 5. XỬ LÝ TIN NHẮN (CƠ CHẾ RETRY + CHỐNG 429)
 # ==================================================
 if prompt:
     if not client:
-        st.error("⚠️ Lỗi kết nối AI. Thầy kiểm tra lại API Key nhé!")
+        st.error("⚠️ AI đang bận hoặc lỗi API Key. Thầy kiểm tra lại nhé!")
     else:
         cleaned_prompt = prompt.strip()
         message_parts = []
@@ -155,7 +155,7 @@ if prompt:
             with st.chat_message("assistant"):
                 with st.spinner("Thầy đang xem bài..."):
                     try:
-                        time.sleep(1) # Nghỉ để tránh 429
+                        time.sleep(1) # Khoảng nghỉ tránh lỗi 429
                         message_parts.append(types.Part.from_text(text=cleaned_prompt))
                         
                         response = None
@@ -185,4 +185,4 @@ if prompt:
                         st.rerun()
                         
                     except Exception as e:
-                        st.error(f"Lỗi: {e}. Em hãy đợi vài giây rồi thử lại nhé!")
+                        st.error(f"Lỗi: {e}")
