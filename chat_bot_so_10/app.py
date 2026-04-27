@@ -43,17 +43,16 @@ if "messages" not in st.session_state:
     st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
 
 # ==================================================
-# 📌 3. CẤU HÌNH CHAT SESSION (FIX LỖI 429 & ĐỊNH DẠNG)
+# 📌 3. CẤU HÌNH CHAT SESSION (BẢN FIX 404 & 429)
 # ==================================================
 @st.cache_resource
 def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key: return None, None, 0
 
-    # Dùng v1beta để ổn định nhất
-    client = genai.Client(api_key=api_key, http_options={'api_version': 'v1beta'})
+    # Sử dụng phiên bản 'v1' ổn định thay vì 'v1beta' để tránh lỗi 404
+    client = genai.Client(api_key=api_key, http_options={'api_version': 'v1'})
     
-    # Tự động tìm file trong thư mục 'files'
     current_dir = os.path.dirname(os.path.abspath(__file__))
     files_dir = os.path.join(current_dir, "files")
     
@@ -63,49 +62,46 @@ def setup_chat_session():
             if filename.endswith(".txt"):
                 try:
                     with open(os.path.join(files_dir, filename), "r", encoding="utf-8") as f:
-                        knowledge_base += f"\n\n--- DỮ LIỆU FILE {filename} ---\n" + f.read()
+                        knowledge_base += f"\n\n--- DỮ LIỆU TỪ FILE {filename} ---\n" + f.read()
                 except: pass
 
-    # PROMPT ENGINEERING: ÉP ĐỊNH DẠNG ĐẸP & CHỈ DÙNG FILE
+    # PROMPT ENGINEERING TÂM HUYẾT
     sys_instruct = (r"""
-# 🚨 QUY TẮC HIỂN THỊ TRỰC QUAN (QUAN TRỌNG NHẤT)
-1. KHÔNG hiển thị các thẻ như <co_ban>, <huong_dan_giai>, <bai_giai_chi_tiet> ra màn hình.
-2. Trình bày lời giảng bằng ngôn ngữ tự nhiên của một giáo viên tâm huyết.
-3. Sử dụng Markdown: Bôi đậm (**), gạch đầu dòng (*), và BẢNG BIỂU khi so sánh hoặc liệt kê.
-4. PTHH: Luôn đặt trong cặp $$...$$ trên một dòng riêng để hiển thị đẹp nhất.
-5. Chỉ trả lời dựa trên "KHO TRI THỨC ĐƯỢC NẠP" bên dưới. Nếu không có, hãy báo [MISSING_DOC].
+# 🚨 QUY TẮC HIỂN THỊ & SƯ PHẠM
+1. TUYỆT ĐỐI KHÔNG hiển thị các thẻ XML (<co_ban>, <huong_dan_giai>...) ra màn hình.
+2. Bạn là Thầy giáo trường Phan Chu Trinh, hãy dùng ngôn ngữ giảng bài tự nhiên, ấm áp.
+3. Sử dụng Markdown đẹp mắt: bảng biểu cho so sánh, gạch đầu dòng cho danh sách.
+4. PTHH: Đặt trong $$...$$ trên dòng riêng. Công thức: $...$.
+5. Chỉ dùng kiến thức trong "KHO TRI THỨC" bên dưới. Nếu thiếu, báo [MISSING_DOC].
 
-# 🎭 VAI TRÒ
-Bạn là "Gia sư ảo" Hóa học THCS trường Phan Chu Trinh. Xưng "Thầy", gọi "Em".
-
-# 🎓 CHIẾN LƯỢC SƯ PHẠM (SCAFFOLDING)
-Khi HS hỏi bài tập:
-- Bước 1: Khen ngợi và đưa 3 lựa chọn A (Tư duy), B (Bản đồ), C (Chi tiết).
-- Bước 2: Dẫn dắt, KHÔNG làm hộ các phép tính.
+# 🎓 CHIẾN LƯỢC SCAFFOLDING
+- Đưa 3 lựa chọn A, B, C khi HS hỏi bài tập.
+- Dẫn dắt từng bước, khích lệ em tự tính toán.
     """)
 
-    full_instruction = sys_instruct + "\n\n# 📚 KHO TRI THỨC ĐƯỢC NẠP:\n" + knowledge_base
+    full_instruction = sys_instruct + "\n\n# 📚 KHO TRI THỨC:\n" + knowledge_base
 
     try:
-        # CHUYỂN SANG gemini-1.5-flash ĐỂ HẾT LỖI 429
+        # Tên model chuẩn xác: "gemini-1.5-flash"
         chat = client.chats.create(
             model="gemini-1.5-flash", 
-            config=types.GenerateContentConfig(system_instruction=full_instruction, temperature=0.0)
+            config=types.GenerateContentConfig(system_instruction=full_instruction, temperature=0.1)
         )
         return client, chat, len(knowledge_base)
-    except:
+    except Exception as e:
+        st.error(f"❌ Lỗi khởi tạo: {e}")
         return None, None, 0
 
 client, chat_session, total_chars = setup_chat_session() 
 
 # ==================================================
-# 📌 4. SIDEBAR & GIAO DIỆN CHAT
+# 📌 4. SIDEBAR & KHUNG CHAT
 # ==================================================
 with st.sidebar:
     if total_chars > 0:
-        st.success(f"✅ Thư viện: {total_chars} ký tự.")
+        st.success(f"✅ Đã nạp {total_chars} ký tự tri thức.")
     else:
-        st.error("❌ Thầy hãy kiểm tra thư mục 'files' trên GitHub!")
+        st.error("❌ 0 ký tự: Thầy kiểm tra thư mục 'files' nhé!")
 
     if st.button("🗑️ Xóa lịch sử Chat"):
         st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
@@ -118,7 +114,6 @@ with st.sidebar:
         for i, q in enumerate(st.session_state.missing_questions):
             st.markdown(f"**{i+1}.** {q}")
 
-# Hiển thị Chat
 chat_placeholder = st.container()
 with chat_placeholder:
     for msg in st.session_state.messages:
@@ -130,11 +125,11 @@ uploaded_file = st.file_uploader("📷 Gửi ảnh đề bài", type=["jpg", "jp
 prompt = st.chat_input("Nhập câu hỏi cho thầy...")
 
 # ==================================================
-# 📌 5. XỬ LÝ TIN NHẮN (THÊM RETRY & SLEEP)
+# 📌 5. XỬ LÝ TIN NHẮN
 # ==================================================
 if prompt:
     if client is None:
-        st.error("⚠️ Thầy kiểm tra GEMINI_API_KEY trong Secrets nhé!")
+        st.error("⚠️ Thầy kiểm tra lại API Key nhé!")
     else:
         cleaned_prompt = prompt.strip()
         message_parts = []
@@ -156,8 +151,7 @@ if prompt:
             with st.chat_message("assistant"):
                 with st.spinner("Thầy đang xem bài..."):
                     try:
-                        # Khoảng nghỉ 1 giây để tránh lỗi 429 theo giây
-                        time.sleep(1) 
+                        time.sleep(1) # Nghỉ để tránh lỗi 429
                         message_parts.append(types.Part.from_text(text=cleaned_prompt))
                         
                         response = None
