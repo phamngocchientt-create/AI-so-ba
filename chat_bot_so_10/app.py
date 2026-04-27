@@ -67,7 +67,7 @@ Xưng "Thầy", gọi "Em". Ngôn ngữ ấm áp, gần gũi nhưng chuẩn mự
     try:
         # Dùng gemini-1.5-flash để có hạn mức (Quota) cao nhất cho tài khoản Tier 1
         chat = client.chats.create(
-            model="gemini-1.5-flash", 
+            model="gemini-2.0-flash", 
             config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.1)
         )
         return client, chat
