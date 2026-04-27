@@ -167,7 +167,7 @@ Bạn không phải là máy trích xuất văn bản. Bạn là mô hình ngôn
 
     try:
         chat = client.chats.create(
-            model="gemini-2.0-flash", 
+            model="gemini-2.5-flash", 
             config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.2)
         )
         
