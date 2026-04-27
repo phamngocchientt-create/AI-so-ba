@@ -9,7 +9,7 @@ import time
 # 📌 1. CẤU HÌNH HỆ THỐNG
 # ==================================================
 HISTORY_FILE = "chat_history.json" 
-HARDCODED_GREETING = "Chào em! Thầy là Gia sư Hóa học & Sinh học THCS trường Phan Chu Trinh. Thầy sẽ đồng hành cùng em theo chuẩn GDPT 2018. Em cần thầy giúp gì nào?"
+HARDCODED_GREETING = "Chào em! Thầy là Gia sư Hóa học & Sinh học THCS trường Phan Chu Trinh. Thầy đã sẵn sàng đồng hành cùng em theo chuẩn GDPT 2018 rồi đây!"
 
 def load_data(file_path, default_value):
     if os.path.exists(file_path):
@@ -24,59 +24,62 @@ def save_data(file_path, data):
             json.dump(data, f, ensure_ascii=False, indent=4)
     except: pass
 
-st.set_page_config(page_title="Gia sư Hóa học Phan Chu Trinh", layout="wide")
+st.set_page_config(page_title="Gia sư THCS Phan Chu Trinh", layout="wide")
 st.title("👨‍🔬 Gia sư THCS Phan Chu Trinh - GDPT 2018")
 
 if "messages" not in st.session_state:
     st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
 
 # ==================================================
-# ⚙️ 2. KHỞI TẠO AI (BẢN FIX TRIỆT ĐỂ LỖI V1BETA & CHUẨN THCS)
+# ⚙️ 2. KHỞI TẠO AI (BẢN FIX LỖI 400 & 404 & 429)
 # ==================================================
 @st.cache_resource
 def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key: return None, None
 
-    # QUAN TRỌNG: Dùng cổng 'v1' để Gemini 1.5 Flash ổn định nhất trên Paid Tier
-    client = genai.Client(api_key=api_key, http_options={'api_version': 'v1'})
+    # SỬA LỖI 400: Dùng v1beta là cổng chuẩn nhất cho system_instruction trong SDK v2
+    client = genai.Client(api_key=api_key, http_options={'api_version': 'v1beta'})
     
     # --- LỆNH ĐIỀU HÀNH TỐI THƯỢNG (CHUẨN THCS - GDPT 2018) ---
     sys_instruct = (r"""
-# 🎭 VAI TRÒ & PHẠM VI KIẾN THỨC
-Bạn là "Gia sư ảo" chuyên trách chương trình Khoa học tự nhiên (KHTN) cấp THCS tại trường Phan Chu Trinh.
-- Đối tượng phục vụ: Học sinh lớp 6 (phần Sinh học) và lớp 8, 9 (phần Hóa học).
-- Giới hạn kiến thức: CHỈ sử dụng kiến thức trong chương trình giáo dục phổ thông (GDPT) 2018 cấp THCS. Tuyệt đối không đưa kiến thức THPT hoặc Đại học vào bài giảng (trừ khi học sinh hỏi mở rộng).
-- Xưng "Thầy", gọi "Em". Ngôn ngữ ấm áp, gần gũi, chuẩn sư phạm.
+# 🎭 VAI TRÒ & PHẠM VI
+Bạn là "Gia sư ảo" chuyên môn KHTN (Hóa học 8-9, Sinh học 6) tại trường Phan Chu Trinh.
+- Đối tượng: Học sinh THCS.
+- Giới hạn: CHỈ dùng kiến thức trong chương trình GDPT 2018 cấp THCS. Không dùng kiến thức cấp 3.
+- Xưng "Thầy", gọi "Em". Ngôn ngữ ấm áp, đúng chuẩn sư phạm.
 
-# 📖 CHUẨN CHUYÊN MÔN GDPT 2018 (BẮT BUỘC)
-1. DANH PHÁP (IUPAC): Dùng 100% tên quốc tế (Oxygen, Hydrogen, Carbon dioxide, Aluminium, Iron(III) oxide...). KHÔNG dùng tên cũ (Sắt, Nhôm, Đồng).
-2. ĐIỀU KIỆN CHUẨN (ĐKC): Đây là chuẩn mặc định. Thể tích mol chất khí là $24,79 \text{ L/mol}$ (tại $25^\circ\text{C}, 1 \text{ bar}$).
-3. ĐIỀU KIỆN TIÊU CHUẨN (ĐKTC): Chỉ dùng $22,4 \text{ L/mol}$ khi HS yêu cầu ĐÍCH DANH cụm từ "Điều kiện tiêu chuẩn" hoặc "đktc".
-4. ĐƠN VỊ: Khối lượng nguyên tử dùng amu. Áp suất dùng bar.
+# 📖 CHUẨN CHUYÊN MÔN GDPT 2018
+1. DANH PHÁP (IUPAC): Dùng 100% tên quốc tế (Oxygen, Aluminium, Hydrogen, Oxide...). KHÔNG dùng tên cũ.
+2. ĐIỀU KIỆN CHUẨN (ĐKC): Mặc định dùng hằng số $24,79 \text{ L/mol}$.
+3. ĐIỀU KIỆN TIÊU CHUẨN (ĐKTC): Chỉ dùng $22,4 \text{ L/mol}$ khi HS yêu cầu đích danh.
+4. ĐƠN VỊ: Khối lượng nguyên tử dùng amu, áp suất dùng bar.
 
-# 🎓 CHIẾN LƯỢC SƯ PHẠM (PHÂN HÓA TRÌNH ĐỘ)
-- HỎI LÝ THUYẾT: Trả lời trực tiếp, rõ ràng bằng kiến thức cơ bản của lớp 6, 8, 9. 
-- HỎI BÀI TẬP: Tuyệt đối không giải ngay. Hãy đưa ra 3 lựa chọn:
-  * Lựa chọn A: Thầy hướng dẫn em tư duy từng bước (Khuyên dùng để hiểu bản chất).
-  * Lựa chọn B: Thầy đưa ra "bản đồ" (phác thảo các bước giải) để em tự đi.
-  * Lựa chọn C: Thầy đưa bài giải chi tiết để em đối chiếu kết quả.
-- Lưu ý: Không làm thay các phép tính toán học đơn giản.
+# 🎓 CHIẾN LƯỢC SƯ PHẠM (SCAFFOLDING)
+- BÀI TẬP: Tuyệt đối không giải ngay. Hãy đưa ra 3 lựa chọn:
+  * Lựa chọn A: Thầy hướng dẫn em tư duy từng bước.
+  * Lựa chọn B: Thầy đưa ra "bản đồ" các bước giải.
+  * Lựa chọn C: Thầy đưa bài giải chi tiết để đối chiếu.
+- Khuyến khích em tự tính toán, không làm thay phép tính cơ bản.
 
-# 📐 TRÌNH BÀY (CHỈN CHU)
-- Đề mục lớn (I, II, III...) và mục nhỏ (1, 2, 3...) phải IN ĐẬM và đứng riêng một dòng.
-- PTHH: Nằm trên dòng riêng, bọc trong $$...$$. Tuyệt đối không để PTHH dính nhau hoặc dính văn bản.
-- Công thức: Bọc trong $...$. Trình bày thoáng, dễ nhìn.
+# 📐 TRÌNH BÀY
+- Đề mục lớn (I, II, III...) và mục nhỏ (1, 2, 3...) phải IN ĐẬM và đứng riêng dòng.
+- PTHH: Nằm trên dòng riêng, bọc trong $$...$$. Tuyệt đối không để PTHH dính nhau.
+- Công thức: Bọc trong $...$.
     """)
 
     try:
+        # Dùng gemini-1.5-flash để có hạn mức cao nhất, tránh 429
         chat = client.chats.create(
             model="gemini-1.5-flash", 
-            config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.1)
+            config=types.GenerateContentConfig(
+                system_instruction=sys_instruct,
+                temperature=0.1
+            )
         )
         return client, chat
     except Exception as e:
-        st.error(f"⚠️ Lỗi kết nối: {e}")
+        st.error(f"⚠️ Lỗi khởi tạo: {e}")
         return None, None
 
 client, chat_session = setup_chat_session() 
@@ -86,8 +89,7 @@ client, chat_session = setup_chat_session()
 # ==================================================
 with st.sidebar:
     st.success("✅ Cấp độ: THCS (Lớp 6, 8, 9)")
-    st.info("💡 Danh pháp: IUPAC chuẩn 2018")
-    st.warning("⚡ Điều kiện chuẩn: 24,79 L/mol")
+    st.info("💡 Hằng số khí: $24,79 \text{ L/mol}$")
     if st.button("🗑️ Xóa lịch sử Chat"):
         st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
         if os.path.exists(HISTORY_FILE): os.remove(HISTORY_FILE)
@@ -104,11 +106,11 @@ uploaded_file = st.file_uploader("📷 Gửi ảnh đề bài", type=["jpg", "jp
 prompt = st.chat_input("Nhập câu hỏi cho thầy...")
 
 # ==================================================
-# 🚀 4. XỬ LÝ GỬI TIN
+# 🚀 4. XỬ LÝ GỬI TIN (CHỐNG LỖI 429)
 # ==================================================
 if prompt:
     if not client:
-        st.error("⚠️ AI chưa kết nối được. Thầy kiểm tra API Key nhé!")
+        st.error("⚠️ AI chưa kết nối. Thầy kiểm tra API Key nhé!")
     else:
         cleaned_prompt = prompt.strip()
         message_parts = [types.Part.from_text(text=cleaned_prompt)]
@@ -131,7 +133,7 @@ if prompt:
                         response = None
                         for attempt in range(3):
                             try:
-                                time.sleep(1) # Tránh lỗi 429
+                                time.sleep(1) # Nghỉ để tránh 429
                                 response = chat_session.send_message(message_parts)
                                 break
                             except Exception as e:
@@ -148,4 +150,4 @@ if prompt:
                             st.rerun()
                         
                     except Exception as e:
-                        st.error(f"Hệ thống bận, em đợi 10 giây rồi bấm gửi lại giúp thầy nhé! (Lỗi: {e})")
+                        st.error(f"Hệ thống bận, em đợi 10 giây rồi thử lại nhé! (Lỗi: {e})")
