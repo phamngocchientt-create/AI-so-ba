@@ -34,7 +34,7 @@ def save_data(file_path, data):
 # 📌 2. KHỞI TẠO GIAO DIỆN
 # ==================================================
 st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
-st.title("👨‍🔬 Gia sư Hóa học THCS - Phan Chu Trinh")
+st.title("👨‍🔬 Gia sư Hóa học THCS - Trường Phan Chu Trinh")
 
 if "missing_questions" not in st.session_state:
     st.session_state.missing_questions = load_data(STORAGE_FILE, [])
@@ -50,10 +50,10 @@ def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key: return None, None, 0
 
-    # KHÔNG ép phiên bản v1 hay v1beta để tránh xung đột model
+    # KHÔNG cấu hình v1 hay v1beta để tránh lỗi 404/400
     client = genai.Client(api_key=api_key)
     
-    # Tự động tìm file trong thư mục 'files'
+    # Tìm đường dẫn file tri thức
     current_dir = os.path.dirname(os.path.abspath(__file__))
     files_dir = os.path.join(current_dir, "files")
     knowledge_base = ""
@@ -61,47 +61,51 @@ def setup_chat_session():
         for filename in os.listdir(files_dir):
             if filename.endswith(".txt"):
                 try:
-                    with open(os.path.join(files_dir, filename), "r", encoding="utf-8") as f:
-                        knowledge_base += f"\n\n--- TRI THỨC ({filename}) ---\n" + f.read()
+                    file_path = os.path.join(files_dir, filename)
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        knowledge_base += f"\n\n--- NGUỒN ({filename}) ---\n" + f.read()
                 except: pass
 
-    # PROMPT ENGINEERING SƯ PHẠM ĐẸP MẮT
+    # PROMPT ENGINEERING TÂM HUYẾT CỦA THẦY
     sys_instruct = (r"""
-# 🚨 QUY TẮC HIỂN THỊ
-- TUYỆT ĐỐI KHÔNG hiển thị các thẻ XML (<co_ban>, <huong_dan_giai>...) ra màn hình.
-- Hãy trả lời như một người Thầy: Diễn đạt lại kiến thức bằng ngôn ngữ tự nhiên, ấm áp.
-- Sử dụng Markdown (bảng, gạch đầu dòng) và LaTeX ($...$, $$...$$) để trình bày đẹp nhất.
-- CHỈ TRẢ LỜI dựa trên KHO TRI THỨC bên dưới. Nếu thiếu, báo [MISSING_DOC].
+# 🚨 QUY TẮC HIỂN THỊ "SƯ PHẠM SẠCH" (QUAN TRỌNG NHẤT)
+1. TUYỆT ĐỐI KHÔNG bao giờ hiển thị các thẻ XML như <co_ban>, <huong_dan_giai>, <bai_giai_chi_tiet> ra màn hình.
+2. BẠN LÀ THẦY GIÁO, KHÔNG PHẢI MÁY TRÍCH XUẤT. Hãy diễn đạt lại kiến thức bằng ngôn ngữ giảng bài ấm áp, truyền cảm hứng.
+3. Sử dụng Markdown đẹp mắt: 
+   - Bảng biểu (Table) để so sánh các chất.
+   - Gạch đầu dòng để liệt kê các bước giải.
+   - Chữ đậm để nhấn mạnh các từ khóa quan trọng.
+4. Công thức hóa học/Toán học: bọc trong $...$ hoặc $$...$$. IUPAC chuẩn 2018.
 
-# 🎭 VAI TRÒ
-Bạn là Gia sư ảo Hóa học THCS trường Phan Chu Trinh. Xưng "Thầy", gọi "Em".
-# 🎓 CHIẾN LƯỢC SƯ PHẠM
-- Luôn đưa ra 3 lựa chọn A, B, C khi HS hỏi bài tập.
+# 🎭 VAI TRÒ & CHIẾN LƯỢC
+- Gia sư ảo trường Phan Chu Trinh, xưng "Thầy", gọi "Em".
+- Thực hiện Scaffolding qua 3 lựa chọn A, B, C khi học sinh hỏi bài tập.
+- Chỉ dùng kiến thức trong KHO TRI THỨC bên dưới. Nếu thiếu, báo [MISSING_DOC].
     """)
 
     full_instruction = sys_instruct + "\n\n# 📚 KHO TRI THỨC:\n" + knowledge_base
 
     try:
-        # Dùng model tên ngắn gọn nhất - Đây là cách để hết lỗi 404
+        # Dùng Gemini 2.0 Flash - Model mạnh nhất để né lỗi 404/400
         chat = client.chats.create(
-            model="gemini-1.5-flash", 
+            model="gemini-2.0-flash", 
             config=types.GenerateContentConfig(system_instruction=full_instruction, temperature=0.0)
         )
         return client, chat, len(knowledge_base)
     except Exception as e:
-        st.error(f"❌ Lỗi: {e}")
+        st.error(f"❌ Lỗi kết nối: {e}")
         return None, None, 0
 
 client, chat_session, total_chars = setup_chat_session() 
 
 # ==================================================
-# 📌 4. SIDEBAR & HIỂN THỊ CHAT
+# 📌 4. SIDEBAR & GIAO DIỆN CHAT
 # ==================================================
 with st.sidebar:
     if total_chars > 0:
-        st.success(f"✅ Đã nạp {total_chars} ký tự tri thức.")
+        st.success(f"✅ Thư viện: {total_chars} ký tự đã sẵn sàng.")
     else:
-        st.error("❌ 0 ký tự: Thầy kiểm tra lại thư mục 'files' nhé!")
+        st.error("❌ 0 ký tự: Thầy hãy kiểm tra thư mục 'files' trên GitHub nhé!")
 
     if st.button("🗑️ Xóa lịch sử Chat"):
         st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
@@ -123,7 +127,7 @@ prompt = st.chat_input("Nhập câu hỏi cho thầy...")
 # ==================================================
 if prompt:
     if not client:
-        st.warning("⚠️ Vui lòng kiểm tra lại cấu hình API.")
+        st.error("⚠️ AI chưa khởi động được. Thầy kiểm tra lại API Key nhé!")
     else:
         cleaned_prompt = prompt.strip()
         message_parts = []
@@ -145,7 +149,7 @@ if prompt:
             with st.chat_message("assistant"):
                 with st.spinner("Thầy đang xem bài..."):
                     try:
-                        time.sleep(1) # Chống lỗi 429
+                        time.sleep(1) # Khoảng nghỉ chống lỗi 429
                         message_parts.append(types.Part.from_text(text=cleaned_prompt))
                         
                         response = None
@@ -175,4 +179,4 @@ if prompt:
                         st.rerun()
                         
                     except Exception as e:
-                        st.error(f"Lỗi kết nối: {e}")
+                        st.error(f"Lỗi: {e}")
