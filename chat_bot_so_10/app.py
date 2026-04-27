@@ -31,117 +31,102 @@ def save_data(file_path, data):
     except: pass
 
 # ==================================================
-# 📌 2. KHỞI TẠO GIAO DIỆN STREAMLIT
+# 📌 2. KHỞI TẠO GIAO DIỆN
 # ==================================================
 st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
 st.title("👨‍🔬 Gia sư Hóa học THCS - Phan Chu Trinh")
 
 if "missing_questions" not in st.session_state:
+    st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
     st.session_state.missing_questions = load_data(STORAGE_FILE, [])
 
-if "messages" not in st.session_state:
-    st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
-
 # ==================================================
-# 📌 3. CẤU HÌNH CHAT SESSION (FIX LỖI 400 & 429)
+# 📌 3. CẤU HÌNH CHAT SESSION (BẢN FIX TRIỆT ĐỂ 404 & HIỂN THỊ)
 # ==================================================
 @st.cache_resource
 def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key: return None, None, 0
 
-    # BẮT BUỘC dùng v1beta để không bị lỗi 400 "Unknown name systemInstruction"
+    # SỬA LỖI 400/404: Dùng v1beta và bỏ qua cấu hình dư thừa
     client = genai.Client(api_key=api_key, http_options={'api_version': 'v1beta'})
     
+    # Nạp tài liệu từ thư mục 'files'
     current_dir = os.path.dirname(os.path.abspath(__file__))
     files_dir = os.path.join(current_dir, "files")
-    
     knowledge_base = ""
     if os.path.exists(files_dir):
         for filename in os.listdir(files_dir):
             if filename.endswith(".txt"):
                 try:
-                    file_path = os.path.join(files_dir, filename)
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        knowledge_base += f"\n\n--- NGUỒN ({filename}) ---\n" + f.read()
+                    with open(os.path.join(files_dir, filename), "r", encoding="utf-8") as f:
+                        knowledge_base += f"\n\n--- DỮ LIỆU FILE {filename} ---\n" + f.read()
                 except: pass
 
-    # PROMPT ENGINEERING CỦA THẦY (Giữ nguyên gốc)
-    prompt_engineering = (r"""
-# 🚨 QUY TẮC HIỂN THỊ
-1. TUYỆT ĐỐI KHÔNG trích dẫn nguyên văn các thẻ XML (<co_ban>, <huong_dan_giai>...) ra màn hình.
-2. Bạn là Thầy giáo, hãy dùng ngôn ngữ giảng bài tự nhiên, đẹp mắt qua Markdown và LaTeX.
-3. Chỉ dùng kiến thức trong "KHO TRI THỨC" bên dưới. Nếu thiếu, báo [MISSING_DOC].
+    # PROMPT ENGINEERING: LÀM ĐẸP & GIỚI HẠN TRI THỨC
+    sys_instruct = (r"""
+# 🚨 QUY TẮC HIỂN THỊ ĐẸP
+- KHÔNG hiển thị các thẻ XML như <co_ban>, <huong_dan_giai>...
+- Hãy trả lời như một người Thầy: Nhẹ nhàng, dùng Markdown (bảng, gạch đầu dòng) để trình bày đẹp mắt.
+- PTHH: Luôn đặt trong $$...$$ trên dòng riêng. Công thức: $...$.
+- CHỈ TRẢ LỜI dựa trên KHO TRI THỨC bên dưới. Nếu không có, báo [MISSING_DOC].
 
-# 🎭 VAI TRÒ & DANH TÍNH
-Bạn là "Gia sư ảo" chuyên phân môn Hóa học THCS, hoạt động theo kiến thức chương trình GDPT 2018, lưu ý hãy sử dụng danh pháp quốc tế theo chương trình GDPT 2018. 
-- Phong cách: Một thầy giáo tâm huyết, xưng "Thầy", gọi "Em". 
-- Ngôn ngữ: Gần gũi, khích lệ nhưng khoa học, đúng chuẩn sư phạm trường Phan Chu Trinh.
-- Mục tiêu: Không dạy thay, chỉ dẫn dắt để học sinh tự tìm ra ánh sáng tri thức.
-
-# 🎓 CHIẾN LƯỢC SƯ PHẠM (SCAFFOLDING 3 CẤP ĐỘ)
-Khi học sinh hỏi bài tập, bạn không được giải ngay. Hãy thực hiện theo quy trình:
-- Lựa chọn A: Hướng dẫn tư duy từng bước.
-- Lựa chọn B: Đưa ra "bản đồ" giải bài.
-- Lựa chọn C: Đưa bài giải chi tiết.
-
-# 📐 QUY TẮC HIỂN THỊ & LATEX
-- Công thức: bọc trong $...$ hoặc $$...$$. IUPAC chuẩn 2018.
+# 🎭 VAI TRÒ
+Bạn là Gia sư ảo Hóa học THCS trường Phan Chu Trinh. Xưng "Thầy", gọi "Em".
+# 🎓 CHIẾN LƯỢC SƯ PHẠM
+- Khi hỏi bài tập: Đưa 3 lựa chọn A (Tư duy), B (Bản đồ), C (Giải chi tiết).
     """)
 
-    full_instruction = prompt_engineering + "\n\n# 📚 KHO TRI THỨC:\n" + knowledge_base
+    full_instruction = sys_instruct + "\n\n# 📚 KHO TRI THỨC ĐƯỢC NẠP:\n" + knowledge_base
 
     try:
-        # Dùng gemini-1.5-flash để ổn định và hạn mức cao cho người dùng trả phí
+        # SỬA LỖI 404: Dùng tên model rút gọn và ổn định
         chat = client.chats.create(
             model="gemini-1.5-flash", 
-            config=types.GenerateContentConfig(system_instruction=full_instruction, temperature=0.1)
+            config=types.GenerateContentConfig(
+                system_instruction=full_instruction, 
+                temperature=0.0
+            )
         )
         return client, chat, len(knowledge_base)
     except Exception as e:
-        st.error(f"❌ Lỗi khởi tạo: {e}")
+        st.error(f"⚠️ Lỗi kết nối API: {e}")
         return None, None, 0
 
 client, chat_session, total_chars = setup_chat_session() 
 
 # ==================================================
-# 📌 4. SIDEBAR & HIỂN THỊ CHAT
+# 📌 4. GIAO DIỆN CHAT & SIDEBAR
 # ==================================================
 with st.sidebar:
     if total_chars > 0:
         st.success(f"✅ Đã nạp {total_chars} ký tự tri thức.")
     else:
-        st.error("❌ 0 ký tự: Thầy kiểm tra lại thư mục 'files' nhé!")
+        st.error("❌ 0 ký tự: Thầy kiểm tra lại thư mục 'files' trên GitHub nhé!")
 
     if st.button("🗑️ Xóa lịch sử Chat"):
         st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
         save_data(HISTORY_FILE, st.session_state.messages)
         st.rerun()
 
-    st.markdown("---")
-    st.header("📝 Câu hỏi Cần Bổ Sung")
-    if st.session_state.missing_questions:
-        for i, q in enumerate(st.session_state.missing_questions):
-            st.markdown(f"**{i+1}.** {q}")
-
-# Container hiển thị chat
+# Hiển thị lịch sử
 chat_placeholder = st.container()
 with chat_placeholder:
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-# KHUNG NHẬP LIỆU (Luôn hiện ở cuối trang)
 st.markdown("---")
+# KHUNG NHẬP LIỆU (Luôn hiện)
 uploaded_file = st.file_uploader("📷 Gửi ảnh đề bài", type=["jpg", "jpeg", "png"], key="fixed_uploader")
 prompt = st.chat_input("Nhập câu hỏi cho thầy...")
 
 # ==================================================
-# 📌 5. XỬ LÝ TIN NHẮN
+# 📌 5. XỬ LÝ TIN NHẮN (CƠ CHẾ RETRY CHỐNG 429)
 # ==================================================
 if prompt:
-    if client is None:
-        st.error("⚠️ Thầy kiểm tra lại API Key trong phần Secrets nhé!")
+    if not client:
+        st.warning("⚠️ Hệ thống chưa sẵn sàng. Thầy kiểm tra lại API Key nhé!")
     else:
         cleaned_prompt = prompt.strip()
         message_parts = []
@@ -163,7 +148,7 @@ if prompt:
             with st.chat_message("assistant"):
                 with st.spinner("Thầy đang xem bài..."):
                     try:
-                        time.sleep(1) # Nghỉ 1 giây để tránh 429
+                        time.sleep(1) # Nghỉ 1 giây để tránh lỗi 429 theo giây
                         message_parts.append(types.Part.from_text(text=cleaned_prompt))
                         
                         response = None
