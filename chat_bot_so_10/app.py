@@ -16,7 +16,6 @@ ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư vi�
 PASSWORD_KEY = "CLEAR_PASSWORD" 
 HARDCODED_GREETING = "Xin chào em, thầy là Gia sư Hoá học THCS trường Phan Chu Trinh. Thầy đã sẵn sàng để giúp em học tốt hơn!"
 
-# --- HÀM XỬ LÝ DỮ LIỆU ---
 def load_data(file_path, default_value):
     if os.path.exists(file_path):
         try:
@@ -35,7 +34,7 @@ def save_data(file_path, data):
 # 📌 2. KHỞI TẠO GIAO DIỆN
 # ==================================================
 st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
-st.title("👨‍🔬 Gia sư Hóa học THCS - Trường Phan Chu Trinh")
+st.title("👨‍🔬 Gia sư Hóa học THCS - Phan Chu Trinh")
 
 if "missing_questions" not in st.session_state:
     st.session_state.missing_questions = load_data(STORAGE_FILE, [])
@@ -51,10 +50,10 @@ def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key: return None, None, 0
 
-    # KHÔNG ép phiên bản v1 hay v1beta ở đây để tránh lỗi 404
+    # KHÔNG ép phiên bản v1 hay v1beta để tránh xung đột model
     client = genai.Client(api_key=api_key)
     
-    # Tự động quét file tri thức
+    # Tự động tìm file trong thư mục 'files'
     current_dir = os.path.dirname(os.path.abspath(__file__))
     files_dir = os.path.join(current_dir, "files")
     knowledge_base = ""
@@ -62,53 +61,45 @@ def setup_chat_session():
         for filename in os.listdir(files_dir):
             if filename.endswith(".txt"):
                 try:
-                    file_path = os.path.join(files_dir, filename)
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        knowledge_base += f"\n\n--- DỮ LIỆU FILE {filename} ---\n" + f.read()
+                    with open(os.path.join(files_dir, filename), "r", encoding="utf-8") as f:
+                        knowledge_base += f"\n\n--- TRI THỨC ({filename}) ---\n" + f.read()
                 except: pass
 
-    # PROMPT ÉP ĐỊNH DẠNG SƯ PHẠM (KHÔNG HIỆN THẺ XML)
+    # PROMPT ENGINEERING SƯ PHẠM ĐẸP MẮT
     sys_instruct = (r"""
-# 🚨 QUY TẮC HIỂN THỊ (BẮT BUỘC)
-- BẠN LÀ THẦY GIÁO, KHÔNG PHẢI MÁY TRÍCH XUẤT.
-- TUYỆT ĐỐI KHÔNG hiển thị các thẻ XML như <co_ban>, <huong_dan_giai>...
-- Hãy trình bày câu trả lời đẹp mắt bằng Markdown: bảng biểu (so sánh), gạch đầu dòng (liệt kê).
-- PTHH: Đặt trong $$...$$ trên dòng riêng. Công thức: $...$.
+# 🚨 QUY TẮC HIỂN THỊ
+- TUYỆT ĐỐI KHÔNG hiển thị các thẻ XML (<co_ban>, <huong_dan_giai>...) ra màn hình.
+- Hãy trả lời như một người Thầy: Diễn đạt lại kiến thức bằng ngôn ngữ tự nhiên, ấm áp.
+- Sử dụng Markdown (bảng, gạch đầu dòng) và LaTeX ($...$, $$...$$) để trình bày đẹp nhất.
+- CHỈ TRẢ LỜI dựa trên KHO TRI THỨC bên dưới. Nếu thiếu, báo [MISSING_DOC].
 
+# 🎭 VAI TRÒ
+Bạn là Gia sư ảo Hóa học THCS trường Phan Chu Trinh. Xưng "Thầy", gọi "Em".
 # 🎓 CHIẾN LƯỢC SƯ PHẠM
-- Bạn là Gia sư ảo trường Phan Chu Trinh, xưng "Thầy", gọi "Em".
-- Luôn đưa ra 3 lựa chọn A (Tư duy), B (Bản đồ giải), C (Đáp án chi tiết) khi học sinh hỏi bài tập.
-- Chỉ sử dụng kiến thức trong KHO TRI THỨC được nạp bên dưới. Nếu thiếu, báo [MISSING_DOC].
+- Luôn đưa ra 3 lựa chọn A, B, C khi HS hỏi bài tập.
     """)
 
     full_instruction = sys_instruct + "\n\n# 📚 KHO TRI THỨC:\n" + knowledge_base
 
     try:
-        # Sử dụng Gemini 1.5 Flash - Bản ổn định nhất cho SKKN
+        # Dùng model tên ngắn gọn nhất - Đây là cách để hết lỗi 404
         chat = client.chats.create(
             model="gemini-1.5-flash", 
             config=types.GenerateContentConfig(system_instruction=full_instruction, temperature=0.0)
         )
         return client, chat, len(knowledge_base)
     except Exception as e:
-        # Phương án dự phòng cuối cùng nếu 1.5 vẫn lỗi (Dùng 1.5 Flash-8B)
-        try:
-            chat = client.chats.create(
-                model="gemini-1.5-flash-8b",
-                config=types.GenerateContentConfig(system_instruction=full_instruction, temperature=0.0)
-            )
-            return client, chat, len(knowledge_base)
-        except:
-            return None, None, 0
+        st.error(f"❌ Lỗi: {e}")
+        return None, None, 0
 
 client, chat_session, total_chars = setup_chat_session() 
 
 # ==================================================
-# 📌 4. SIDEBAR & GIAO DIỆN CHAT
+# 📌 4. SIDEBAR & HIỂN THỊ CHAT
 # ==================================================
 with st.sidebar:
     if total_chars > 0:
-        st.success(f"✅ Thư viện: {total_chars} ký tự đã nạp.")
+        st.success(f"✅ Đã nạp {total_chars} ký tự tri thức.")
     else:
         st.error("❌ 0 ký tự: Thầy kiểm tra lại thư mục 'files' nhé!")
 
@@ -117,7 +108,6 @@ with st.sidebar:
         save_data(HISTORY_FILE, st.session_state.messages)
         st.rerun()
 
-# Hiển thị lịch sử
 chat_placeholder = st.container()
 with chat_placeholder:
     for msg in st.session_state.messages:
@@ -129,11 +119,11 @@ uploaded_file = st.file_uploader("📷 Gửi ảnh đề bài", type=["jpg", "jp
 prompt = st.chat_input("Nhập câu hỏi cho thầy...")
 
 # ==================================================
-# 📌 5. XỬ LÝ TIN NHẮN (CƠ CHẾ RETRY + CHỐNG 429)
+# 📌 5. XỬ LÝ TIN NHẮN
 # ==================================================
 if prompt:
     if not client:
-        st.error("⚠️ AI đang bận hoặc lỗi API Key. Thầy kiểm tra lại nhé!")
+        st.warning("⚠️ Vui lòng kiểm tra lại cấu hình API.")
     else:
         cleaned_prompt = prompt.strip()
         message_parts = []
@@ -155,7 +145,7 @@ if prompt:
             with st.chat_message("assistant"):
                 with st.spinner("Thầy đang xem bài..."):
                     try:
-                        time.sleep(1) # Khoảng nghỉ tránh lỗi 429
+                        time.sleep(1) # Chống lỗi 429
                         message_parts.append(types.Part.from_text(text=cleaned_prompt))
                         
                         response = None
@@ -185,4 +175,4 @@ if prompt:
                         st.rerun()
                         
                     except Exception as e:
-                        st.error(f"Lỗi: {e}")
+                        st.error(f"Lỗi kết nối: {e}")
