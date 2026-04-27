@@ -9,7 +9,7 @@ import time
 # 📌 1. CẤU HÌNH HỆ THỐNG
 # ==================================================
 HISTORY_FILE = "chat_history.json" 
-HARDCODED_GREETING = "Chào em! Thầy là Gia sư Hoá học trường Phan Chu Trinh. Thầy sẽ đồng hành cùng em theo chuẩn GDPT 2018. Em cần thầy giúp gì nào?"
+HARDCODED_GREETING = "Chào em! Thầy là Gia sư Hoá học trường Phan Chu Trinh. Thầy đồng hành cùng em theo chuẩn GDPT 2018. Em cần thầy giúp gì nào?"
 
 def load_data(file_path, default_value):
     if os.path.exists(file_path):
@@ -31,13 +31,14 @@ if "messages" not in st.session_state:
     st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
 
 # ==================================================
-# ⚙️ 2. CẤU HÌNH AI (KHÔNG DÙNG FILE RIÊNG)
+# ⚙️ 2. CẤU HÌNH AI (MODEL 1.5 FLASH - QUOTA CAO NHẤT)
 # ==================================================
 @st.cache_resource
 def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key: return None, None
 
+    # Khởi tạo Client mặc định
     client = genai.Client(api_key=api_key)
     
     # --- PROMPT ÉP KHUÔN GDPT 2018 ---
@@ -53,26 +54,24 @@ Xưng "Thầy", gọi "Em". Ngôn ngữ ấm áp, đúng chuẩn sư phạm.
 4. ĐƠN VỊ: Dùng amu cho khối lượng nguyên tử, bar cho áp suất (theo SGK mới).
 
 # 🎓 CHIẾN LƯỢC GIẢNG DẠY
-- CÂU HỎI LÝ THUYẾT: Trả lời ngay, ngắn gọn, dễ hiểu.
-- BÀI TẬP: Tuyệt đối không giải luôn. Hãy hỏi: "Em muốn thầy hướng dẫn từng bước (tư duy) hay xem bài giải chi tiết?". Khuyến khích em tự làm.
+- CÂU HỎI LÝ THUYẾT: Trả lời ngay bằng kiến thức GDPT 2018.
+- BÀI TẬP: Hỏi HS muốn hướng dẫn (scaffolding) hay xem giải chi tiết. Khuyến khích HS tự làm.
 
 # 📐 TRÌNH BÀY
-- In đậm (**) các đề mục lớn (I, II, III...) và các bước (1, 2, 3...). Tách dòng rõ ràng.
-- PTHH: Nằm trên dòng riêng, bọc trong $$...$$.
-- Công thức: Bọc trong $...$.
+- In đậm (**) các đề mục lớn (I, II, III...) và các bước (1, 2, 3...). Các mục này phải đứng riêng dòng.
+- PTHH: Nằm trên dòng riêng, bọc trong $$...$$. Công thức bọc trong $...$.
     """)
 
-    # Thử dùng 2.0 Flash, nếu lỗi thì tự động lùi về 1.5 Flash (Bản ổn định nhất)
-    for model_name in ["gemini-2.0-flash", "gemini-1.5-flash"]:
-        try:
-            chat = client.chats.create(
-                model=model_name, 
-                config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.2)
-            )
-            return client, chat
-        except:
-            continue
-    return None, None
+    try:
+        # Ép dùng gemini-1.5-flash để thoát lỗi 429 do đây là model có quota Tier 1 cao nhất
+        chat = client.chats.create(
+            model="gemini-1.5-flash", 
+            config=types.GenerateContentConfig(system_instruction=sys_instruct, temperature=0.1)
+        )
+        return client, chat
+    except Exception as e:
+        st.error(f"⚠️ Lỗi kết nối AI: {e}")
+        return None, None
 
 client, chat_session = setup_chat_session() 
 
@@ -80,9 +79,9 @@ client, chat_session = setup_chat_session()
 # 🎨 3. GIAO DIỆN & SIDEBAR
 # ==================================================
 with st.sidebar:
-    st.header("⚙️ Cài đặt")
+    st.header("⚙️ Trạng thái")
     st.success("✅ Chế độ: GDPT 2018 (IUPAC)")
-    st.info("💡 Đang dùng: $24,79 \text{ L/mol}$")
+    st.info("💡 Hằng số: $24,79 \text{ L/mol}$")
     if st.button("🗑️ Xóa lịch sử Chat"):
         st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
         if os.path.exists(HISTORY_FILE): os.remove(HISTORY_FILE)
@@ -97,25 +96,23 @@ with chat_placeholder:
 
 st.markdown("---")
 uploaded_file = st.file_uploader("📷 Gửi ảnh đề bài", type=["jpg", "jpeg", "png"], key="file_up")
-prompt = st.chat_input("Hỏi thầy về Hóa học/Sinh học đi em...")
+prompt = st.chat_input("Hỏi thầy đi em...")
 
 # ==================================================
-# 🚀 4. XỬ LÝ GỬI TIN NHẮN
+# 🚀 4. XỬ LÝ GỬI TIN NHẮN (CƠ CHẾ RETRY MẠNH MẼ)
 # ==================================================
 if prompt:
     if not client:
         st.error("⚠️ AI chưa khởi động. Thầy kiểm tra lại API Key nhé!")
     else:
         cleaned_prompt = prompt.strip()
-        message_parts = []
+        message_parts = [types.Part.from_text(text=cleaned_prompt)]
         
-        user_msg_content = cleaned_prompt
         if uploaded_file:
             image_part = types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=uploaded_file.type)
             message_parts.append(image_part)
-            user_msg_content = f"📝 (Kèm ảnh) {cleaned_prompt}"
         
-        st.session_state.messages.append({"role": "user", "content": user_msg_content})
+        st.session_state.messages.append({"role": "user", "content": cleaned_prompt})
         save_data(HISTORY_FILE, st.session_state.messages)
 
         with chat_placeholder:
@@ -126,9 +123,7 @@ if prompt:
             with st.chat_message("assistant"):
                 with st.spinner("Thầy đang xem bài..."):
                     try:
-                        time.sleep(1) # Nghỉ để tránh 429
-                        message_parts.append(types.Part.from_text(text=cleaned_prompt))
-                        
+                        # Tự động thử lại 3 lần, thời gian chờ tăng dần (Backoff)
                         response = None
                         for attempt in range(3):
                             try:
@@ -136,15 +131,16 @@ if prompt:
                                 break
                             except Exception as e:
                                 if "429" in str(e) and attempt < 2:
-                                    time.sleep(5)
+                                    time.sleep(3 * (attempt + 1)) # Đợi 3s, sau đó 6s
                                     continue
                                 else: raise e
 
-                        res_text = response.text.strip()
-                        st.markdown(res_text)
-                        st.session_state.messages.append({"role": "assistant", "content": res_text})
-                        save_data(HISTORY_FILE, st.session_state.messages)
-                        st.rerun()
+                        if response:
+                            res_text = response.text.strip()
+                            st.markdown(res_text)
+                            st.session_state.messages.append({"role": "assistant", "content": res_text})
+                            save_data(HISTORY_FILE, st.session_state.messages)
+                            st.rerun()
                         
                     except Exception as e:
-                        st.error(f"Hệ thống bận, em đợi chút rồi thử lại nhé! (Lỗi: {e})")
+                        st.error(f"Hệ thống bận, em đợi 5 giây rồi nhấn gửi lại giúp thầy nhé! (Lỗi: {e})")
