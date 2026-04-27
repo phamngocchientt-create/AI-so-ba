@@ -12,10 +12,11 @@ import time
 STORAGE_FILE = "missing_questions.json"
 HISTORY_FILE = "chat_history.json" 
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
-ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư viện tài liệu của thầy. Thầy sẽ sớm cập nhật kiến thức này nhanh nhất có thể. {ERROR_MESSAGE_TAG}"
+ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư viện tài liệu của thầy. {ERROR_MESSAGE_TAG} Em có thể hỏi về một chủ đề khác không?"
 PASSWORD_KEY = "CLEAR_PASSWORD" 
-HARDCODED_GREETING = "Xin chào em, thầy là Gia sư Hoá học THCS trường Phan Chu Trinh. Thầy đã sẵn sàng đồng hành cùng em rồi đây!"
+HARDCODED_GREETING = "Xin chào em, thầy là Gia sư Hoá học THCS trường Phan Chu Trinh. Thầy rất vui được hỗ trợ em!"
 
+# --- HÀM XỬ LÝ DỮ LIỆU ---
 def load_data(file_path, default_value):
     if os.path.exists(file_path):
         try:
@@ -31,27 +32,29 @@ def save_data(file_path, data):
     except: pass
 
 # ==================================================
-# 📌 2. KHỞI TẠO GIAO DIỆN
+# 📌 2. KHỞI TẠO GIAO DIỆN (LUÔN HIỆN KHUNG CHAT)
 # ==================================================
 st.set_page_config(page_title="Gia sư Hóa học THCS", layout="wide")
-st.title("👨‍🔬 Gia sư Hóa học THCS - Phan Chu Trinh")
+st.title("👨‍🔬 Gia sư Hóa học THCS - Trường Phan Chu Trinh")
 
 if "missing_questions" not in st.session_state:
-    st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
     st.session_state.missing_questions = load_data(STORAGE_FILE, [])
 
+if "messages" not in st.session_state:
+    st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
+
 # ==================================================
-# 📌 3. CẤU HÌNH CHAT SESSION (BẢN FIX TRIỆT ĐỂ 404 & HIỂN THỊ)
+# 📌 3. CẤU HÌNH CHAT SESSION (FIX TRIỆT ĐỂ 404/400)
 # ==================================================
 @st.cache_resource
 def setup_chat_session():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key: return None, None, 0
 
-    # SỬA LỖI 400/404: Dùng v1beta và bỏ qua cấu hình dư thừa
-    client = genai.Client(api_key=api_key, http_options={'api_version': 'v1beta'})
+    # KHÔNG dùng http_options api_version để tránh lỗi 400/404
+    client = genai.Client(api_key=api_key)
     
-    # Nạp tài liệu từ thư mục 'files'
+    # Tìm file tri thức
     current_dir = os.path.dirname(os.path.abspath(__file__))
     files_dir = os.path.join(current_dir, "files")
     knowledge_base = ""
@@ -63,46 +66,50 @@ def setup_chat_session():
                         knowledge_base += f"\n\n--- DỮ LIỆU FILE {filename} ---\n" + f.read()
                 except: pass
 
-    # PROMPT ENGINEERING: LÀM ĐẸP & GIỚI HẠN TRI THỨC
+    # PROMPT ÉP ĐỊNH DẠNG ĐẸP (KHÔNG HIỆN THẺ XML)
     sys_instruct = (r"""
-# 🚨 QUY TẮC HIỂN THỊ ĐẸP
-- KHÔNG hiển thị các thẻ XML như <co_ban>, <huong_dan_giai>...
-- Hãy trả lời như một người Thầy: Nhẹ nhàng, dùng Markdown (bảng, gạch đầu dòng) để trình bày đẹp mắt.
-- PTHH: Luôn đặt trong $$...$$ trên dòng riêng. Công thức: $...$.
-- CHỈ TRẢ LỜI dựa trên KHO TRI THỨC bên dưới. Nếu không có, báo [MISSING_DOC].
+# 🚨 QUY TẮC HIỂN THỊ (QUAN TRỌNG)
+- BẠN LÀ THẦY GIÁO, KHÔNG PHẢI MÁY TRÍCH XUẤT.
+- TUYỆT ĐỐI KHÔNG hiển thị các thẻ như <co_ban>, <huong_dan_giai>, <bai_giai_chi_tiet> ra màn hình.
+- Hãy tiêu hóa kiến thức đó và trả lời bằng ngôn ngữ sư phạm ấm áp.
+- Sử dụng Markdown: bảng biểu (cho so sánh), gạch đầu dòng (cho danh sách).
+- PTHH: Đặt trong $$...$$ trên dòng riêng. Công thức: $...$.
 
-# 🎭 VAI TRÒ
-Bạn là Gia sư ảo Hóa học THCS trường Phan Chu Trinh. Xưng "Thầy", gọi "Em".
 # 🎓 CHIẾN LƯỢC SƯ PHẠM
-- Khi hỏi bài tập: Đưa 3 lựa chọn A (Tư duy), B (Bản đồ), C (Giải chi tiết).
+- Luôn đưa ra 3 lựa chọn A, B, C khi HS hỏi bài tập.
+- Chỉ dùng kiến thức trong KHO TRI THỨC bên dưới. Nếu thiếu, báo [MISSING_DOC].
     """)
 
-    full_instruction = sys_instruct + "\n\n# 📚 KHO TRI THỨC ĐƯỢC NẠP:\n" + knowledge_base
+    full_instruction = sys_instruct + "\n\n# 📚 KHO TRI THỨC:\n" + knowledge_base
 
     try:
-        # SỬA LỖI 404: Dùng tên model rút gọn và ổn định
+        # Dùng model chuẩn: gemini-1.5-flash
         chat = client.chats.create(
             model="gemini-1.5-flash", 
-            config=types.GenerateContentConfig(
-                system_instruction=full_instruction, 
-                temperature=0.0
-            )
+            config=types.GenerateContentConfig(system_instruction=full_instruction, temperature=0.0)
         )
         return client, chat, len(knowledge_base)
     except Exception as e:
-        st.error(f"⚠️ Lỗi kết nối API: {e}")
-        return None, None, 0
+        # Nếu lỗi 404 vẫn xảy ra, thử model 2.0 flash như phương án dự phòng
+        try:
+            chat = client.chats.create(
+                model="gemini-2.0-flash",
+                config=types.GenerateContentConfig(system_instruction=full_instruction, temperature=0.0)
+            )
+            return client, chat, len(knowledge_base)
+        except:
+            return None, None, 0
 
 client, chat_session, total_chars = setup_chat_session() 
 
 # ==================================================
-# 📌 4. GIAO DIỆN CHAT & SIDEBAR
+# 📌 4. SIDEBAR & GIAO DIỆN CHAT
 # ==================================================
 with st.sidebar:
     if total_chars > 0:
-        st.success(f"✅ Đã nạp {total_chars} ký tự tri thức.")
+        st.success(f"✅ Thư viện: {total_chars} ký tự.")
     else:
-        st.error("❌ 0 ký tự: Thầy kiểm tra lại thư mục 'files' trên GitHub nhé!")
+        st.error("❌ 0 ký tự: Thầy kiểm tra lại thư mục 'files' nhé!")
 
     if st.button("🗑️ Xóa lịch sử Chat"):
         st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
@@ -117,16 +124,16 @@ with chat_placeholder:
             st.markdown(msg["content"])
 
 st.markdown("---")
-# KHUNG NHẬP LIỆU (Luôn hiện)
-uploaded_file = st.file_uploader("📷 Gửi ảnh đề bài", type=["jpg", "jpeg", "png"], key="fixed_uploader")
+# Đảm bảo khung này luôn hiện
+uploaded_file = st.file_uploader("📷 Gửi ảnh đề bài", type=["jpg", "jpeg", "png"])
 prompt = st.chat_input("Nhập câu hỏi cho thầy...")
 
 # ==================================================
-# 📌 5. XỬ LÝ TIN NHẮN (CƠ CHẾ RETRY CHỐNG 429)
+# 📌 5. XỬ LÝ TIN NHẮN (CƠ CHẾ RETRY + ANTI 429)
 # ==================================================
 if prompt:
     if not client:
-        st.warning("⚠️ Hệ thống chưa sẵn sàng. Thầy kiểm tra lại API Key nhé!")
+        st.error("⚠️ Lỗi kết nối AI. Thầy kiểm tra lại API Key nhé!")
     else:
         cleaned_prompt = prompt.strip()
         message_parts = []
@@ -148,7 +155,7 @@ if prompt:
             with st.chat_message("assistant"):
                 with st.spinner("Thầy đang xem bài..."):
                     try:
-                        time.sleep(1) # Nghỉ 1 giây để tránh lỗi 429 theo giây
+                        time.sleep(1) # Nghỉ để tránh 429
                         message_parts.append(types.Part.from_text(text=cleaned_prompt))
                         
                         response = None
@@ -178,4 +185,4 @@ if prompt:
                         st.rerun()
                         
                     except Exception as e:
-                        st.error(f"Lỗi: {e}")
+                        st.error(f"Lỗi: {e}. Em hãy đợi vài giây rồi thử lại nhé!")
