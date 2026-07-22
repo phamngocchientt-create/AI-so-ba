@@ -117,7 +117,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
     # ==================================================
        # 🔥 PHÂN BIỆT RÕ RÀNG BONG BÓNG CHAT THẦY & TRÒ
-       ================================================== #
+    
     
     /* 1. BONG BÓNG CHAT HỌC SINH (USER) - MÀU XÁM XANH */
     div[data-testid="stChatMessage"]:has(div[aria-label="Chat avatar user"]),
