@@ -217,34 +217,25 @@ with st.sidebar:
 # 🏛️ GIAO DIỆN CHÍNH (MAIN DISPLAY)
 # ==================================================
 
-# 📍 1. TỰ ĐỘNG XÁC ĐỊNH ĐƯỜNG DẪN CHÍNH XÁC CHỨA FILE BANNER.PNG
+# 📍 1. HIỂN THỊ BANNER VỚI ĐƯỜNG DẪN TỰ ĐỘNG CHUẨN XÁC
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-banner_b64 = None
+banner_loaded = False
 for name in ["banner.png", "banner.PNG", "banner.jpg", "banner.jpeg"]:
-    full_path = os.path.join(CURRENT_DIR, name)
-    banner_b64 = get_image_base64(full_path)
-    if banner_b64:
+    banner_path = os.path.join(CURRENT_DIR, name)
+    if os.path.exists(banner_path):
+        st.image(banner_path, use_container_width=True)
+        banner_loaded = True
         break
 
-if banner_b64:
-    st.markdown(f'''
-        <div class="banner-container">
-            <img src="data:image/png;base64,{banner_b64}" alt="Banner Gia Sư Hóa Học THCS">
-        </div>
-    ''', unsafe_allow_html=True)
-else:
-    # Thử load bằng st.image nếu lấy base64 chưa thành công
-    banner_file_path = os.path.join(CURRENT_DIR, "banner.png")
-    if os.path.exists(banner_file_path):
-        st.image(banner_file_path, use_container_width=True)
-    else:
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 1.5rem; border-radius: 16px; color: white; text-align: center; margin-bottom: 1.5rem;">
-            <h2 style="margin:0; font-size: 1.8rem;">🧪 GIA SƯ HOÁ HỌC THCS</h2>
-            <p style="margin:5px 0 0 0; opacity: 0.9;">TRƯỜNG THCS PHAN CHU TRINH - KRÔNG BÚK</p>
-        </div>
-        """, unsafe_allow_html=True)
+# Khung Banner chữ dự phòng nếu chưa load được ảnh
+if not banner_loaded:
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 1.5rem; border-radius: 16px; color: white; text-align: center; margin-bottom: 1.5rem;">
+        <h2 style="margin:0; font-size: 1.8rem;">🧪 GIA SƯ HOÁ HỌC THCS</h2>
+        <p style="margin:5px 0 0 0; opacity: 0.9;">TRƯỜNG THCS PHAN CHU TRINH - KRÔNG BÚK</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
