@@ -51,7 +51,7 @@ st.markdown("""
         background-color: #f8fafc;
     }
 
-    /* Tùy biến Sidebar Card */
+    /* 📌 Tùy biến Sidebar Card */
     .sidebar-card {
         background: #ffffff;
         border-left: 4px solid #0284c7;
@@ -60,6 +60,64 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         margin-bottom: 1rem;
     }
+
+    /* 💬 1. Bong bóng chat của HỌC SINH (Màu xanh pastel nhạt, căn mềm mại) */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]),
+    .stChatMessage:nth-child(odd) {
+        background-color: #e0f2fe !important;
+        border: 1px solid #bae6fd !important;
+        border-radius: 18px 18px 4px 18px !important;
+        padding: 12px 18px !important;
+        margin-bottom: 12px !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.03) !important;
+    }
+
+    /* 👨‍🏫 2. Bong bóng chat của THẦY GIÁO (Màu trắng, vạch nhấn xanh dương đậm bên trái) */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]),
+    .stChatMessage:nth-child(even) {
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-left: 5px solid #0284c7 !important;
+        border-radius: 18px 18px 18px 4px !important;
+        padding: 14px 20px !important;
+        margin-bottom: 12px !important;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.04) !important;
+    }
+
+    /* ✏️ 3. Tùy biến KHUNG NHẬP LIỆU ĐẦU VÀO (Chat Input dạng viên thuốc bo tròn) */
+    [data-testid="stChatInput"] {
+        border-radius: 25px !important;
+        border: 2px solid #38bdf8 !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15) !important;
+        padding: 4px 8px !important;
+        transition: all 0.3s ease !important;
+    }
+
+    /* Hiệu ứng khi nhấp chuột vào ô nhập */
+    [data-testid="stChatInput"]:focus-within {
+        border-color: #0284c7 !important;
+        box-shadow: 0 4px 20px rgba(2, 132, 199, 0.25) !important;
+    }
+
+    /* Nút Gửi (Mũi tên) */
+    [data-testid="stChatInputSubmitButton"] {
+        background-color: #0284c7 !important;
+        color: white !important;
+        border-radius: 50% !important;
+    }
+    
+    [data-testid="stChatInputSubmitButton"]:hover {
+        background-color: #0369a1 !important;
+    }
+
+    /* 🖼️ 4. Bo tròn góc Banner & Ảnh bài tập */
+    .stImage img {
+        border-radius: 16px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
     /* ==================================================
        🔥 PHÂN BIỆT RÕ RÀNG BONG BÓNG CHAT THẦY & TRÒ
