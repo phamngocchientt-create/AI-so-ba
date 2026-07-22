@@ -7,7 +7,7 @@ import json
 # ==================================================
 # 📌 CẤU HÌNH HỆ THỐNG & FILE
 # ==================================================
-LIST_FILES = ['files/o4a2cyiaer8u', 'files/ekowcvd537b9']
+LIST_FILES = ['files/dafibik4ff2z', 'files/1ht3zlz36l3q']
 STORAGE_FILE = "missing_questions.json"
 HISTORY_FILE = "chat_history.json"
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
