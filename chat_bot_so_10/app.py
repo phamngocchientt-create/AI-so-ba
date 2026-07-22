@@ -26,7 +26,6 @@ st.markdown("""
         background-color: #f8fafc;
     }
 
-    /* Card thông tin ở Sidebar */
     .sidebar-card {
         background: #ffffff;
         border-left: 4px solid #0284c7;
@@ -141,6 +140,7 @@ Bạn là Gia sư Hóa học THCS dành cho học sinh Trường THCS Phan Chu T
 - Chỉ giải đáp kiến thức Hóa học THCS (Lớp 8, 9).
 - Tên nguyên tố/chất áp dụng danh pháp IUPAC (vd: Oxygen, Hydrogen, Iron, Sulfur...).
 - Giảng giải thân thiện, dễ hiểu, đóng vai Thầy giáo xưng "Thầy" gọi "em".
+- Nếu gặp câu hỏi không nằm trong phạm vi kiến thức Hóa THCS hoặc tài liệu được cấp, bạn BẮT BUỘC trả về chuỗi "[MISSING_DOC_ERROR]" kèm giải thích ngắn gọn.
 """
 
 ERROR_MESSAGE_TAG = "[MISSING_DOC_ERROR]"
@@ -179,6 +179,23 @@ with st.sidebar:
     - Dùng tên chất theo chuẩn mới (VD: *Oxygen*, *Hydrogen*, *Aluminium*...).
     """)
     
+    st.divider()
+
+    # 📥 MỤC THEO DÕI CÂU HỎI CẦN BỔ SUNG DÀNH CHO GIÁO VIÊN
+    with st.expander("📌 Câu hỏi chưa có dữ liệu", expanded=False):
+        if st.session_state.missing_questions:
+            st.write(f"Hiện có **{len(st.session_state.missing_questions)}** câu hỏi cần bổ sung:")
+            for idx, q in enumerate(st.session_state.missing_questions, 1):
+                st.markdown(f"**{idx}.** {q}")
+            
+            if st.button("🗑️ Xóa danh sách câu hỏi", key="clear_missing"):
+                st.session_state.missing_questions = []
+                save_data(STORAGE_FILE, st.session_state.missing_questions)
+                st.success("Đã xóa danh sách!")
+                st.rerun()
+        else:
+            st.info("Chưa có câu hỏi nào bị thiếu dữ liệu!")
+
     st.divider()
 
     if st.button("🗑️ Xóa lịch sử trò chuyện", use_container_width=True):
