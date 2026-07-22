@@ -217,14 +217,11 @@ with st.sidebar:
 # 🏛️ GIAO DIỆN CHÍNH (MAIN DISPLAY)
 # ==================================================
 
-# 📍 1. CHÈN BANNER ẢNH NGAY ĐẦU TRANG TẠI ĐÂY
-if os.path.exists("banner.jpg"):
-    st.image("banner.jpg", use_container_width=True)
-elif os.path.exists("banner.png"):
+# 📍 1. HIỂN THỊ BANNER (TỰ ĐỘNG LẤY ANH BANNER)
+if os.path.exists("banner.png"):
     st.image("banner.png", use_container_width=True)
-else:
-    # Trường hợp chưa lưu ảnh vào máy thì hiển thị khung màu dự phòng
-    st.info("💡 Thầy hãy lưu bức ảnh Banner về thư mục chạy code với tên 'banner.jpg' để hiển thị banner đẹp mắt nhé!")
+elif os.path.exists("banner.jpg"):
+    st.image("banner.jpg", use_container_width=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -237,15 +234,22 @@ with chat_placeholder:
         with st.chat_message(msg["role"], avatar=avatar_icon):
             st.markdown(msg["content"])
 
-# 📍 3. KHU VỰC NHẬP LIỆU BÊN DƯỚI
+# 📍 3. KHU VỰC NHẬP LIỆU & GỬI ẢNH GỌN GÀNG BÊN DƯỚI
 st.markdown("<br>", unsafe_allow_html=True)
-col1, col2 = st.columns([1, 4])
 
-with col1:
-    uploaded_file = st.file_uploader("📷 Gửi ảnh đề bài", type=["jpg", "jpeg", "png"], key="fixed_bottom_uploader", label_visibility="collapsed")
+# Gom ô upload và ô chat chung hàng cho gọn gàng
+col_file, col_input = st.columns([1, 5])
 
-prompt = st.chat_input("Em muốn hỏi Thầy bài tập hay lý thuyết Hóa học nào hôm nay...")
+with col_file:
+    uploaded_file = st.file_uploader(
+        "📎 Gửi ảnh bài tập", 
+        type=["jpg", "jpeg", "png"], 
+        key="compact_uploader",
+        help="Đính kèm ảnh bài tập Hóa học"
+    )
 
+with col_input:
+    prompt = st.chat_input("Em muốn hỏi Thầy bài tập hay lý thuyết Hóa học nào hôm nay...")
 # ==================================================
 # 🤖 XỬ LÝ LÔ-GÍC PHẢN HỒI (AI LOGIC)
 # ==================================================
