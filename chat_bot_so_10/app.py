@@ -259,29 +259,24 @@ prompt = st.chat_input("Em muốn hỏi Thầy bài tập hay lý thuyết Hóa 
 if prompt:
     if not client: st.stop()
     cleaned_prompt = prompt.strip()
-    message_parts = []
     
-    user_msg_content = cleaned_prompt
-    if uploaded_file:
-        image_part = types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=uploaded_file.type)
-        message_parts.append(image_part)
-        user_msg_content = f"📝 *(Kèm ảnh đề bài)*\n\n{cleaned_prompt}"
-    
-    st.session_state.messages.append({"role": "user", "content": user_msg_content})
+    # 1. Lưu câu hỏi của học sinh vào lịch sử
+    st.session_state.messages.append({"role": "user", "content": cleaned_prompt})
     save_data(HISTORY_FILE, st.session_state.messages)
 
+    # 2. Hiển thị ngay lên màn hình chat & gọi Gemini
     with chat_placeholder:
         with st.chat_message("user", avatar="🎒"):
-            if uploaded_file: st.image(uploaded_file, width=280)
             st.markdown(cleaned_prompt)
 
         with st.chat_message("assistant", avatar="👨‍🏫"):
             with st.spinner("Thầy đang suy nghĩ bài làm..."):
                 try:
-                    message_parts.append(types.Part.from_text(text=cleaned_prompt))
+                    message_parts = [types.Part.from_text(text=cleaned_prompt)]
                     response = chat_session.send_message(message_parts)
                     res_text = response.text.strip()
                     
+                    # Kiểm tra nếu tài liệu bị thiếu
                     if ERROR_MESSAGE_TAG.upper() in res_text.upper():
                         if cleaned_prompt not in st.session_state.missing_questions:
                             st.session_state.missing_questions.append(cleaned_prompt)
