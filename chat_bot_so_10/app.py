@@ -51,7 +51,7 @@ st.markdown("""
         background-color: #f8fafc;
     }
 
-    /* 📌 Tùy biến Sidebar Card */
+    /* Tùy biến Sidebar Card */
     .sidebar-card {
         background: #ffffff;
         border-left: 4px solid #0284c7;
@@ -61,7 +61,7 @@ st.markdown("""
         margin-bottom: 1rem;
     }
 
-    /* 💬 1. Bong bóng chat của HỌC SINH (Màu xanh pastel nhạt, căn mềm mại) */
+    /* Bong bóng chat HỌC SINH */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]),
     .stChatMessage:nth-child(odd) {
         background-color: #e0f2fe !important;
@@ -72,7 +72,7 @@ st.markdown("""
         box-shadow: 0 2px 5px rgba(0,0,0,0.03) !important;
     }
 
-    /* 👨‍🏫 2. Bong bóng chat của THẦY GIÁO (Màu trắng, vạch nhấn xanh dương đậm bên trái) */
+    /* Bong bóng chat THẦY GIÁO */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]),
     .stChatMessage:nth-child(even) {
         background-color: #ffffff !important;
@@ -84,7 +84,7 @@ st.markdown("""
         box-shadow: 0 3px 8px rgba(0,0,0,0.04) !important;
     }
 
-    /* ✏️ 3. Tùy biến KHUNG NHẬP LIỆU ĐẦU VÀO (Chat Input dạng viên thuốc bo tròn) */
+    /* Tùy biến Khung Nhập Liệu */
     [data-testid="stChatInput"] {
         border-radius: 25px !important;
         border: 2px solid #38bdf8 !important;
@@ -94,13 +94,11 @@ st.markdown("""
         transition: all 0.3s ease !important;
     }
 
-    /* Hiệu ứng khi nhấp chuột vào ô nhập */
     [data-testid="stChatInput"]:focus-within {
         border-color: #0284c7 !important;
         box-shadow: 0 4px 20px rgba(2, 132, 199, 0.25) !important;
     }
 
-    /* Nút Gửi (Mũi tên) */
     [data-testid="stChatInputSubmitButton"] {
         background-color: #0284c7 !important;
         color: white !important;
@@ -111,14 +109,12 @@ st.markdown("""
         background-color: #0369a1 !important;
     }
 
-    /* 🖼️ 4. Bo tròn góc Banner & Ảnh bài tập */
     .stImage img {
         border-radius: 16px !important;
         box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
     }
 </style>
 """, unsafe_allow_html=True)
-
     /* ==================================================
        🔥 PHÂN BIỆT RÕ RÀNG BONG BÓNG CHAT THẦY & TRÒ
        ================================================== */
