@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 
 # ==================================================
-# CẤU HÌNH TRANG & CUSTOM CSS
+# 🎨 CẤU HÌNH TRANG & CUSTOM CSS
 # ==================================================
 st.set_page_config(
     page_title="Gia sư Hóa học THCS - THCS Phan Chu Trinh", 
@@ -26,6 +26,7 @@ st.markdown("""
         background-color: #f8fafc;
     }
 
+    /* Card thông tin ở Sidebar */
     .sidebar-card {
         background: #ffffff;
         border-left: 4px solid #0284c7;
@@ -35,6 +36,7 @@ st.markdown("""
         margin-bottom: 1rem;
     }
 
+    /* Bong bóng chat HỌC SINH */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]),
     .stChatMessage:nth-child(odd) {
         background-color: #e0f2fe !important;
@@ -45,6 +47,7 @@ st.markdown("""
         box-shadow: 0 2px 5px rgba(0,0,0,0.03) !important;
     }
 
+    /* Bong bóng chat THẦY GIÁO */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]),
     .stChatMessage:nth-child(even) {
         background-color: #ffffff !important;
@@ -56,6 +59,7 @@ st.markdown("""
         box-shadow: 0 3px 8px rgba(0,0,0,0.04) !important;
     }
 
+    /* Ô nhập liệu */
     [data-testid="stChatInput"] {
         border-radius: 25px !important;
         border: 2px solid #38bdf8 !important;
@@ -88,7 +92,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==================================================
-# NẠP CẤU HÌNH VÀ KHỞI TẠO DỮ LIỆU
+# 📂 NẠP CẤU HÌNH VÀ KHỞI TẠO DỮ LIỆU
 # ==================================================
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(CURRENT_DIR, "chat_history.json")
@@ -110,16 +114,16 @@ def save_data(file_path, data):
     except Exception:
         pass
 
+INITIAL_MESSAGE = {"role": "assistant", "content": "Xin chào em! Thầy là Gia sư Hóa học THCS. Em đang gặp khó khăn ở bài tập hay lý thuyết Hóa học nào, cứ chia sẻ với Thầy nhé!"}
+
 if "messages" not in st.session_state:
-    st.session_state.messages = load_data(HISTORY_FILE, [
-        {"role": "assistant", "content": "Xin chào em! Thầy là Gia sư Hóa học THCS. Em đang gặp khó khăn ở bài tập hay lý thuyết Hóa học nào, cứ chia sẻ với Thầy nhé!"}
-    ])
+    st.session_state.messages = load_data(HISTORY_FILE, [INITIAL_MESSAGE])
 
 if "missing_questions" not in st.session_state:
     st.session_state.missing_questions = load_data(STORAGE_FILE, [])
 
 # ==================================================
-# KHỞI TẠO GEMINI CLIENT
+# 🔑 KHỞI TẠO GEMINI CLIENT
 # ==================================================
 api_key = os.environ.get("GEMINI_API_KEY")
 client = None
@@ -155,10 +159,38 @@ if client:
         st.error(f"Lỗi khởi tạo chat session: {e}")
 
 # ==================================================
-# GIAO DIỆN CHÍNH (MAIN DISPLAY)
+# 📌 THANH BÊN TRÁI (SIDEBAR)
+# ==================================================
+with st.sidebar:
+    st.title("🧪 Lớp Hóa Học THCS")
+    st.caption("Trường THCS Phan Chu Trinh - Krông Búk")
+    st.divider()
+
+    st.markdown("""
+    <div class="sidebar-card">
+        🎯 <b>Gia sư Trực tuyến</b><br>
+        Hỗ trợ học sinh ôn tập, giải bài tập & củng cố kiến thức Hóa học lớp 8, 9 theo GDPT 2018 (IUPAC).
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### 💡 Hướng dẫn:")
+    st.markdown("""
+    - Nhập câu hỏi bài tập hoặc lý thuyết cần giải đáp.
+    - Dùng tên chất theo chuẩn mới (VD: *Oxygen*, *Hydrogen*, *Aluminium*...).
+    """)
+    
+    st.divider()
+
+    if st.button("🗑️ Xóa lịch sử trò chuyện", use_container_width=True):
+        st.session_state.messages = [INITIAL_MESSAGE]
+        save_data(HISTORY_FILE, st.session_state.messages)
+        st.rerun()
+
+# ==================================================
+# 🏛️ GIAO DIỆN CHÍNH (MAIN DISPLAY)
 # ==================================================
 
-# 1. BANNER
+# 📍 1. BANNER
 banner_loaded = False
 for name in ["banner.png", "banner.PNG", "banner.jpg", "banner.jpeg"]:
     banner_path = os.path.join(CURRENT_DIR, name)
@@ -177,7 +209,7 @@ if not banner_loaded:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 2. KHUNG HỘI THOẠI CHAT
+# 📍 2. KHUNG HỘI THOẠI CHAT
 chat_placeholder = st.container()
 
 with chat_placeholder:
@@ -188,11 +220,11 @@ with chat_placeholder:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 3. KHU VỰC NHẬP LIỆU BÊN DƯỚI
+# 📍 3. KHU VỰC NHẬP LIỆU BÊN DƯỚI
 prompt = st.chat_input("Em muốn hỏi Thầy bài tập hay lý thuyết Hóa học nào hôm nay...")
 
 # ==================================================
-# XỬ LÝ LÔ-GÍC PHẢN HỒI (AI LOGIC)
+# 🤖 XỬ LÝ LÔ-GÍC PHẢN HỒI (AI LOGIC)
 # ==================================================
 if prompt:
     if not client: st.stop()
