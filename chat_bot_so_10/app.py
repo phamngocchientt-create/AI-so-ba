@@ -212,25 +212,29 @@ AVATAR_TEACHER_SRC = TEACHER_B64 if TEACHER_B64 else DEFAULT_TEACHER_AVATAR
 AVATAR_STUDENT_SRC = STUDENT_B64 if STUDENT_B64 else DEFAULT_STUDENT_AVATAR
 
 # 🧪 HÀM ĐỊNH DẠNG VĂN BẢN VÀ CHUẨN HÓA LATEX MÀ KHÔNG LÀM VỠ HTML ZALO
+# 🧪 HÀM XỬ LÝ CHUỖI CÔNG THỨC LATEX CHO BONG BÓNG ZALO (FIX LỖI CÁCH DẤU $)
 def process_markdown_to_html(text):
     if not text:
         return ""
     
-    # 1. Thêm khoảng trắng trước/sau dấu $ để KaTeX nhận diện (Fix lỗi dính liền như *Ví dụ:*$2Na...)
-    text = re.sub(r'([^\s$])\$', r'\1 $', text)
-    text = re.sub(r'\$([^\s$])', r'$ \1', text)
+    # 1. Sửa lỗi khoảng trắng thừa quanh dấu $ (Chuyển '$ 2Al ... $' thành '$2Al ... $')
+    text = re.sub(r'\$\s+', '$', text)
+    text = re.sub(r'\s+\$', '$', text)
 
-    # 2. Sửa lỗi số thứ tự 1., 2., 3. bị tự động xuống dòng riêng biệt
+    # 2. Thay thế ký hiệu nhiệt độ t^\circ hoặc t^\circ C thành t^o chuẩn LaTeX
+    text = text.replace(r't^\circ', r't^o').replace(r't^{\circ}', r't^o')
+
+    # 3. Sửa lỗi số thứ tự 1., 2., 3. bị tự động nhảy xuống dòng riêng lơ lửng
     text = re.sub(r'(?m)^\s*(\d+)\.\s*\n+\s*\*\*([^*]+)\*\*', r'### \1. \2', text)
     text = re.sub(r'(?m)^\s*(\d+)\.\s*\n+\s*###', r'### \1.', text)
 
-    # 3. Chuyển đổi định dạng tiêu đề Markdown sang HTML <h3> cho bong bóng Zalo
+    # 4. Chuyển đổi định dạng tiêu đề Markdown sang HTML <h3> cho bong bóng Zalo
     text = re.sub(r'###\s*([^\n<]+)', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\:\*\*', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\*\*', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
     
-    # 4. Định dạng danh sách gạch đầu dòng và lọc bỏ số thứ tự đứng lẻ loi
+    # 5. Định dạng danh sách gạch đầu dòng và lọc bỏ số thứ tự đứng lẻ loi
     lines = text.split('\n')
     formatted_lines = []
     in_list = False
@@ -247,7 +251,6 @@ def process_markdown_to_html(text):
             if in_list:
                 formatted_lines.append("</ul>")
                 in_list = False
-            # Bỏ qua dòng rác chỉ chứa mỗi con số như "1.", "2."
             if not re.match(r'^\d+\.$', stripped):
                 formatted_lines.append(line)
             
@@ -256,13 +259,13 @@ def process_markdown_to_html(text):
         
     result = "\n".join(formatted_lines)
 
-    # 5. Dọn dẹp khoảng trắng và xuống dòng thừa
+    # 6. Dọn dẹp khoảng trắng và xuống dòng thừa
     result = result.replace("\n\n", "<br>").replace("\n", "<br>")
     result = re.sub(r'(<br>\s*){2,}', '<br>', result)
     result = re.sub(r'<br>\s*<ul>', '<ul>', result)
     result = re.sub(r'</ul>\s*<br>', '</ul>', result)
     result = re.sub(r'<br>\s*<h3>', '<h3>', result)
-    result = re.sub(r'</h3>\s*<br>', '</h3>', result)
+    result = re.sub(r'</h3>\s*<br>', '3>', result)
     
     return result
 
