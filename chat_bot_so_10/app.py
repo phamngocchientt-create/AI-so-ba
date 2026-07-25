@@ -47,7 +47,7 @@ st.components.v1.html("""
                         throwOnError: false
                     });
                 }
-            }, 400);
+            }, 300);
         };
         parentDoc.head.appendChild(script2);
     }
@@ -157,19 +157,9 @@ st.markdown("""
         flex-shrink: 0;
     }
 
-    /* ĐỊNH DẠNG PHƯƠNG TRÌNH HÓA HỌC TRONG BONG BÓNG */
-    .formula-block {
-        background-color: #f8fafc;
-        border-left: 3px solid #0284c7;
-        padding: 8px 14px;
-        margin: 8px 0;
-        border-radius: 6px;
-        display: block;
-    }
-
     /* KATEX SIZE */
     .katex {
-        font-size: 1.12em !important;
+        font-size: 1.15em !important;
     }
 
     /* KHUNG NHẬP LIỆU */
@@ -220,7 +210,6 @@ DEFAULT_STUDENT = "https://api.dicebear.com/7.x/avataaars/svg?seed=Student"
 AVATAR_TEACHER_SRC = TEACHER_B64 if TEACHER_B64 else DEFAULT_TEACHER
 AVATAR_STUDENT_SRC = STUDENT_B64 if STUDENT_B64 else DEFAULT_STUDENT
 
-# 🧪 HÀM BÁO BỎ LỖI DÍNH ĐÙM VĂN BẢN VÀ LỖI KATEX LATEX
 def process_markdown_to_html(text):
     if not text:
         return ""
@@ -229,15 +218,14 @@ def process_markdown_to_html(text):
     text = text.replace(r'\xrightarrow{t^\circ}', r'\xrightarrow{t^o}')
     text = text.replace(r'\xrightarrow{t^{\circ}}', r'\xrightarrow{t^o}')
 
-    # 2. Tách các Phương trình Hóa học (dù viết dính nhau) ra thành khung riêng biệt đẹp mắt
-    # Tìm dạng $... \rightarrow ...$ hoặc $... \xrightarrow ...$
-    def replace_equation(match):
+    # 2. Ép các Phương trình Hóa học độc lập về dạng $$ ... $$ (dòng riêng) để KaTeX bắt buộc render
+    def convert_to_display_math(match):
         eq = match.group(1).strip()
-        return f'<div class="formula-block">${eq}$</div>'
+        return f"\n\n$${eq}$$\n\n"
 
-    text = re.sub(r'\$([^$]+?\\(?:rightarrow|xrightarrow)[^$]+?)\$', replace_equation, text)
+    text = re.sub(r'\$([^$]+?\\(?:rightarrow|xrightarrow)[^$]+?)\$', convert_to_display_math, text)
 
-    # 3. Đảm bảo các kí hiệu $ còn lại có khoảng trắng bao quanh để không dính vào chữ
+    # 3. Đảm bảo các kí hiệu $ inline còn lại có khoảng trắng bao quanh
     text = re.sub(r'([^\s>])\$', r'\1 $', text)
     text = re.sub(r'\$([^\s<])', r'$ \1', text)
 
@@ -277,8 +265,6 @@ def process_markdown_to_html(text):
     # 6. Ngắt dòng chuẩn HTML Zalo
     result = result.replace("\n\n", "<br><br>").replace("\n", "<br>")
     result = re.sub(r'(<br>\s*){2,}', '<br>', result)
-    result = re.sub(r'<br>\s*<div', '<div', result)
-    result = re.sub(r'</div>\s*<br>', '</div>', result)
     result = re.sub(r'<br>\s*<ul>', '<ul>', result)
     result = re.sub(r'</ul>\s*<br>', '</ul>', result)
     result = re.sub(r'<br>\s*<h3>', '<h3>', result)
@@ -353,9 +339,10 @@ Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn 
 3. ĐIỀU KIỆN CHUẨN (ĐKC): Thể tích mol chất khí là $24,79 \text{ L/mol}$ (tại $25^\circ\text{C}, 1 \text{ bar}$).
 
 # 📐 QUY TẮC BẮT BỘC TRÌNH BÀY PHƯƠNG TRÌNH & ĐỀ MỤC
-1. BẮT BỘC mỗi Phương trình hóa học phải nằm riêng trên một dòng, bọc trong dấu `$`:
-   - Ví dụ: $2Na + 2H_2O \rightarrow 2NaOH + H_2\uparrow$
-   - Ví dụ: $Mg + H_2O \xrightarrow{t^o} MgO + H_2\uparrow$
+1. BẮT BỘC mỗi Phương trình hóa học phải nằm riêng trên một dòng, bọc trong dấu `$$`:
+   - Ví dụ:
+   $$2Na + 2H_2O \rightarrow 2NaOH + H_2\uparrow$$
+   $$Mg + H_2O \xrightarrow{t^o} MgO + H_2\uparrow$$
 2. TUYỆT ĐỐI KHÔNG viết liền hai phương trình hóa học trên cùng một dòng.
 3. Các mục lớn như I., II., III. hoặc 1., 2. bắt buộc phải ngắt dòng trống.
 """
