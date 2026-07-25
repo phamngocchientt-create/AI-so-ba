@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 
 # ==================================================
-# 🎨 CẤU HÌNH TRANG & CUSTOM CSS
+# 🎨 CẤU HÌNH TRANG & CUSTOM CSS (PHONG CÁCH ZALO/MESSENGER)
 # ==================================================
 st.set_page_config(
     page_title="Gia sư Hóa học THCS - THCS Phan Chu Trinh", 
@@ -23,54 +23,85 @@ st.markdown("""
     }
     
     .stApp {
-        background-color: #f8fafc;
+        background-color: #f1f5f9;
     }
 
+    /* Card thông tin Sidebar */
     .sidebar-card {
         background: #ffffff;
         border-left: 4px solid #0284c7;
         padding: 1rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
         margin-bottom: 1rem;
     }
 
-    /* Bong bóng chat HỌC SINH */
-    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]),
-    .stChatMessage:nth-child(odd) {
-        background-color: #e0f2fe !important;
-        border: 1px solid #bae6fd !important;
-        border-radius: 18px 18px 4px 18px !important;
-        padding: 12px 18px !important;
-        margin-bottom: 12px !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.03) !important;
+    /* -------------------------------------------------- */
+    /* 💬 TÙY BIẾN AVATAR VÀ BONG BÓNG CHAT MESSENGER/ZALO */
+    /* -------------------------------------------------- */
+
+    /* Bo tròn & làm nổi bật Avatar Chibi */
+    [data-testid="stChatMessage"] [data-testid="stChatMessageAvatar"],
+    [data-testid="stChatMessage"] img {
+        border-radius: 50% !important;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12) !important;
+        border: 2px solid #ffffff !important;
+        object-fit: cover !important;
     }
 
-    /* Bong bóng chat THẦY GIÁO */
+    /* 🎒 BONG BÓNG CHAT HỌC SINH (BÊN PHẢI - KIỂU MESSENGER/ZALO) */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]),
+    .stChatMessage:nth-child(odd) {
+        flex-direction: row-reverse !important;
+        background-color: #0284c7 !important;
+        color: #ffffff !important;
+        border-radius: 20px 20px 4px 20px !important;
+        padding: 12px 18px !important;
+        margin-left: auto !important;
+        margin-bottom: 14px !important;
+        max-width: 80% !important;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2) !important;
+    }
+
+    /* Đổi màu chữ văn bản bên trong chat Học sinh thành màu trắng */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) p,
+    .stChatMessage:nth-child(odd) p {
+        color: #ffffff !important;
+        font-weight: 500;
+    }
+
+    /* 👨‍🏫 BONG BÓNG CHAT THẦY GIÁO (BÊN TRÁI) */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]),
     .stChatMessage:nth-child(even) {
         background-color: #ffffff !important;
         border: 1px solid #e2e8f0 !important;
         border-left: 5px solid #0284c7 !important;
-        border-radius: 18px 18px 18px 4px !important;
+        border-radius: 20px 20px 20px 4px !important;
         padding: 14px 20px !important;
-        margin-bottom: 12px !important;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.04) !important;
+        margin-right: auto !important;
+        margin-bottom: 14px !important;
+        max-width: 85% !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
     }
 
-    /* Ô nhập liệu */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) p,
+    .stChatMessage:nth-child(even) p {
+        color: #1e293b !important;
+    }
+
+    /* ⌨️ KHUNG NHẬP LIỆU (CHAT INPUT BO CONG THỜI TRANG) */
     [data-testid="stChatInput"] {
-        border-radius: 25px !important;
+        border-radius: 30px !important;
         border: 2px solid #38bdf8 !important;
         background-color: #ffffff !important;
-        box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15) !important;
-        padding: 4px 8px !important;
+        box-shadow: 0 6px 20px rgba(56, 189, 248, 0.18) !important;
+        padding: 6px 12px !important;
         transition: all 0.3s ease !important;
     }
 
     [data-testid="stChatInput"]:focus-within {
         border-color: #0284c7 !important;
-        box-shadow: 0 4px 20px rgba(2, 132, 199, 0.25) !important;
+        box-shadow: 0 6px 25px rgba(2, 132, 199, 0.3) !important;
     }
 
     [data-testid="stChatInputSubmitButton"] {
@@ -96,6 +127,14 @@ st.markdown("""
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(CURRENT_DIR, "chat_history.json")
 STORAGE_FILE = os.path.join(CURRENT_DIR, "missing_questions.json")
+
+# Xác định đường dẫn file ảnh Chibi Avatar
+TEACHER_AVATAR_PATH = os.path.join(CURRENT_DIR, "teacher_avatar.png")
+STUDENT_AVATAR_PATH = os.path.join(CURRENT_DIR, "student_avatar.png")
+
+# Lựa chọn hiển thị Ảnh Chibi (nếu có) hoặc Icon mặc định
+AVATAR_TEACHER = TEACHER_AVATAR_PATH if os.path.exists(TEACHER_AVATAR_PATH) else "👨‍🔬"
+AVATAR_STUDENT = STUDENT_AVATAR_PATH if os.path.exists(STUDENT_AVATAR_PATH) else "🙋‍♂️"
 
 def load_data(file_path, default_value):
     if os.path.exists(file_path):
@@ -124,7 +163,6 @@ if "missing_questions" not in st.session_state:
 # ==================================================
 # 📚 ĐỌC FILE TÀI LIỆU RAG DỰ PHÒNG (KÈM FALLBACK)
 # ==================================================
-# Hệ thống sẽ tìm file theo danh sách ưu tiên bên dưới
 DOC_FILES = ["tai_lieu_hoa.txt", "giao_an_hoa.txt", "tai_lieu_hoa.pdf"]
 knowledge_base_text = ""
 has_rag_data = False
@@ -165,7 +203,6 @@ Bạn là Gia sư Hóa học THCS dành cho học sinh Trường THCS Phan Chu T
 ERROR_MESSAGE_TAG = "[MISSING_DOC_ERROR]"
 ERROR_MESSAGE = "Dữ liệu chưa cập nhật câu hỏi này. Thầy đã ghi nhận và sẽ bổ sung sau nhé!"
 
-# Xây dựng System Instruction linh hoạt dựa vào việc có File hay không
 if has_rag_data:
     SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}
     
@@ -175,7 +212,7 @@ DƯỚI ĐÂY LÀ BỘ TÀI LIỆU GIÁO ÁN GỐC ĐƯỢC CẤP:
 ---
 
 QUY TẮC BẮT BỘC KHI CÓ TÀI LIỆU:
-1. Bạn CHỈ ĐƯỢC PHÁP trả lời câu hỏi dựa trên nội dung có trong BỘ TÀI LIỆU GIÁO ÁN GỐC ở trên.
+1. Bạn CHỈ ĐƯỢC PHÉP trả lời câu hỏi dựa trên nội dung có trong BỘ TÀI LIỆU GIÁO ÁN GỐC ở trên.
 2. Nếu câu hỏi của học sinh KHÔNG nằm trong bộ tài liệu trên, bạn BẮT BUỘC trả về duy nhất mã: {ERROR_MESSAGE_TAG}
 """
 else:
@@ -204,7 +241,6 @@ with st.sidebar:
     st.caption("Trường THCS Phan Chu Trinh - Krông Búk")
     st.divider()
 
-    # THÔNG BÁO CHẾ ĐỘ HOẠT ĐỘNG
     if has_rag_data:
         st.success("📚 **Đang dùng:** Tài liệu Giáo án riêng (RAG Mode)")
     else:
@@ -225,7 +261,6 @@ with st.sidebar:
     
     st.divider()
 
-    # 📥 MỤC THEO DÕI CÂU HỎI CẦN BỔ SUNG
     with st.expander("📌 Câu hỏi chưa có dữ liệu", expanded=False):
         if st.session_state.missing_questions:
             st.write(f"Hiện có **{len(st.session_state.missing_questions)}** câu hỏi cần bổ sung:")
@@ -270,13 +305,13 @@ if not banner_loaded:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 📍 2. KHUNG HỘI THOẠI CHAT
+# 📍 2. KHUNG HỘI THOẠI CHAT (GIAO DIỆN ZALO/MESSENGER)
 chat_placeholder = st.container()
 
 with chat_placeholder:
     for msg in st.session_state.messages:
-        avatar_icon = "👨‍🏫" if msg["role"] == "assistant" else "🎒"
-        with st.chat_message(msg["role"], avatar=avatar_icon):
+        avatar = AVATAR_TEACHER if msg["role"] == "assistant" else AVATAR_STUDENT
+        with st.chat_message(msg["role"], avatar=avatar):
             st.markdown(msg["content"])
 
 st.markdown("<br>", unsafe_allow_html=True)
@@ -295,10 +330,10 @@ if prompt:
     save_data(HISTORY_FILE, st.session_state.messages)
 
     with chat_placeholder:
-        with st.chat_message("user", avatar="🎒"):
+        with st.chat_message("user", avatar=AVATAR_STUDENT):
             st.markdown(cleaned_prompt)
 
-        with st.chat_message("assistant", avatar="👨‍🏫"):
+        with st.chat_message("assistant", avatar=AVATAR_TEACHER):
             with st.spinner("Thầy đang suy nghĩ bài làm..."):
                 try:
                     message_parts = [types.Part.from_text(text=cleaned_prompt)]
