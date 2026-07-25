@@ -353,20 +353,22 @@ st.markdown("<br><br>", unsafe_allow_html=True)
 # ==================================================
 # 🤖 KHU VỰC NHẬP LIỆU & XỬ LÝ LOGIC
 # ==================================================
+# ==================================================
+# 🤖 KHU VỰC NHẬP LIỆU & XỬ LÝ LOGIC
+# ==================================================
 uploaded_file = st.file_uploader("📷 Chụp hoặc gửi ảnh", type=["jpg", "jpeg", "png"], key="uploader")
 prompt = st.chat_input("Em muốn hỏi Thầy bài tập hay lý thuyết Hóa học nào...")
 
 if prompt:
     if not client: st.stop()
     cleaned_prompt = prompt.strip()
-    message_parts = []
     
+    # Lấy nội dung hiển thị cho UI
     user_msg_content = cleaned_prompt
     if uploaded_file:
-        image_part = types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=uploaded_file.type)
-        message_parts.append(image_part)
         user_msg_content = f"📝 (Kèm ảnh) {cleaned_prompt}"
 
+    # 1. Lưu tin nhắn của user vào session_state (lịch sử cục bộ)
     st.session_state.messages.append({"role": "user", "content": user_msg_content})
     save_data(HISTORY_FILE, st.session_state.messages)
 
@@ -376,8 +378,34 @@ if prompt:
         st.markdown("<span class='assistant-anchor'></span>", unsafe_allow_html=True)
         with st.spinner("Thầy đang xem bài..."):
             try:
+                # 🔴 CHÌA KHÓA CHỐNG MẤT TRÍ NHỚ: GÓI TOÀN BỘ LỊCH SỬ GỬI CHO AI
+                gemini_history = []
+                
+                # Duyệt qua lịch sử (trừ tin nhắn vừa nhập)
+                for msg in st.session_state.messages[:-1]:
+                    # Gemini dùng 'model' thay vì 'assistant'
+                    role = "user" if msg["role"] == "user" else "model"
+                    gemini_history.append(
+                        types.Content(role=role, parts=[types.Part.from_text(text=msg["content"])])
+                    )
+                
+                # 2. Xử lý tin nhắn mới nhất (kèm ảnh nếu có)
+                message_parts = []
+                if uploaded_file:
+                    message_parts.append(types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=uploaded_file.type))
                 message_parts.append(types.Part.from_text(text=cleaned_prompt))
-                response = chat_session.send_message(message_parts)
+                
+                gemini_history.append(types.Content(role="user", parts=message_parts))
+
+                # 3. Gửi toàn bộ lịch sử (gemini_history) vào API
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=gemini_history,
+                    config=types.GenerateContentConfig(
+                        system_instruction=SYSTEM_INSTRUCTION,
+                        temperature=0.2 if has_rag_data else 0.3
+                    )
+                )
                 res_text = response.text.strip()
                 
                 if ERROR_MESSAGE_TAG.upper() in res_text.upper():
@@ -388,8 +416,10 @@ if prompt:
                 else:
                     final_res = res_text
 
+                # 4. Lưu câu trả lời của AI vào lịch sử
                 st.session_state.messages.append({"role": "assistant", "content": final_res})
                 save_data(HISTORY_FILE, st.session_state.messages)
                 st.rerun()
+                
             except Exception as e:
                 st.error(f"Thầy gặp sự cố kết nối: {e}")
