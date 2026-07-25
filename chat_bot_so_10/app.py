@@ -263,18 +263,6 @@ if has_rag_data:
 else:
     SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}\n- Trả lời bằng tri thức Hóa học THCS chuẩn. Nếu ngoài phạm vi, trả về: {ERROR_MESSAGE_TAG}"""
 
-if client:
-    try:
-        chat_session = client.chats.create(
-            model="gemini-2.5-flash",
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_INSTRUCTION,
-                temperature=0.2 if has_rag_data else 0.3
-            )
-        )
-    except Exception as e:
-        st.error(f"Lỗi khởi tạo chat session: {e}")
-
 # ==================================================
 # 📌 THANH BÊN TRÁI (SIDEBAR)
 # ==================================================
@@ -330,24 +318,8 @@ if not banner_loaded:
     """, unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --------------------------------------------------
-# 🧹 CHÈN KHU VỰC TỐI ƯU VÀO ĐÂY (NGAY DƯỚI BANNER)
-# --------------------------------------------------
-with st.expander("💡 Mẹo nhỏ giúp app chạy mượt & không bị lag", expanded=True):
-    st.markdown(
-        "Sau khi giải xong một bài tập, em hãy bấm nút **'Xóa bảng'** bên dưới nhé. "
-        "Việc này sẽ giúp giải phóng bộ nhớ, giảm lag và giúp Thầy AI phản hồi siêu tốc độ!"
-    )
-    if st.button("🧹 Xóa bảng (Làm mới cuộc trò chuyện)", use_container_width=True):
-        # Reset lại về câu chào mặc định ban đầu
-        st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
-        save_data(HISTORY_FILE, st.session_state.messages)
-        st.rerun()
-# --------------------------------------------------
-
 # 📍 HÀM HIỂN THỊ TIN NHẮN 
 def render_zalo_chat(role, content):
-# ... (Phần code bên dưới giữ nguyên) ...
     if role == "user":
         avatar_src = AVATAR_STUDENT_SRC
         anchor = "<span class='user-anchor'></span>"
@@ -360,11 +332,25 @@ def render_zalo_chat(role, content):
     with st.chat_message(role, avatar=avatar_src):
         st.markdown(f"{anchor}\n{content}", unsafe_allow_html=True)
 
-# HIỂN THỊ LỊCH SỬ CHAT
+# 💬 HIỂN THỊ LỊCH SỬ CHAT
 for msg in st.session_state.messages:
     render_zalo_chat(msg["role"], msg["content"])
 
-st.markdown("<br><br>", unsafe_allow_html=True)
+# ==================================================
+# 🧹 NÚT XÓA BẢNG NẰM DƯỚI CÙNG (NGAY TRÊN THANH GÕ CHAT)
+# ==================================================
+st.markdown("<br>", unsafe_allow_html=True)
+
+# Chỉ hiển thị nút "Xóa bảng" nếu học sinh đã bắt đầu chat (nhiều hơn 1 tin nhắn mặc định)
+if len(st.session_state.messages) > 1:
+    col1, col2, col3 = st.columns([1, 4, 1])
+    with col2:
+        if st.button("✨ Xong bài này! Bấm để xóa bảng học tiếp ✨", use_container_width=True):
+            st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
+            save_data(HISTORY_FILE, st.session_state.messages)
+            st.rerun()
+
+st.markdown("<br><br><br>", unsafe_allow_html=True)
 
 # ==================================================
 # 🤖 KHU VỰC NHẬP LIỆU & XỬ LÝ LOGIC
