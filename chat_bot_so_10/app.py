@@ -216,20 +216,22 @@ def process_markdown_to_html(text):
     if not text:
         return ""
     
-    # 1. Tách các đề mục La Mã (I., II., III.) hoặc số (1., 2.) dính liền câu trước xuống dòng riêng
-    text = re.sub(r'([^\n])\s*([I|V|X]+\.\s+[A-ZÂÊÔĐ])', r'\1\n\n\2', text)
+    # 🎯 1. XỬ LÝ CHUẨN LATEX KATEX: Loại bỏ hoàn toàn khoảng trắng dính sau $ mở hoặc trước $ đóng
+    # Chuyển '$ Fe $' thành '$Fe$', '$ CuSO_4 $' thành '$CuSO_4$'
+    text = re.sub(r'\$\s+([^$]+?)\s+\$', r'$\1$', text)
+    text = re.sub(r'\$\s+([^$]+?)\$', r'$\1$', text)
+    text = re.sub(r'\$([^$]+?)\s+\$', r'$\1$', text)
     
-    # 2. Đảm bảo công thức $...$ luôn có khoảng trắng trước và sau để không bị nuốt vào chữ
-    text = re.sub(r'([^\s$])\$', r'\1 $', text)
-    text = re.sub(r'\$([^\s$])', r'$ \1', text)
+    # 🎯 2. Tách các đề mục La Mã (I., II.) hoặc tiêu đề dính liền câu trước xuống dòng riêng
+    text = re.sub(r'([^\n])\s*([I|V|X]+\.\s+[A-ZÂÊÔĐ])', r'\1\n\n\2', text)
 
-    # 3. Định dạng tiêu đề thành <h3> chuẩn Zalo (Sửa lỗi 3> bị lòi ra)
+    # 🎯 3. Định dạng tiêu đề thành <h3> chuẩn Zalo
     text = re.sub(r'(?m)^###\s*(.+)$', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\:\*\*', r'<h3>\1</h3>', text)
     text = re.sub(r'(?m)^\*\*([I|V|X\d]+\..+)\*\*$', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
 
-    # 4. Định dạng danh sách gạch đầu dòng
+    # 🎯 4. Định dạng danh sách gạch đầu dòng
     lines = text.split('\n')
     formatted_lines = []
     in_list = False
@@ -256,13 +258,13 @@ def process_markdown_to_html(text):
         
     result = "\n".join(formatted_lines)
 
-    # 5. Dọn dẹp khoảng trắng và thay thế xuống dòng (Đã sửa chính xác thẻ <h3>)
+    # 🎯 5. Dọn dẹp khoảng trắng và thay thế xuống dòng
     result = result.replace("\n\n", "<br><br>").replace("\n", "<br>")
     result = re.sub(r'(<br>\s*){2,}', '<br>', result)
     result = re.sub(r'<br>\s*<ul>', '<ul>', result)
     result = re.sub(r'</ul>\s*<br>', '</ul>', result)
     result = re.sub(r'<br>\s*<h3>', '<h3>', result)
-    result = re.sub(r'</h3>\s*<br>', '</h3>', result)
+    result = re.sub(r'</h3>\s*<br>', '3>', result)
     
     return result
 
@@ -336,11 +338,12 @@ Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn 
 1. CÂU HỎI LÝ THUYẾT: Trả lời cô đọng, đi thẳng vào bản chất cơ bản trước. Không mở rộng quá sâu trừ khi học sinh yêu cầu.
 2. CÂU HỎI BÀI TẬP: Tuyệt đối không giải ngay trong lần đầu. Đưa ra 3 lựa chọn A (Từng bước), B (Bản đồ các bước), C (Lời giải chi tiết).
 
-# 📐 QUY TẮC BẮT BỘC TRÌNH BÀY LATEX & ĐỀ MỤC
-1. BẮT BỘC cách một dòng trống (Double Enter) trước tất cả các tiêu đề lớn như I., II., III. và các mục nhỏ Ví dụ 1, Ví dụ 2.
-2. Mọi công thức hóa học, phương trình phản ứng BẮT BỘC kẹp trong dấu $ $ cách khoảng trắng rõ ràng với chữ xung quanh.
-   - Ví dụ: $2Al + 3H_2SO_4 \rightarrow Al_2(SO_4)_3 + 3H_2\uparrow$
-   - Ví dụ: $2Mg + O_2 \xrightarrow{t^o} 2MgO$
+# 📐 QUY TẮC BẮT BỘC TRÌNH BÀY LATEX & CÔNG THỨC
+1. Mọi công thức hóa học, phương trình BẮT BỘC kẹp dính liền trong cặp dấu `$`:
+   - ĐÚNG: $Fe$, $CuSO_4$, $Fe + CuSO_4 \rightarrow FeSO_4 + Cu$
+   - SAI (CẤM NÓI): $ Fe $, $ CuSO_4 $ (Tuyệt đối KHÔNG có khoảng trắng sau $ mở và trước $ đóng).
+2. Chữ tiếng Việt mô tả phương trình tổng quát viết dạng văn bản thường ngoài dấu `$`, không nhét chữ tiếng Việt vào trong LaTeX.
+   - ĐÚNG: Kim loại mạnh + Muối của kim loại yếu $\rightarrow$ Muối của kim loại mạnh + Kim loại yếu
 """
 
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
