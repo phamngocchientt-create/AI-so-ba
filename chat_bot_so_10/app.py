@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 
 # ==================================================
-# 🎨 CẤU HÌNH TRANG & CUSTOM CSS (PHONG CÁCH ZALO/MESSENGER)
+# 🎨 CẤU HÌNH TRANG & CUSTOM CSS (ZALO/MESSENGER CHUẨN)
 # ==================================================
 st.set_page_config(
     page_title="Gia sư Hóa học THCS - THCS Phan Chu Trinh", 
@@ -26,7 +26,7 @@ st.markdown("""
         background-color: #f1f5f9;
     }
 
-    /* Card thông tin Sidebar */
+    /* Sidebar style */
     .sidebar-card {
         background: #ffffff;
         border-left: 4px solid #0284c7;
@@ -37,71 +37,75 @@ st.markdown("""
     }
 
     /* -------------------------------------------------- */
-    /* 💬 TÙY BIẾN AVATAR VÀ BONG BÓNG CHAT MESSENGER/ZALO */
+    /* 💬 PHÂN BIỆT BONG BÓNG CHAT THẦY & TRÒ (FIX HOÀN TOÀN) */
     /* -------------------------------------------------- */
 
-    /* Bo tròn & làm nổi bật Avatar Chibi */
-    [data-testid="stChatMessage"] [data-testid="stChatMessageAvatar"],
+    /* Định dạng chung cho avatar */
     [data-testid="stChatMessage"] img {
         border-radius: 50% !important;
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12) !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
         border: 2px solid #ffffff !important;
         object-fit: cover !important;
+        width: 40px !important;
+        height: 40px !important;
     }
 
-    /* 🎒 BONG BÓNG CHAT HỌC SINH (BÊN PHẢI - KIỂU MESSENGER/ZALO) */
-    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]),
-    .stChatMessage:nth-child(odd) {
-        flex-direction: row-reverse !important;
-        background-color: #0284c7 !important;
-        color: #ffffff !important;
-        border-radius: 20px 20px 4px 20px !important;
+    /* 👨‍🏫 THẦY GIÁO (BÊN TRÁI - NỀN TRẮNG TINH TẾ) */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]),
+    [data-testid="stChatMessage"]:has(img[src*="teacher"]) {
+        flex-direction: row !important;
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        border-left: 5px solid #0284c7 !important;
+        border-radius: 18px 18px 18px 4px !important;
         padding: 12px 18px !important;
-        margin-left: auto !important;
+        margin-right: auto !important;
+        margin-left: 0 !important;
         margin-bottom: 14px !important;
         max-width: 80% !important;
-        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2) !important;
-    }
-
-    /* Đổi màu chữ văn bản bên trong chat Học sinh thành màu trắng */
-    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) p,
-    .stChatMessage:nth-child(odd) p {
-        color: #ffffff !important;
-        font-weight: 500;
-    }
-
-    /* 👨‍🏫 BONG BÓNG CHAT THẦY GIÁO (BÊN TRÁI) */
-    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]),
-    .stChatMessage:nth-child(even) {
-        background-color: #ffffff !important;
-        border: 1px solid #e2e8f0 !important;
-        border-left: 5px solid #0284c7 !important;
-        border-radius: 20px 20px 20px 4px !important;
-        padding: 14px 20px !important;
-        margin-right: auto !important;
-        margin-bottom: 14px !important;
-        max-width: 85% !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05) !important;
     }
 
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) p,
-    .stChatMessage:nth-child(even) p {
-        color: #1e293b !important;
+    [data-testid="stChatMessage"]:has(img[src*="teacher"]) p {
+        color: #0f172a !important;
+        font-size: 15px !important;
+        line-height: 1.5 !important;
     }
 
-    /* ⌨️ KHUNG NHẬP LIỆU (CHAT INPUT BO CONG THỜI TRANG) */
+    /* 🎒 HỌC SINH (BÊN PHẢI - NỀN XANH DƯƠNG TƯƠI SÁNG) */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]),
+    [data-testid="stChatMessage"]:has(img[src*="student"]) {
+        flex-direction: row-reverse !important;
+        background-color: #0284c7 !important;
+        border-radius: 18px 18px 4px 18px !important;
+        padding: 12px 18px !important;
+        margin-left: auto !important;
+        margin-right: 0 !important;
+        margin-bottom: 14px !important;
+        max-width: 80% !important;
+        box-shadow: 0 3px 10px rgba(2, 132, 199, 0.25) !important;
+    }
+
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) p,
+    [data-testid="stChatMessage"]:has(img[src*="student"]) p {
+        color: #ffffff !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        line-height: 1.5 !important;
+    }
+
+    /* ⌨️ KHUNG NHẬP LIỆU */
     [data-testid="stChatInput"] {
         border-radius: 30px !important;
         border: 2px solid #38bdf8 !important;
         background-color: #ffffff !important;
-        box-shadow: 0 6px 20px rgba(56, 189, 248, 0.18) !important;
-        padding: 6px 12px !important;
-        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15) !important;
+        padding: 4px 8px !important;
     }
 
     [data-testid="stChatInput"]:focus-within {
         border-color: #0284c7 !important;
-        box-shadow: 0 6px 25px rgba(2, 132, 199, 0.3) !important;
     }
 
     [data-testid="stChatInputSubmitButton"] {
@@ -109,32 +113,26 @@ st.markdown("""
         color: white !important;
         border-radius: 50% !important;
     }
-    
-    [data-testid="stChatInputSubmitButton"]:hover {
-        background-color: #0369a1 !important;
-    }
-
-    .stImage img {
-        border-radius: 16px !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
 # ==================================================
-# 📂 NẠP CẤU HÌNH VÀ KHỞI TẠO DỮ LIỆU
+# 📂 NẠP CẤU HÌNH VÀ TÌM AVATAR LINH HOẠT ĐUÔI FILE
 # ==================================================
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(CURRENT_DIR, "chat_history.json")
 STORAGE_FILE = os.path.join(CURRENT_DIR, "missing_questions.json")
 
-# Xác định đường dẫn file ảnh Chibi Avatar
-TEACHER_AVATAR_PATH = os.path.join(CURRENT_DIR, "teacher_avatar.png")
-STUDENT_AVATAR_PATH = os.path.join(CURRENT_DIR, "student_avatar.png")
+# Hàm tự tìm file ảnh bất kể đuôi .png hay .PNG hay .jpg
+def get_avatar_path(base_name, default_emoji):
+    for ext in [".PNG", ".png", ".jpg", ".jpeg", ".JPG", ".JPEG"]:
+        path = os.path.join(CURRENT_DIR, f"{base_name}{ext}")
+        if os.path.exists(path):
+            return path
+    return default_emoji
 
-# Lựa chọn hiển thị Ảnh Chibi (nếu có) hoặc Icon mặc định
-AVATAR_TEACHER = TEACHER_AVATAR_PATH if os.path.exists(TEACHER_AVATAR_PATH) else "👨‍🔬"
-AVATAR_STUDENT = STUDENT_AVATAR_PATH if os.path.exists(STUDENT_AVATAR_PATH) else "🙋‍♂️"
+AVATAR_TEACHER = get_avatar_path("teacher_avatar", "👨‍🔬")
+AVATAR_STUDENT = get_avatar_path("student_avatar", "🙋‍♂️")
 
 def load_data(file_path, default_value):
     if os.path.exists(file_path):
@@ -288,7 +286,7 @@ with st.sidebar:
 
 # 📍 1. BANNER
 banner_loaded = False
-for name in ["banner.png", "banner.PNG", "banner.jpg", "banner.jpeg"]:
+for name in ["banner.png", "banner.PNG", "banner.jpg", "banner.jpeg", "banner.JPG"]:
     banner_path = os.path.join(CURRENT_DIR, name)
     if os.path.exists(banner_path):
         st.image(banner_path, use_container_width=True)
@@ -305,7 +303,7 @@ if not banner_loaded:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 📍 2. KHUNG HỘI THOẠI CHAT (GIAO DIỆN ZALO/MESSENGER)
+# 📍 2. KHUNG HỘI THOẠI CHAT (XỬ LÝ DÕNG TIN NHẮN TÁCH BIỆT)
 chat_placeholder = st.container()
 
 with chat_placeholder:
