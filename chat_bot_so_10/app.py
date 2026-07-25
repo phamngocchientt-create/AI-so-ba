@@ -216,21 +216,19 @@ def process_markdown_to_html(text):
     if not text:
         return ""
     
-    # 1. Tách chuỗi $$$$ bị dính liền giữa 2 phương trình thành dòng riêng biệt
-    text = re.sub(r'\$\$\s*\$\$', r'$$\n\n$$', text)
-    
-    # 2. Tách dòng công thức $$...$$ ra khỏi chữ nếu bị dính liền
-    text = re.sub(r'([^\n\$])(\$\$)', r'\1\n\n\2', text)
-    text = re.sub(r'(\$\$)([^\n\$])', r'\1\n\n\2', text)
+    # 1. Chuyển đổi $$ xuống dòng thành công thức $ đơn gộp trên 1 dòng để KaTeX render chuẩn
+    text = re.sub(r'\$\$\s*\n*([^$]+?)\n*\s*\$\$', r' $\1$ ', text)
 
-    # 3. Chỉ đổi các tiêu đề thực sự (### hoặc dòng in đậm độc lập bắt đầu bằng I., 1.) thành <h3>
+    # 2. Xóa khoảng trắng thừa ngay sau $ mở và trước $ đóng
+    text = re.sub(r'\$\s+', '$', text)
+    text = re.sub(r'\s+\$', '$', text)
+
+    # 3. Định dạng tiêu đề và chữ in đậm
     text = re.sub(r'(?m)^###\s*(.+)$', r'<h3>\1</h3>', text)
     text = re.sub(r'(?m)^\*\*([I|V|X\d]+\..+)\*\*$', r'<h3>\1</h3>', text)
-    
-    # 4. Giữ nguyên in đậm <b> cho các từ trong câu (tránh biến từ ngắn thành <h3>)
     text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
 
-    # 5. Định dạng danh sách gạch đầu dòng
+    # 4. Định dạng danh sách gạch đầu dòng
     lines = text.split('\n')
     formatted_lines = []
     in_list = False
@@ -257,13 +255,13 @@ def process_markdown_to_html(text):
         
     result = "\n".join(formatted_lines)
 
-    # 6. Dọn dẹp khoảng trắng và xuống dòng
+    # 5. Thay thế xuống dòng thành <br>
     result = result.replace("\n\n", "<br>").replace("\n", "<br>")
     result = re.sub(r'(<br>\s*){2,}', '<br>', result)
     result = re.sub(r'<br>\s*<ul>', '<ul>', result)
     result = re.sub(r'</ul>\s*<br>', '</ul>', result)
     result = re.sub(r'<br>\s*<h3>', '<h3>', result)
-    result = re.sub(r'</h3>\s*<br>', '</h3>', result)
+    result = re.sub(r'</h3>\s*<br>', '3>', result)
     
     return result
 
@@ -355,14 +353,11 @@ Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn 
 Để câu trả lời đẹp như "viết bảng", bạn PHẢI tuân thủ:
 1. KHOẢNG TRẮNG: Sử dụng "Dòng trống" (Double Enter) giữa các đoạn văn, giữa đề mục và nội dung.
 2. ĐỀ MỤC: Các mục lớn (I, II, III...), mục nhỏ (a, b, c...) hoặc số thứ tự (1, 2, 3...) phải **IN ĐẬM** và đứng riêng một dòng.
-3. PHƯƠNG TRÌNH HÓA HỌC (PTHH):
-   - Phải bọc trong $$...$$ và nằm trên dòng riêng biệt.
-   - Mỗi PTHH là một dòng riêng. Tuyệt đối không để 2 PTHH trên cùng 1 dòng (Không viết dính liền dạng $$PTHH 1$$$$PTHH 2$$).
-   - Giữa các PTHH liên tiếp phải có một dòng trống.
-4. CÔNG THỨC & LATEX:
-   - Công thức hóa học/toán học bọc trong $...$ (cùng dòng) hoặc $$...$$ (riêng dòng).
-   - Ví dụ: $Al_2O_3$, $n = \frac{m}{M}$.
-   - Không dùng ký hiệu lạ như \ce, \text. Tách chữ và số rõ ràng.
+3. PHƯƠNG TRÌNH HÓA HỌC & LATEX:
+   - Tất cả công thức và phương trình hóa học BẮT BỘC bọc gọn trong cặp dấu `$` đơn trên CÙNG MỘT DÒNG. Tuyệt đối không tự xuống dòng bên trong công thức.
+   - Ví dụ đúng: $2HCl + Na_2CO_3 \rightarrow 2NaCl + CO_2\uparrow + H_2O$
+   - Ví dụ đúng: $n_{Fe} = \frac{m}{M} = 0,1\text{ mol}$
+   - Tuyệt đối không sử dụng khối `$$` xuống dòng.
 """
 
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
