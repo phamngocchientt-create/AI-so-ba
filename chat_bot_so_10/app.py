@@ -353,9 +353,6 @@ st.markdown("<br><br>", unsafe_allow_html=True)
 # ==================================================
 # 🤖 KHU VỰC NHẬP LIỆU & XỬ LÝ LOGIC
 # ==================================================
-# ==================================================
-# 🤖 KHU VỰC NHẬP LIỆU & XỬ LÝ LOGIC
-# ==================================================
 uploaded_file = st.file_uploader("📷 Chụp hoặc gửi ảnh", type=["jpg", "jpeg", "png"], key="uploader")
 prompt = st.chat_input("Em muốn hỏi Thầy bài tập hay lý thuyết Hóa học nào...")
 
