@@ -7,52 +7,13 @@ from google import genai
 from google.genai import types
 
 # ==================================================
-# 🎨 CẤU HÌNH TRANG & GIAO DIỆN BONG BÓNG ZALO
+# 🎨 CẤU HÌNH TRANG & CSS GIAO DIỆN CHAT ZALO
 # ==================================================
 st.set_page_config(
     page_title="Gia sư Hóa học THCS - THCS Phan Chu Trinh", 
     page_icon="🧪",
     layout="wide"
 )
-
-# 🚀 NẠP BỘ RENDER LATEX/KATEX TỰ ĐỘNG CHO HTML ZALO
-st.components.v1.html("""
-<script>
-    const parentDoc = window.parent.document;
-    if (!parentDoc.getElementById('katex-css')) {
-        const link = parentDoc.createElement('link');
-        link.id = 'katex-css';
-        link.rel = 'stylesheet';
-        link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css';
-        parentDoc.head.appendChild(link);
-    }
-    if (!parentDoc.getElementById('katex-js')) {
-        const script = parentDoc.createElement('script');
-        script.id = 'katex-js';
-        script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js';
-        parentDoc.head.appendChild(script);
-    }
-    if (!parentDoc.getElementById('auto-render-js')) {
-        const script2 = parentDoc.createElement('script');
-        script2.id = 'auto-render-js';
-        script2.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js';
-        script2.onload = () => {
-            setInterval(() => {
-                if (window.parent.renderMathInElement) {
-                    window.parent.renderMathInElement(window.parent.document.body, {
-                        delimiters: [
-                            {left: '$$', right: '$$', display: true},
-                            {left: '$', right: '$', display: false}
-                        ],
-                        throwOnError: false
-                    });
-                }
-            }, 500);
-        };
-        parentDoc.head.appendChild(script2);
-    }
-</script>
-""", height=0)
 
 st.markdown("""
 <style>
@@ -66,101 +27,10 @@ st.markdown("""
         background-color: #f1f5f9;
     }
 
-    .sidebar-card {
-        background: #ffffff;
-        border-left: 4px solid #0284c7;
-        padding: 1rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-        margin-bottom: 1rem;
-    }
-
-    /* -------------------------------------------------- */
-    /* 💬 BONG BÓNG CHAT CHUẨN ZALO / MESSENGER */
-    /* -------------------------------------------------- */
-    
-    .chat-container {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        margin-bottom: 20px;
-    }
-
-    /* BÊN TRÁI: THẦY GIÁO TRẢ LỜI */
-    .chat-row-left {
-        display: flex;
-        flex-direction: row;
-        align-items: flex-start;
-        gap: 12px;
-        max-width: 82%;
-        margin-right: auto;
-    }
-
-    .chat-bubble-left {
-        background-color: #ffffff;
-        color: #0f172a;
-        padding: 16px 20px;
-        border-radius: 4px 20px 20px 20px;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
-        border: 1px solid #e2e8f0;
-        font-size: 15px;
-        line-height: 1.6;
-    }
-
-    .chat-bubble-left h3 {
-        color: #0284c7;
-        font-size: 17px;
-        font-weight: 700;
-        margin-top: 10px;
-        margin-bottom: 6px;
-        border-bottom: 1px solid #f1f5f9;
-        padding-bottom: 4px;
-    }
-
-    .chat-bubble-left ul {
-        margin: 6px 0;
-        padding-left: 20px;
-    }
-
-    .chat-bubble-left li {
-        margin-bottom: 4px;
-    }
-
-    /* BÊN PHẢI: HỌC SINH NHẮN (MÀU XANH ZALO) */
-    .chat-row-right {
-        display: flex;
-        flex-direction: row-reverse;
-        align-items: flex-start;
-        gap: 12px;
-        max-width: 80%;
-        margin-left: auto;
-    }
-
-    .chat-bubble-right {
-        background-color: #0284c7;
-        color: #ffffff;
-        padding: 14px 20px;
-        border-radius: 20px 4px 20px 20px;
-        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.22);
-        font-size: 15px;
-        line-height: 1.5;
-        font-weight: 500;
-    }
-
-    /* Avatar Chibi Tròn */
-    .avatar-img {
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        object-fit: cover;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.12);
-        border: 2px solid #ffffff;
-        flex-shrink: 0;
-    }
-
-    /* Cấu hình kích thước công thức KaTeX trong chat */
-    .katex {
-        font-size: 1.1em !important;
+    /* Tối ưu khung chat message chuẩn màu Zalo */
+    [data-testid="stChatMessage"] {
+        background-color: transparent !important;
+        padding: 0.5rem 0 !important;
     }
 
     /* Khung nhập liệu */
@@ -181,93 +51,25 @@ st.markdown("""
         color: white !important;
         border-radius: 50% !important;
     }
+    
+    .sidebar-card {
+        background: #ffffff;
+        border-left: 4px solid #0284c7;
+        padding: 1rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        margin-bottom: 1rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # ==================================================
-# 📂 XỬ LÝ DỮ LIỆU & CHUYỂN ĐỔI CHUỖI LATEX TRONG HTML
+# 📂 XỬ LÝ DỮ LIỆU & QUẢN LÝ TỆP
 # ==================================================
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(CURRENT_DIR, "chat_history.json")
 STORAGE_FILE = os.path.join(CURRENT_DIR, "missing_questions.json")
 PASSWORD_KEY = "CLEAR_PASSWORD"
-
-def get_image_base64(base_name):
-    for ext in [".PNG", ".png", ".jpg", ".jpeg", ".JPG", ".JPEG"]:
-        path = os.path.join(CURRENT_DIR, f"{base_name}{ext}")
-        if os.path.exists(path):
-            with open(path, "rb") as image_file:
-                encoded = base64.b64encode(image_file.read()).decode()
-                ext_type = "png" if "png" in ext.lower() else "jpeg"
-                return f"data:image/{ext_type};base64,{encoded}"
-    return None
-
-TEACHER_B64 = get_image_base64("teacher_avatar")
-STUDENT_B64 = get_image_base64("student_avatar")
-
-DEFAULT_TEACHER_AVATAR = "https://api.dicebear.com/7.x/bottts/svg?seed=Teacher"
-DEFAULT_STUDENT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=Student"
-
-AVATAR_TEACHER_SRC = TEACHER_B64 if TEACHER_B64 else DEFAULT_TEACHER_AVATAR
-AVATAR_STUDENT_SRC = STUDENT_B64 if STUDENT_B64 else DEFAULT_STUDENT_AVATAR
-
-# 🧪 HÀM ĐỊNH DẠNG VĂN BẢN VÀ CHUẨN HÓA LATEX SẠCH LỖI CHO KATEX
-def process_markdown_to_html(text):
-    if not text:
-        return ""
-    
-    # 🎯 1. SỬA LỖI MŨI TÊN NHIỆT ĐỘ CỦA LATEX
-    text = text.replace(r'\xrightarrow{t^\circ}', r'\xrightarrow{t^o}').replace(r'\xrightarrow{t^{\circ}}', r'\xrightarrow{t^o}')
-
-    # 🎯 2. TÁCH DẤU $ BỊ DÍNH LIỀN VÀO CHỮ VĂN BẢN (Ví dụ: "là:$2Al..." -> "là: $2Al...")
-    text = re.sub(r'([^\s$])\$', r'\1 $', text)
-    text = re.sub(r'\$([^\s$])', r'$ \1', text)
-
-    # 🎯 3. TỰ ĐỘNG TÁCH PHƯƠNG TRÌNH HÓA HỌC DẠNG $... -> ...$ THÀNH DÒNG RIÊNG CHO ĐẸP
-    text = re.sub(r'([^\n])\s*(\$[^$]+?\s*\\rightarrow\s*[^$]+?\$)', r'\1<br><br>\2<br>', text)
-
-    # 🎯 4. ĐỊNH DẠNG TIÊU ĐỀ & IN ĐẬM
-    text = re.sub(r'(?m)^###\s*(.+)$', r'<h3>\1</h3>', text)
-    text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\:\*\*', r'<h3>\1</h3>', text)
-    text = re.sub(r'(?m)^\*\*([I|V|X\d]+\..+)\*\*$', r'<h3>\1</h3>', text)
-    text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
-
-    # 🎯 5. ĐỊNH DẠNG DANH SÁCH GẠCH ĐẦU DÒNG
-    lines = text.split('\n')
-    formatted_lines = []
-    in_list = False
-    
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            continue
-            
-        if stripped.startswith('* ') or stripped.startswith('- '):
-            if not in_list:
-                formatted_lines.append("<ul>")
-                in_list = True
-            item_text = stripped[2:].strip()
-            formatted_lines.append(f"<li>{item_text}</li>")
-        else:
-            if in_list:
-                formatted_lines.append("</ul>")
-                in_list = False
-            formatted_lines.append(line)
-            
-    if in_list:
-        formatted_lines.append("</ul>")
-        
-    result = "\n".join(formatted_lines)
-
-    # 🎯 6. THAY THẾ XUỐNG DÒNG VÀ DỌN THẺ THỪA
-    result = result.replace("\n\n", "<br><br>").replace("\n", "<br>")
-    result = re.sub(r'(<br>\s*){2,}', '<br>', result)
-    result = re.sub(r'<br>\s*<ul>', '<ul>', result)
-    result = re.sub(r'</ul>\s*<br>', '</ul>', result)
-    result = re.sub(r'<br>\s*<h3>', '<h3>', result)
-    result = re.sub(r'</h3>\s*<br>', '</h3>', result)
-    
-    return result
 
 def load_data(file_path, default_value):
     if os.path.exists(file_path):
@@ -313,7 +115,7 @@ for doc_name in DOC_FILES:
             pass
 
 # ==================================================
-# 🔑 SYSTEM INSTRUCTION CẤU HÌNH XUẤT CÔNG THỨC LATEX
+# 🔑 SYSTEM INSTRUCTION
 # ==================================================
 api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 client = None
@@ -337,14 +139,22 @@ Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn 
 
 # 🎓 CHIẾN LƯỢC XỬ LÝ SƯ PHẠM (QUAN TRỌNG)
 1. CÂU HỎI LÝ THUYẾT: Trả lời cô đọng, đi thẳng vào bản chất cơ bản trước. Không mở rộng quá sâu trừ khi học sinh yêu cầu.
-2. CÂU HỎI BÀI TẬP: Tuyệt đối không giải ngay trong lần đầu. Đưa ra 3 lựa chọn A (Từng bước), B (Bản đồ các bước), C (Lời giải chi tiết).
+2. CÂU HỎI BÀI TẬP: Tuyệt đối không giải ngay trong lần đầu. Đưa ra 3 lựa chọn:
+   * **Lựa chọn A:** Thầy hướng dẫn em tư duy từng bước một (Khuyên dùng).
+   * **Lựa chọn B:** Thầy đưa ra "sơ đồ các bước làm" để em tự thực hành.
+   * **Lựa chọn C:** Thầy gửi luôn bài giải chi tiết để em tham khảo và đối chiếu.
 
-# 📐 QUY TẮC BẮT BỘC TRÌNH BÀY LATEX & CÔNG THỨC
-1. Các tên chất đơn giản như Aluminium, Chlorine, Al, Cl2 trong câu văn cứ viết bình thường, KHÔNG CẦN kẹp dấu `$`.
-2. Chỉ kẹp dấu `$` đối với **Phương trình phản ứng** hoặc **Công thức tính toán phức tạp**.
-3. LUÔN LUÔN giữ một khoảng trắng trước và sau dấu `$`.
-   - ĐÚNG: Phương trình hóa học là: $2Al + 3Cl_2 \xrightarrow{t^o} 2AlCl_3$
-   - SAI: Phương trình hóa học là:$2Al + 3Cl_2...
+# 📐 QUY TẮC HIỂN THỊ CÔNG THỨC & LATEX
+1. KHOẢNG TRẮNG: Sử dụng "Dòng trống" (Double Enter) giữa các đoạn văn, giữa đề mục và nội dung.
+2. ĐỀ MỤC: Các mục lớn (I, II, III...), mục nhỏ (a, b, c...) dùng `###` hoặc `**in đậm**` trên một dòng riêng.
+3. PHƯƠNG TRÌNH HÓA HỌC (PTHH):
+   - Phải bọc trong `$$...$$` và nằm trên dòng riêng biệt.
+   - Ví dụ:
+   $$2Na + 2H_2O \rightarrow 2NaOH + H_2\uparrow$$
+   $$Mg + H_2O_{(hơi)} \xrightarrow{t^o} MgO + H_2\uparrow$$
+4. CÔNG THỨC & TÊN CHẤT NẰM TRONG CÂU:
+   - Các công thức ngắn bọc trong `$ ... $`.
+   - Ví dụ: $Al_2O_3$, $n = \frac{m}{M}$.
 """
 
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
@@ -428,10 +238,10 @@ with st.sidebar:
         st.rerun()
 
 # ==================================================
-# 🏛️ GIAO DIỆN CHÍNH (BONG BÓNG ZALO + KATEX LATEX)
+# 🏛️ GIAO DIỆN CHÍNH (NATIVE MARKDOWN - LATEX CHUẨN 100%)
 # ==================================================
 
-# 📍 1. BANNER
+# 📍 BANNER
 banner_loaded = False
 for name in ["banner.png", "banner.PNG", "banner.jpg", "banner.jpeg", "banner.JPG"]:
     banner_path = os.path.join(CURRENT_DIR, name)
@@ -450,36 +260,27 @@ if not banner_loaded:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 📍 2. KHUNG HỘI THOẠI CHAT (XUẤT BONG BÓNG CHAT ZALO VÀ RENDER KATEX)
+# 📍 CỦNG CỐ CÔNG THỨC LATEX BẰNG REGEX TRƯỚC KHU VỰC HIỂN THỊ
+def format_latex_display(text):
+    if not text:
+        return ""
+    # Đảm bảo các phương trình $$ luôn đứng riêng dòng trống để Streamlit Markdown render đẹp nhất
+    text = re.sub(r'([^\n\$])(\$\$)', r'\1\n\n\2', text)
+    text = re.sub(r'(\$\$)([^\n\$])', r'\1\n\n\2', text)
+    return text
+
+# 📍 KHUNG HỘI THOẠI CHAT CHÍNH
 chat_placeholder = st.container()
 
-def render_chat_html(role, content):
-    if role == "assistant":
-        html_content = process_markdown_to_html(content)
-        return f"""
-        <div class="chat-row-left">
-            <img src="{AVATAR_TEACHER_SRC}" class="avatar-img" />
-            <div class="chat-bubble-left">{html_content}</div>
-        </div>
-        """
-    else:
-        formatted_user_text = content.replace("\n", "<br>")
-        return f"""
-        <div class="chat-row-right">
-            <img src="{AVATAR_STUDENT_SRC}" class="avatar-img" />
-            <div class="chat-bubble-right">{formatted_user_text}</div>
-        </div>
-        """
-
 with chat_placeholder:
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
     for msg in st.session_state.messages:
-        st.markdown(render_chat_html(msg["role"], msg["content"]), unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+        avatar_icon = "👨‍🏫" if msg["role"] == "assistant" else "🧑‍🎓"
+        with st.chat_message(msg["role"], avatar=avatar_icon):
+            st.markdown(format_latex_display(msg["content"]))
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 📍 3. KHU VỰC NHẬP LIỆU BÊN DƯỚI (CÓ THỂ UPLOAD ẢNH ĐỀ BÀI)
+# 📍 KHU VỰC NHẬP LIỆU BÊN DƯỚI
 uploaded_file = st.file_uploader("📷 Chụp hoặc gửi ảnh đề bài", type=["jpg", "jpeg", "png"], key="fixed_bottom_uploader")
 prompt = st.chat_input("Em muốn hỏi Thầy bài tập hay lý thuyết Hóa học nào hôm nay...")
 
@@ -501,26 +302,29 @@ if prompt:
     save_data(HISTORY_FILE, st.session_state.messages)
 
     with chat_placeholder:
-        st.markdown(render_chat_html("user", cleaned_prompt), unsafe_allow_html=True)
+        with st.chat_message("user", avatar="🧑‍🎓"):
+            st.markdown(cleaned_prompt)
 
-        with st.spinner("Thầy đang xem bài..."):
-            try:
-                message_parts.append(types.Part.from_text(text=cleaned_prompt))
-                response = chat_session.send_message(message_parts)
-                res_text = response.text.strip()
-                
-                if ERROR_MESSAGE_TAG.upper() in res_text.upper():
-                    if cleaned_prompt not in st.session_state.missing_questions:
-                        st.session_state.missing_questions.append(cleaned_prompt)
-                        save_data(STORAGE_FILE, st.session_state.missing_questions)
-                    final_res = ERROR_MESSAGE
-                else:
-                    final_res = res_text
+        with st.chat_message("assistant", avatar="👨‍🏫"):
+            with st.spinner("Thầy đang xem bài..."):
+                try:
+                    message_parts.append(types.Part.from_text(text=cleaned_prompt))
+                    response = chat_session.send_message(message_parts)
+                    res_text = response.text.strip()
+                    
+                    if ERROR_MESSAGE_TAG.upper() in res_text.upper():
+                        if cleaned_prompt not in st.session_state.missing_questions:
+                            st.session_state.missing_questions.append(cleaned_prompt)
+                            save_data(STORAGE_FILE, st.session_state.missing_questions)
+                        final_res = ERROR_MESSAGE
+                    else:
+                        final_res = res_text
 
-                st.session_state.messages.append({"role": "assistant", "content": final_res})
-                save_data(HISTORY_FILE, st.session_state.messages)
-                
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"Thầy gặp sự cố kết nối: {e}")
+                    st.markdown(format_latex_display(final_res))
+                    st.session_state.messages.append({"role": "assistant", "content": final_res})
+                    save_data(HISTORY_FILE, st.session_state.messages)
+                    
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"Thầy gặp sự cố kết nối: {e}")
