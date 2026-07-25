@@ -212,36 +212,36 @@ AVATAR_TEACHER_SRC = TEACHER_B64 if TEACHER_B64 else DEFAULT_TEACHER_AVATAR
 AVATAR_STUDENT_SRC = STUDENT_B64 if STUDENT_B64 else DEFAULT_STUDENT_AVATAR
 
 # 🧪 HÀM ĐỊNH DẠNG VĂN BẢN VÀ CHUẨN HÓA LATEX DÀNH CHO ZALO BUBBLE (ĐÃ SỬA LỖI HIỂN THỊ)
+# 🧪 HÀM XỬ LÝ HTML ZALO VÀ KHẮC PHỤC TRIỆT ĐỂ LỖI CÔNG THỨC LATEX
 def process_markdown_to_html(text):
     if not text:
         return ""
     
-    # 🎯 BƯỚC 1: TÁCH DÒNG CÔNG THỨC LATEX KHỎI CHỮ ĐỂ KHÔNG BỊ DÍNH LỖI NHƯ TRONG ẢNH
+    # 1. Tách chuỗi $$$$ bị dính liền giữa 2 phương trình thành dòng riêng biệt
+    text = re.sub(r'\$\$\s*\$\$', r'$$\n\n$$', text)
+    
+    # 2. Ngắt dòng rõ ràng trước và sau các khối công thức $$...$$
     text = re.sub(r'([^\n\$])(\$\$)', r'\1\n\n\2', text)
     text = re.sub(r'(\$\$)([^\n\$])', r'\1\n\n\2', text)
 
-    # 🎯 BƯỚC 2: CHUẨN HÓA KÝ HIỆU NHIỆT ĐỘ & KHOẢNG TRẮNG LATEX
-    text = text.replace(r'\xrightarrow{to}', r'\xrightarrow{t^o}').replace(r'\xrightarrow{t^\circ}', r'\xrightarrow{t^o}')
-    text = re.sub(r'\$\s+', '$', text)
-    text = re.sub(r'\s+\$', '$', text)
-
-    # 🎯 BƯỚC 3: SỬA LỖI SỐ THỨ TỰ (1., 2.) BỊ TỰ ĐỘNG TRÔI TÁCH DÒNG
-    text = re.sub(r'(?m)^\s*(\d+)\.\s*\n+\s*\*\*([^*]+)\*\*', r'### \1. \2', text)
-    text = re.sub(r'(?m)^\s*(\d+)\.\s*\n+\s*###', r'### \1.', text)
-
-    # 🎯 BƯỚC 4: CHUYỂN ĐỔI TIÊU ĐỀ MARKDOWN SANG HTML <h3>
-    text = re.sub(r'###\s*([^\n<]+)', r'<h3>\1</h3>', text)
-    text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\:\*\*', r'<h3>\1</h3>', text)
-    text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\*\*', r'<h3>\1</h3>', text)
-    text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
+    # 3. Chỉ chuyển thành <h3> đối với dòng thực sự là TIÊU ĐỀ (Có dấu ### hoặc bắt đầu bằng số như "1. ", "I. ")
+    # Tuyệt đối không tự động đổi văn bản in đậm **thường** thành <h3> để tránh bị kẻ gạch ngang Zalo
+    text = re.sub(r'(?m)^###\s*(.+)$', r'<h3>\1</h3>', text)
+    text = re.sub(r'(?m)^\*\*(\d+\..+|[I|V|X]+\..+)\*\*$', r'<h3>\1</h3>', text)
     
-    # 🎯 BƯỚC 5: ĐỊNH DẠNG DANH SÁCH GẠCH ĐẦU DÒNG
+    # 4. Giữ nguyên định dạng in đậm <b> cho các từ/cụm từ nằm trong câu
+    text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
+
+    # 5. Chuẩn hóa danh sách gạch đầu dòng (không nuốt các từ nối như "và", ":", ".")
     lines = text.split('\n')
     formatted_lines = []
     in_list = False
     
     for line in lines:
         stripped = line.strip()
+        if not stripped:
+            continue
+            
         if stripped.startswith('* ') or stripped.startswith('- '):
             if not in_list:
                 formatted_lines.append("<ul>")
@@ -252,21 +252,20 @@ def process_markdown_to_html(text):
             if in_list:
                 formatted_lines.append("</ul>")
                 in_list = False
-            if not re.match(r'^\d+\.$', stripped):
-                formatted_lines.append(line)
+            formatted_lines.append(line)
             
     if in_list:
         formatted_lines.append("</ul>")
         
     result = "\n".join(formatted_lines)
 
-    # 🎯 BƯỚC 6: DỌN DẸP KHOẢNG TRẮNG CẢI THIỆN DÒNG TRỐNG
+    # 6. Thay thế xuống dòng hợp lý cho bong bóng chat
     result = result.replace("\n\n", "<br>").replace("\n", "<br>")
     result = re.sub(r'(<br>\s*){2,}', '<br>', result)
     result = re.sub(r'<br>\s*<ul>', '<ul>', result)
     result = re.sub(r'</ul>\s*<br>', '</ul>', result)
     result = re.sub(r'<br>\s*<h3>', '<h3>', result)
-    result = re.sub(r'</h3>\s*<br>', '3>', result)
+    result = re.sub(r'</h3>\s*<br>', '</h3>', result)
     
     return result
 
