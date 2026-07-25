@@ -122,7 +122,27 @@ if "missing_questions" not in st.session_state:
     st.session_state.missing_questions = load_data(STORAGE_FILE, [])
 
 # ==================================================
-# 🔑 KHỞI TẠO GEMINI CLIENT
+# 📚 ĐỌC FILE TÀI LIỆU RAG DỰ PHÒNG (KÈM FALLBACK)
+# ==================================================
+# Hệ thống sẽ tìm file theo danh sách ưu tiên bên dưới
+DOC_FILES = ["tai_lieu_hoa.txt", "giao_an_hoa.txt", "tai_lieu_hoa.pdf"]
+knowledge_base_text = ""
+has_rag_data = False
+
+for doc_name in DOC_FILES:
+    doc_path = os.path.join(CURRENT_DIR, doc_name)
+    if os.path.exists(doc_path):
+        try:
+            with open(doc_path, "r", encoding="utf-8") as f:
+                knowledge_base_text = f.read().strip()
+                if knowledge_base_text:
+                    has_rag_data = True
+                    break
+        except Exception:
+            pass
+
+# ==================================================
+# 🔑 KHỞI TẠO GEMINI CLIENT & TẠO PROMPT ĐỘNG
 # ==================================================
 api_key = os.environ.get("GEMINI_API_KEY")
 client = None
@@ -135,16 +155,34 @@ if api_key:
 else:
     st.warning("Chưa cấu hình GEMINI_API_KEY trong Secrets.")
 
-SYSTEM_INSTRUCTION = """
+BASE_INSTRUCTION = """
 Bạn là Gia sư Hóa học THCS dành cho học sinh Trường THCS Phan Chu Trinh (Krông Búk).
 - Chỉ giải đáp kiến thức Hóa học THCS (Lớp 8, 9).
 - Tên nguyên tố/chất áp dụng danh pháp IUPAC (vd: Oxygen, Hydrogen, Iron, Sulfur...).
 - Giảng giải thân thiện, dễ hiểu, đóng vai Thầy giáo xưng "Thầy" gọi "em".
-- Nếu gặp câu hỏi không nằm trong phạm vi kiến thức Hóa THCS hoặc tài liệu được cấp, bạn BẮT BUỘC trả về chuỗi "[MISSING_DOC_ERROR]" kèm giải thích ngắn gọn.
 """
 
 ERROR_MESSAGE_TAG = "[MISSING_DOC_ERROR]"
 ERROR_MESSAGE = "Dữ liệu chưa cập nhật câu hỏi này. Thầy đã ghi nhận và sẽ bổ sung sau nhé!"
+
+# Xây dựng System Instruction linh hoạt dựa vào việc có File hay không
+if has_rag_data:
+    SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}
+    
+DƯỚI ĐÂY LÀ BỘ TÀI LIỆU GIÁO ÁN GỐC ĐƯỢC CẤP:
+---
+{knowledge_base_text}
+---
+
+QUY TẮC BẮT BỘC KHI CÓ TÀI LIỆU:
+1. Bạn CHỈ ĐƯỢC PHÁP trả lời câu hỏi dựa trên nội dung có trong BỘ TÀI LIỆU GIÁO ÁN GỐC ở trên.
+2. Nếu câu hỏi của học sinh KHÔNG nằm trong bộ tài liệu trên, bạn BẮT BUỘC trả về duy nhất mã: {ERROR_MESSAGE_TAG}
+"""
+else:
+    SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}
+- Sử dụng tri thức Hóa học THCS chuẩn để trả lời cho học sinh.
+- Nếu gặp câu hỏi hoàn toàn không liên quan đến Hóa học THCS, trả về chuỗi {ERROR_MESSAGE_TAG}
+"""
 
 if client:
     try:
@@ -152,7 +190,7 @@ if client:
             model="gemini-2.5-flash",
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION,
-                temperature=0.3
+                temperature=0.2 if has_rag_data else 0.4
             )
         )
     except Exception as e:
@@ -165,6 +203,12 @@ with st.sidebar:
     st.title("🧪 Lớp Hóa Học THCS")
     st.caption("Trường THCS Phan Chu Trinh - Krông Búk")
     st.divider()
+
+    # THÔNG BÁO CHẾ ĐỘ HOẠT ĐỘNG
+    if has_rag_data:
+        st.success("📚 **Đang dùng:** Tài liệu Giáo án riêng (RAG Mode)")
+    else:
+        st.warning("⚡ **Đang dùng:** Tri thức mở Gemini 2.5 (Fallback Mode)")
 
     st.markdown("""
     <div class="sidebar-card">
@@ -181,7 +225,7 @@ with st.sidebar:
     
     st.divider()
 
-    # 📥 MỤC THEO DÕI CÂU HỎI CẦN BỔ SUNG DÀNH CHO GIÁO VIÊN
+    # 📥 MỤC THEO DÕI CÂU HỎI CẦN BỔ SUNG
     with st.expander("📌 Câu hỏi chưa có dữ liệu", expanded=False):
         if st.session_state.missing_questions:
             st.write(f"Hiện có **{len(st.session_state.missing_questions)}** câu hỏi cần bổ sung:")
