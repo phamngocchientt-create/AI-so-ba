@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 
 # ==================================================
-# 🎨 CẤU HÌNH TRANG & CUSTOM CSS (ZALO/MESSENGER CHUẨN)
+# 🎨 CẤU HÌNH TRANG & CUSTOM CSS (BONG BÓNG ZALO CHUẨN 100%)
 # ==================================================
 st.set_page_config(
     page_title="Gia sư Hóa học THCS - THCS Phan Chu Trinh", 
@@ -23,10 +23,9 @@ st.markdown("""
     }
     
     .stApp {
-        background-color: #f1f5f9;
+        background-color: #eef2f6;
     }
 
-    /* Sidebar style */
     .sidebar-card {
         background: #ffffff;
         border-left: 4px solid #0284c7;
@@ -37,65 +36,70 @@ st.markdown("""
     }
 
     /* -------------------------------------------------- */
-    /* 💬 PHÂN BIỆT BONG BÓNG CHAT THẦY & TRÒ (FIX HOÀN TOÀN) */
+    /* 💬 GIAO DIỆN BONG BÓNG CHAT KIỂU ZALO THỰC THỤ */
     /* -------------------------------------------------- */
-
-    /* Định dạng chung cho avatar */
-    [data-testid="stChatMessage"] img {
-        border-radius: 50% !important;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
-        border: 2px solid #ffffff !important;
-        object-fit: cover !important;
-        width: 40px !important;
-        height: 40px !important;
+    
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 20px;
     }
 
-    /* 👨‍🏫 THẦY GIÁO (BÊN TRÁI - NỀN TRẮNG TINH TẾ) */
-    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]),
-    [data-testid="stChatMessage"]:has(img[src*="teacher"]) {
-        flex-direction: row !important;
-        background-color: #ffffff !important;
-        border: 1px solid #cbd5e1 !important;
-        border-left: 5px solid #0284c7 !important;
-        border-radius: 18px 18px 18px 4px !important;
-        padding: 12px 18px !important;
-        margin-right: auto !important;
-        margin-left: 0 !important;
-        margin-bottom: 14px !important;
-        max-width: 80% !important;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05) !important;
+    /* BÊN TRÁI: THẦY GIÁO TRẢ LỜI */
+    .chat-row-left {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 12px;
+        max-width: 80%;
+        margin-right: auto;
     }
 
-    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) p,
-    [data-testid="stChatMessage"]:has(img[src*="teacher"]) p {
-        color: #0f172a !important;
-        font-size: 15px !important;
-        line-height: 1.5 !important;
+    .chat-bubble-left {
+        background-color: #ffffff;
+        color: #1e293b;
+        padding: 12px 18px;
+        border-radius: 4px 18px 18px 18px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e2e8f0;
+        font-size: 15px;
+        line-height: 1.5;
     }
 
-    /* 🎒 HỌC SINH (BÊN PHẢI - NỀN XANH DƯƠNG TƯƠI SÁNG) */
-    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]),
-    [data-testid="stChatMessage"]:has(img[src*="student"]) {
-        flex-direction: row-reverse !important;
-        background-color: #0284c7 !important;
-        border-radius: 18px 18px 4px 18px !important;
-        padding: 12px 18px !important;
-        margin-left: auto !important;
-        margin-right: 0 !important;
-        margin-bottom: 14px !important;
-        max-width: 80% !important;
-        box-shadow: 0 3px 10px rgba(2, 132, 199, 0.25) !important;
+    /* BÊN PHẢI: HỌC SINH NHẮN */
+    .chat-row-right {
+        display: flex;
+        flex-direction: row-reverse;
+        align-items: flex-start;
+        gap: 12px;
+        max-width: 80%;
+        margin-left: auto;
     }
 
-    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) p,
-    [data-testid="stChatMessage"]:has(img[src*="student"]) p {
-        color: #ffffff !important;
-        font-size: 15px !important;
-        font-weight: 500 !important;
-        line-height: 1.5 !important;
+    .chat-bubble-right {
+        background-color: #0084ff; /* Màu xanh Zalo / Messenger chuẩn */
+        color: #ffffff;
+        padding: 12px 18px;
+        border-radius: 18px 4px 18px 18px;
+        box-shadow: 0 2px 8px rgba(0, 132, 255, 0.25);
+        font-size: 15px;
+        line-height: 1.5;
+        font-weight: 500;
     }
 
-    /* ⌨️ KHUNG NHẬP LIỆU */
+    /* Định dạng Avatar tròn đẹp */
+    .avatar-img {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        object-fit: cover;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        border: 2px solid #ffffff;
+        flex-shrink: 0;
+    }
+
+    /* ⌨️ KHUNG NHẬP LIỆU NHẮN TIN */
     [data-testid="stChatInput"] {
         border-radius: 30px !important;
         border: 2px solid #38bdf8 !important;
@@ -109,7 +113,7 @@ st.markdown("""
     }
 
     [data-testid="stChatInputSubmitButton"] {
-        background-color: #0284c7 !important;
+        background-color: #0084ff !important;
         color: white !important;
         border-radius: 50% !important;
     }
@@ -117,22 +121,31 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==================================================
-# 📂 NẠP CẤU HÌNH VÀ TÌM AVATAR LINH HOẠT ĐUÔI FILE
+# 📂 HÀM CHUYỂN ẢNH SANG BASE64 ĐỂ HIỂN THỊ HTML MƯỢT MA
 # ==================================================
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(CURRENT_DIR, "chat_history.json")
 STORAGE_FILE = os.path.join(CURRENT_DIR, "missing_questions.json")
 
-# Hàm tự tìm file ảnh bất kể đuôi .png hay .PNG hay .jpg
-def get_avatar_path(base_name, default_emoji):
+def get_image_base64(base_name):
     for ext in [".PNG", ".png", ".jpg", ".jpeg", ".JPG", ".JPEG"]:
         path = os.path.join(CURRENT_DIR, f"{base_name}{ext}")
         if os.path.exists(path):
-            return path
-    return default_emoji
+            with open(path, "rb") as image_file:
+                encoded = base64.b64encode(image_file.read()).decode()
+                ext_type = "png" if "png" in ext.lower() else "jpeg"
+                return f"data:image/{ext_type};base64,{encoded}"
+    return None
 
-AVATAR_TEACHER = get_avatar_path("teacher_avatar", "👨‍🔬")
-AVATAR_STUDENT = get_avatar_path("student_avatar", "🙋‍♂️")
+TEACHER_B64 = get_image_base64("teacher_avatar")
+STUDENT_B64 = get_image_base64("student_avatar")
+
+# Emoji dự phòng nếu thiếu file
+DEFAULT_TEACHER_AVATAR = "https://api.dicebear.com/7.x/bottts/svg?seed=Teacher"
+DEFAULT_STUDENT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=Student"
+
+AVATAR_TEACHER_SRC = TEACHER_B64 if TEACHER_B64 else DEFAULT_TEACHER_AVATAR
+AVATAR_STUDENT_SRC = STUDENT_B64 if STUDENT_B64 else DEFAULT_STUDENT_AVATAR
 
 def load_data(file_path, default_value):
     if os.path.exists(file_path):
@@ -303,14 +316,31 @@ if not banner_loaded:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 📍 2. KHUNG HỘI THOẠI CHAT (XỬ LÝ DÕNG TIN NHẮN TÁCH BIỆT)
+# 📍 2. KHUNG HỘI THOẠI CHAT CHUẨN ĐỊNH DẠNG ZALO
 chat_placeholder = st.container()
 
+def render_chat_html(role, content):
+    content_formatted = content.replace("\n", "<br>")
+    if role == "assistant":
+        return f"""
+        <div class="chat-row-left">
+            <img src="{AVATAR_TEACHER_SRC}" class="avatar-img" />
+            <div class="chat-bubble-left">{content_formatted}</div>
+        </div>
+        """
+    else:
+        return f"""
+        <div class="chat-row-right">
+            <img src="{AVATAR_STUDENT_SRC}" class="avatar-img" />
+            <div class="chat-bubble-right">{content_formatted}</div>
+        </div>
+        """
+
 with chat_placeholder:
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
     for msg in st.session_state.messages:
-        avatar = AVATAR_TEACHER if msg["role"] == "assistant" else AVATAR_STUDENT
-        with st.chat_message(msg["role"], avatar=avatar):
-            st.markdown(msg["content"])
+        st.markdown(render_chat_html(msg["role"], msg["content"]), unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -328,29 +358,26 @@ if prompt:
     save_data(HISTORY_FILE, st.session_state.messages)
 
     with chat_placeholder:
-        with st.chat_message("user", avatar=AVATAR_STUDENT):
-            st.markdown(cleaned_prompt)
+        st.markdown(render_chat_html("user", cleaned_prompt), unsafe_allow_html=True)
 
-        with st.chat_message("assistant", avatar=AVATAR_TEACHER):
-            with st.spinner("Thầy đang suy nghĩ bài làm..."):
-                try:
-                    message_parts = [types.Part.from_text(text=cleaned_prompt)]
-                    response = chat_session.send_message(message_parts)
-                    res_text = response.text.strip()
-                    
-                    if ERROR_MESSAGE_TAG.upper() in res_text.upper():
-                        if cleaned_prompt not in st.session_state.missing_questions:
-                            st.session_state.missing_questions.append(cleaned_prompt)
-                            save_data(STORAGE_FILE, st.session_state.missing_questions)
-                        final_res = ERROR_MESSAGE
-                    else:
-                        final_res = res_text
+        with st.spinner("Thầy đang suy nghĩ bài làm..."):
+            try:
+                message_parts = [types.Part.from_text(text=cleaned_prompt)]
+                response = chat_session.send_message(message_parts)
+                res_text = response.text.strip()
+                
+                if ERROR_MESSAGE_TAG.upper() in res_text.upper():
+                    if cleaned_prompt not in st.session_state.missing_questions:
+                        st.session_state.missing_questions.append(cleaned_prompt)
+                        save_data(STORAGE_FILE, st.session_state.missing_questions)
+                    final_res = ERROR_MESSAGE
+                else:
+                    final_res = res_text
 
-                    st.markdown(final_res)
-                    st.session_state.messages.append({"role": "assistant", "content": final_res})
-                    save_data(HISTORY_FILE, st.session_state.messages)
-                    
-                    st.rerun()
-                    
-                except Exception as e:
-                    st.error(f"Thầy gặp sự cố kết nối: {e}")
+                st.session_state.messages.append({"role": "assistant", "content": final_res})
+                save_data(HISTORY_FILE, st.session_state.messages)
+                
+                st.rerun()
+                
+            except Exception as e:
+                st.error(f"Thầy gặp sự cố kết nối: {e}")
