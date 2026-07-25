@@ -211,8 +211,7 @@ DEFAULT_STUDENT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=Studen
 AVATAR_TEACHER_SRC = TEACHER_B64 if TEACHER_B64 else DEFAULT_TEACHER_AVATAR
 AVATAR_STUDENT_SRC = STUDENT_B64 if STUDENT_B64 else DEFAULT_STUDENT_AVATAR
 
-# 🧪 HÀM ĐỊNH DẠNG VĂN BẢN VÀ CHUẨN HÓA LATEX DÀNH CHO ZALO BUBBLE (ĐÃ SỬA LỖI HIỂN THỊ)
-# 🧪 HÀM XỬ LÝ HTML ZALO VÀ KHẮC PHỤC TRIỆT ĐỂ LỖI CÔNG THỨC LATEX
+# 🧪 HÀM ĐỊNH DẠNG VĂN BẢN VÀ CHUẨN HÓA LATEX MÀ KHÔNG LÀM VỠ HTML ZALO
 def process_markdown_to_html(text):
     if not text:
         return ""
@@ -220,19 +219,18 @@ def process_markdown_to_html(text):
     # 1. Tách chuỗi $$$$ bị dính liền giữa 2 phương trình thành dòng riêng biệt
     text = re.sub(r'\$\$\s*\$\$', r'$$\n\n$$', text)
     
-    # 2. Ngắt dòng rõ ràng trước và sau các khối công thức $$...$$
+    # 2. Tách dòng công thức $$...$$ ra khỏi chữ nếu bị dính liền
     text = re.sub(r'([^\n\$])(\$\$)', r'\1\n\n\2', text)
     text = re.sub(r'(\$\$)([^\n\$])', r'\1\n\n\2', text)
 
-    # 3. Chỉ chuyển thành <h3> đối với dòng thực sự là TIÊU ĐỀ (Có dấu ### hoặc bắt đầu bằng số như "1. ", "I. ")
-    # Tuyệt đối không tự động đổi văn bản in đậm **thường** thành <h3> để tránh bị kẻ gạch ngang Zalo
+    # 3. Chỉ đổi các tiêu đề thực sự (### hoặc dòng in đậm độc lập bắt đầu bằng I., 1.) thành <h3>
     text = re.sub(r'(?m)^###\s*(.+)$', r'<h3>\1</h3>', text)
-    text = re.sub(r'(?m)^\*\*(\d+\..+|[I|V|X]+\..+)\*\*$', r'<h3>\1</h3>', text)
+    text = re.sub(r'(?m)^\*\*([I|V|X\d]+\..+)\*\*$', r'<h3>\1</h3>', text)
     
-    # 4. Giữ nguyên định dạng in đậm <b> cho các từ/cụm từ nằm trong câu
+    # 4. Giữ nguyên in đậm <b> cho các từ trong câu (tránh biến từ ngắn thành <h3>)
     text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
 
-    # 5. Chuẩn hóa danh sách gạch đầu dòng (không nuốt các từ nối như "và", ":", ".")
+    # 5. Định dạng danh sách gạch đầu dòng
     lines = text.split('\n')
     formatted_lines = []
     in_list = False
@@ -259,7 +257,7 @@ def process_markdown_to_html(text):
         
     result = "\n".join(formatted_lines)
 
-    # 6. Thay thế xuống dòng hợp lý cho bong bóng chat
+    # 6. Dọn dẹp khoảng trắng và xuống dòng
     result = result.replace("\n\n", "<br>").replace("\n", "<br>")
     result = re.sub(r'(<br>\s*){2,}', '<br>', result)
     result = re.sub(r'<br>\s*<ul>', '<ul>', result)
@@ -339,7 +337,7 @@ Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn 
 
 ### 1. KHI HỌC SINH HỎI CÂU HỎI LÝ THUYẾT:
 - **Trả lời cô đọng, đi thẳng vào bản chất cơ bản trước.** KHÔNG đưa ra tràng giang đại hải hay kiến thức quá rộng ngay lần đầu tiên.
-- Chỉ giải thích sâu bản chất cơ chế hoặc đưa kiến thức nâng cao KHI VÀ CHỈ KHI học sinh chủ động hỏi thêm (Ví dụ: "Tại sao lại như vậy?", "Thầy giải thích rõ hơn đi", "Có phần nâng cao không Thầy?").
+- Chỉ giải thích sâu bản chất cơ chế hoặc đưa kiến thức nâng cao KHI VÀ CHỈ KHI học sinh chủ động hỏi thêm.
 
 ### 2. KHI HỌC SINH HỎI BÀI TẬP (ĐỊNH TÍNH VÀ TÍNH TOÁN):
 - **TUYỆT ĐỐI KHÔNG GIẢI NGAY TRONG LẦN ĐẦU TIÊN.**
@@ -350,17 +348,21 @@ Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn 
 - Dựa vào lựa chọn tiếp theo của học sinh mà đưa ra lời giải tương ứng.
 
 ### 3. QUY TẮC XỬ LÝ KHI THIẾU TÀI LIỆU DỮ LIỆU:
-- Với bài tập (dạng bài tính toán/định tính) nếu không thấy mẫu trong tài liệu RAG, Thầy ĐƯỢC PHÉP vận dụng tri thức mở trên Internet để hướng dẫn giải cho học sinh, nhưng **BẮT BUỘC giữ đúng chuẩn kiến thức THCS**.
+- Với bài tập nếu không thấy mẫu trong tài liệu RAG, Thầy ĐƯỢC PHÉP vận dụng tri thức mở trên Internet để hướng dẫn giải cho học sinh, nhưng **BẮT BUỘC giữ đúng chuẩn kiến thức THCS**.
 - Nếu là câu hỏi lý thuyết ngoài phạm vi hoặc hoàn toàn không liên quan Hóa học THCS, trả về mã [MISSING_DOC].
 
-# 📐 QUY TẮC BẮT BỘC TRÌNH BÀY LATEX
-1. PHƯƠNG TRÌNH HÓA HỌC (PTHH):
-   - Phải bọc trong $$...$$ và nằm riêng trên một dòng độc lập.
-   - Ví dụ: 
-   $$2Al + 3H_2SO_4 \rightarrow Al_2(SO_4)_3 + 3H_2\uparrow$$
-   $$2Fe + 3Cl_2 \xrightarrow{t^o} 2FeCl_3$$
-2. CÔNG THỨC TOÁN HỌC:
-   - Các công thức ngắn, phân số kẹp trong dấu $...$: $n_{Fe} = \frac{m}{M} = \frac{5,6}{56} = 0,1\text{ mol}$.
+# 📐 QUY TẮC HIỂN THỊ & TRÌNH BÀY (CỰC KỲ QUAN TRỌNG)
+Để câu trả lời đẹp như "viết bảng", bạn PHẢI tuân thủ:
+1. KHOẢNG TRẮNG: Sử dụng "Dòng trống" (Double Enter) giữa các đoạn văn, giữa đề mục và nội dung.
+2. ĐỀ MỤC: Các mục lớn (I, II, III...), mục nhỏ (a, b, c...) hoặc số thứ tự (1, 2, 3...) phải **IN ĐẬM** và đứng riêng một dòng.
+3. PHƯƠNG TRÌNH HÓA HỌC (PTHH):
+   - Phải bọc trong $$...$$ và nằm trên dòng riêng biệt.
+   - Mỗi PTHH là một dòng riêng. Tuyệt đối không để 2 PTHH trên cùng 1 dòng (Không viết dính liền dạng $$PTHH 1$$$$PTHH 2$$).
+   - Giữa các PTHH liên tiếp phải có một dòng trống.
+4. CÔNG THỨC & LATEX:
+   - Công thức hóa học/toán học bọc trong $...$ (cùng dòng) hoặc $$...$$ (riêng dòng).
+   - Ví dụ: $Al_2O_3$, $n = \frac{m}{M}$.
+   - Không dùng ký hiệu lạ như \ce, \text. Tách chữ và số rõ ràng.
 """
 
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
