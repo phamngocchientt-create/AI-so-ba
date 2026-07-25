@@ -1,12 +1,13 @@
 import os
 import json
 import base64
+import re
 import streamlit as st
 from google import genai
 from google.genai import types
 
 # ==================================================
-# 🎨 CẤU HÌNH TRANG & CUSTOM CSS (BONG BÓNG ZALO CHUẨN 100%)
+# 🎨 CẤU HÌNH TRANG & CUSTOM CSS (ĐỊNH DẠNG VĂN BẢN ĐẸP)
 # ==================================================
 st.set_page_config(
     page_title="Gia sư Hóa học THCS - THCS Phan Chu Trinh", 
@@ -16,16 +17,17 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
     
     html, body, [class*="css"] {
-        font-family: 'Nunito', sans-serif;
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
     }
     
     .stApp {
-        background-color: #eef2f6;
+        background-color: #f8fafc;
     }
 
+    /* Sidebar style */
     .sidebar-card {
         background: #ffffff;
         border-left: 4px solid #0284c7;
@@ -36,13 +38,13 @@ st.markdown("""
     }
 
     /* -------------------------------------------------- */
-    /* 💬 GIAO DIỆN BONG BÓNG CHAT KIỂU ZALO THỰC THỤ */
+    /* 💬 PHONG CÁCH BONG BÓNG CHAT CHUYÊN NGHIỆP */
     /* -------------------------------------------------- */
     
     .chat-container {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 18px;
         margin-bottom: 20px;
     }
 
@@ -52,19 +54,39 @@ st.markdown("""
         flex-direction: row;
         align-items: flex-start;
         gap: 12px;
-        max-width: 80%;
+        max-width: 82%;
         margin-right: auto;
     }
 
     .chat-bubble-left {
         background-color: #ffffff;
-        color: #1e293b;
-        padding: 12px 18px;
-        border-radius: 4px 18px 18px 18px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        color: #0f172a;
+        padding: 16px 20px;
+        border-radius: 4px 20px 20px 20px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
         border: 1px solid #e2e8f0;
         font-size: 15px;
-        line-height: 1.5;
+        line-height: 1.6;
+    }
+
+    /* TRÌNH BÀY TIÊU ĐỀ VÀ MỤC LỚN TRONG CÂU TRẢ LỜI */
+    .chat-bubble-left h3 {
+        color: #0284c7;
+        font-size: 17px;
+        font-weight: 700;
+        margin-top: 10px;
+        margin-bottom: 6px;
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 4px;
+    }
+
+    .chat-bubble-left ul {
+        margin: 6px 0;
+        padding-left: 20px;
+    }
+
+    .chat-bubble-left li {
+        margin-bottom: 4px;
     }
 
     /* BÊN PHẢI: HỌC SINH NHẮN */
@@ -78,28 +100,28 @@ st.markdown("""
     }
 
     .chat-bubble-right {
-        background-color: #0084ff; /* Màu xanh Zalo / Messenger chuẩn */
+        background-color: #0284c7;
         color: #ffffff;
-        padding: 12px 18px;
-        border-radius: 18px 4px 18px 18px;
-        box-shadow: 0 2px 8px rgba(0, 132, 255, 0.25);
+        padding: 14px 20px;
+        border-radius: 20px 4px 20px 20px;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.22);
         font-size: 15px;
         line-height: 1.5;
         font-weight: 500;
     }
 
-    /* Định dạng Avatar tròn đẹp */
+    /* Avatar tròn nổi bật */
     .avatar-img {
-        width: 42px;
-        height: 42px;
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
         object-fit: cover;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        box-shadow: 0 3px 8px rgba(0,0,0,0.12);
         border: 2px solid #ffffff;
         flex-shrink: 0;
     }
 
-    /* ⌨️ KHUNG NHẬP LIỆU NHẮN TIN */
+    /* Khung nhập liệu */
     [data-testid="stChatInput"] {
         border-radius: 30px !important;
         border: 2px solid #38bdf8 !important;
@@ -113,7 +135,7 @@ st.markdown("""
     }
 
     [data-testid="stChatInputSubmitButton"] {
-        background-color: #0084ff !important;
+        background-color: #0284c7 !important;
         color: white !important;
         border-radius: 50% !important;
     }
@@ -121,7 +143,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==================================================
-# 📂 HÀM CHUYỂN ẢNH SANG BASE64 ĐỂ HIỂN THỊ HTML MƯỢT MA
+# 📂 ĐỌC AVATAR BASE64 VÀ XỬ LÝ VĂN BẢN HÓA HỌC
 # ==================================================
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(CURRENT_DIR, "chat_history.json")
@@ -140,12 +162,60 @@ def get_image_base64(base_name):
 TEACHER_B64 = get_image_base64("teacher_avatar")
 STUDENT_B64 = get_image_base64("student_avatar")
 
-# Emoji dự phòng nếu thiếu file
 DEFAULT_TEACHER_AVATAR = "https://api.dicebear.com/7.x/bottts/svg?seed=Teacher"
 DEFAULT_STUDENT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=Student"
 
 AVATAR_TEACHER_SRC = TEACHER_B64 if TEACHER_B64 else DEFAULT_TEACHER_AVATAR
 AVATAR_STUDENT_SRC = STUDENT_B64 if STUDENT_B64 else DEFAULT_STUDENT_AVATAR
+
+# 🧪 HÀM CHUYỂN ĐỔI MARKDOWN & CÔNG THỨC HÓA HỌC SANG HTML SẠCH SẼ
+def process_markdown_to_html(text):
+    if not text:
+        return ""
+    
+    # 1. Chuyển chỉ số dưới trong công thức hóa học (VD: H2SO4 -> H<sub>2</sub>SO<sub>4</sub>)
+    # Tự động bắt các ký tự hóa học kèm số đằng sau
+    text = re.sub(r'([A-Za-z\)])(\d+)', r'\1<sub>\2</sub>', text)
+    
+    # 2. Đổi các mục lớn **1. Tiêu đề** hoặc **Mục lớn** thành thẻ <h3>
+    text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\:\*\*', r'<h3>\1</h3>', text)
+    text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\*\*', r'<h3>\1</h3>', text)
+    
+    # 3. Chuyển chữ in đậm thường **text** thành <b>text</b>
+    text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
+    
+    # 4. Đổi gạch đầu dòng * thành thẻ danh sách <li>
+    lines = text.split('\n')
+    formatted_lines = []
+    in_list = False
+    
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith('* ') or stripped.startswith('- '):
+            if not in_list:
+                formatted_lines.append("<ul>")
+                in_list = True
+            item_text = stripped[2:].strip()
+            formatted_lines.append(f"<li>{item_text}</li>")
+        else:
+            if in_list:
+                formatted_lines.append("</ul>")
+                in_list = False
+            formatted_lines.append(line)
+            
+    if in_list:
+        formatted_lines.append("</ul>")
+        
+    result = "\n".join(formatted_lines)
+    result = result.replace("\n\n", "<br><br>").replace("\n", "<br>")
+    
+    # Làm sạch các thẻ br thừa quanh ul, h3
+    result = re.sub(r'<br>\s*<ul>', '<ul>', result)
+    result = re.sub(r'</ul>\s*<br>', '</ul>', result)
+    result = re.sub(r'<br>\s*<h3>', '<h3>', result)
+    result = re.sub(r'</h3>\s*<br>', '</h3>', result)
+    
+    return result
 
 def load_data(file_path, default_value):
     if os.path.exists(file_path):
@@ -209,6 +279,7 @@ Bạn là Gia sư Hóa học THCS dành cho học sinh Trường THCS Phan Chu T
 - Chỉ giải đáp kiến thức Hóa học THCS (Lớp 8, 9).
 - Tên nguyên tố/chất áp dụng danh pháp IUPAC (vd: Oxygen, Hydrogen, Iron, Sulfur...).
 - Giảng giải thân thiện, dễ hiểu, đóng vai Thầy giáo xưng "Thầy" gọi "em".
+- Trình bày mạch lạc, sử dụng các mục đánh số 1, 2, 3 và gạch đầu dòng rõ ràng.
 """
 
 ERROR_MESSAGE_TAG = "[MISSING_DOC_ERROR]"
@@ -223,7 +294,7 @@ DƯỚI ĐÂY LÀ BỘ TÀI LIỆU GIÁO ÁN GỐC ĐƯỢC CẤP:
 ---
 
 QUY TẮC BẮT BỘC KHI CÓ TÀI LIỆU:
-1. Bạn CHỈ ĐƯỢC PHÉP trả lời câu hỏi dựa trên nội dung có trong BỘ TÀI LIỆU GIÁO ÁN GỐC ở trên.
+1. Bạn CHỈ ĐƯỢC PHẾP trả lời câu hỏi dựa trên nội dung có trong BỘ TÀI LIỆU GIÁO ÁN GỐC ở trên.
 2. Nếu câu hỏi của học sinh KHÔNG nằm trong bộ tài liệu trên, bạn BẮT BUỘC trả về duy nhất mã: {ERROR_MESSAGE_TAG}
 """
 else:
@@ -316,23 +387,24 @@ if not banner_loaded:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 📍 2. KHUNG HỘI THOẠI CHAT CHUẨN ĐỊNH DẠNG ZALO
+# 📍 2. KHUNG HỘI THOẠI CHAT (XUẤT HTML ĐÃ QUA XỬ LÝ)
 chat_placeholder = st.container()
 
 def render_chat_html(role, content):
-    content_formatted = content.replace("\n", "<br>")
     if role == "assistant":
+        html_content = process_markdown_to_html(content)
         return f"""
         <div class="chat-row-left">
             <img src="{AVATAR_TEACHER_SRC}" class="avatar-img" />
-            <div class="chat-bubble-left">{content_formatted}</div>
+            <div class="chat-bubble-left">{html_content}</div>
         </div>
         """
     else:
+        formatted_user_text = content.replace("\n", "<br>")
         return f"""
         <div class="chat-row-right">
             <img src="{AVATAR_STUDENT_SRC}" class="avatar-img" />
-            <div class="chat-bubble-right">{content_formatted}</div>
+            <div class="chat-bubble-right">{formatted_user_text}</div>
         </div>
         """
 
