@@ -7,13 +7,52 @@ from google import genai
 from google.genai import types
 
 # ==================================================
-# 🎨 CẤU HÌNH TRANG & CUSTOM CSS
+# 🎨 CẤU HÌNH TRANG & TÍCH HỢP KATEX CHUYÊN NGHIỆP
 # ==================================================
 st.set_page_config(
     page_title="Gia sư Hóa học THCS - THCS Phan Chu Trinh", 
     page_icon="🧪",
     layout="wide"
 )
+
+# Tải thư viện KaTeX để hiển thị LaTeX/MathType nét như SGK
+st.components.v1.html("""
+<script>
+    const parentDoc = window.parent.document;
+    if (!parentDoc.getElementById('katex-css')) {
+        const link = parentDoc.createElement('link');
+        link.id = 'katex-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css';
+        parentDoc.head.appendChild(link);
+    }
+    if (!parentDoc.getElementById('katex-js')) {
+        const script = parentDoc.createElement('script');
+        script.id = 'katex-js';
+        script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js';
+        parentDoc.head.appendChild(script);
+    }
+    if (!parentDoc.getElementById('auto-render-js')) {
+        const script2 = parentDoc.createElement('script');
+        script2.id = 'auto-render-js';
+        script2.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js';
+        script2.onload = () => {
+            setInterval(() => {
+                if (window.parent.renderMathInElement) {
+                    window.parent.renderMathInElement(window.parent.document.body, {
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '$', right: '$', display: false}
+                        ],
+                        throwOnError: false
+                    });
+                }
+            }, 800);
+        };
+        parentDoc.head.appendChild(script2);
+    }
+</script>
+""", height=0)
 
 st.markdown("""
 <style>
@@ -37,7 +76,7 @@ st.markdown("""
     }
 
     /* -------------------------------------------------- */
-    /* 💬 GIAO DIỆN BONG BÓNG CHAT ZALO/MESSENGER */
+    /* 💬 GIAO DIỆN BONG BÓNG CHAT CHUYÊN NGHIỆP */
     /* -------------------------------------------------- */
     
     .chat-container {
@@ -47,7 +86,6 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* BÊN TRÁI: THẦY GIÁO TRẢ LỜI */
     .chat-row-left {
         display: flex;
         flex-direction: row;
@@ -87,7 +125,6 @@ st.markdown("""
         margin-bottom: 4px;
     }
 
-    /* BÊN PHẢI: HỌC SINH NHẮN */
     .chat-row-right {
         display: flex;
         flex-direction: row-reverse;
@@ -118,6 +155,11 @@ st.markdown("""
         flex-shrink: 0;
     }
 
+    /* Đảm bảo KaTeX hiển thị đẹp trong bong bóng chat */
+    .katex {
+        font-size: 1.05em !important;
+    }
+
     [data-testid="stChatInput"] {
         border-radius: 30px !important;
         border: 2px solid #38bdf8 !important;
@@ -139,7 +181,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==================================================
-# 📂 ĐỌC AVATAR BASE64 VÀ XỬ LÝ CHUYỂN ĐỔI CHUỖI CÔNG THỨC
+# 📂 ĐỌC AVATAR BASE64 VÀ BIẾN ĐỔI CHUỖI LATEX SẮC NÉT
 # ==================================================
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(CURRENT_DIR, "chat_history.json")
@@ -164,32 +206,32 @@ DEFAULT_STUDENT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=Studen
 AVATAR_TEACHER_SRC = TEACHER_B64 if TEACHER_B64 else DEFAULT_TEACHER_AVATAR
 AVATAR_STUDENT_SRC = STUDENT_B64 if STUDENT_B64 else DEFAULT_STUDENT_AVATAR
 
-# 🧪 HÀM CHUYỂN ĐỔI LATEX/CÔNG THỨC SANG HTML HIỂN THỊ CHUẨN ĐẸP
+# 🧪 HÀM CHUYỂN ĐỔI CHUỖI SANG MATHTYPE / LATEX CHUẨN ĐẸP
 def process_markdown_to_html(text):
     if not text:
         return ""
     
-    # 1. Chuyển đổi mã LaTeX phân số \frac{a}{b} -> a / b
-    text = re.sub(r'\\frac\{([^}]+)\}\{([^}]+)\}', r'<b>\1</b> / <b>\2</b>', text)
+    # 1. Chuyển các phương trình dạng văn bản thô như --t°--> hoặc ----> thành mũi tên LaTeX đẹp
+    text = re.sub(r'--+t[°o]--+>', r'\\xrightarrow{t^o}', text)
+    text = re.sub(r'--+>', r'\\rightarrow', text)
     
-    # 2. Chuyển đổi ký hiệu chỉ số dưới dạng _ {X} hoặc _X -> <sub>X</sub>
-    text = re.sub(r'\_\{([^}]+)\}', r'<sub>\1</sub>', text)
-    text = re.sub(r'\_([a-zA-Z0-9]+)', r'<sub>\1</sub>', text)
-    
-    # 3. Chuyển đổi chỉ số trên t^o -> t<sup>o</sup>
-    text = re.sub(r't\^o', r't<sup>o</sup>', text)
-    text = re.sub(r'\\xrightarrow\{([^}]+)\}', r' ──\1──► ', text)
-    text = re.sub(r'\\text\{([^}]+)\}', r'\1', text)
-    
-    # 4. Loại bỏ các ký tự $ thừa của LaTeX
-    text = text.replace("$", "")
-    
-    # 5. Định dạng tiêu đề **Mục lớn** -> <h3>
+    # 2. Tự động bọc công thức Hóa học chưa có $...$ bằng mã LaTeX
+    # Xử lý chỉ số chân công thức hóa học (VD: FeCl3 -> FeCl_3, CuCl2 -> CuCl_2)
+    def fix_chem_formula(match):
+        formula = match.group(0)
+        # Biến các số đi sau chữ cái thành chỉ số dưới (VD: Cl2 -> Cl_2)
+        formatted = re.sub(r'([A-Za-z\)])(\d+)', r'\1_{\2}', formula)
+        return f"${formatted}$"
+
+    # Tự động thay thế các cụm Hóa học
+    text = re.sub(r'\b[A-Z][a-z]?\d*(?:[A-Z][a-z]?\d*)+\b', fix_chem_formula, text)
+
+    # 3. Định dạng tiêu đề **Mục lớn** -> <h3>
     text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\:\*\*', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\*\*', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
     
-    # 6. Chuyển đổi danh sách * thành <li>
+    # 4. Chuyển danh sách * thành <li>
     lines = text.split('\n')
     formatted_lines = []
     in_list = False
@@ -283,10 +325,9 @@ Bạn là Gia sư Hóa học THCS dành cho học sinh Trường THCS Phan Chu T
 - Chỉ giải đáp kiến thức Hóa học THCS (Lớp 8, 9).
 - Tên nguyên tố/chất áp dụng danh pháp IUPAC (vd: Oxygen, Hydrogen, Iron, Sulfur...).
 - Giảng giải thân thiện, dễ hiểu, đóng vai Thầy giáo xưng "Thầy" gọi "em".
-- QUY TẮC HIỂN THỊ CÔNG THỨC:
-  1. KHÔNG sử dụng ký hiệu LaTeX rối rắm như \\frac hay \\text.
-  2. Hãy viết công thức và tính toán ngắn gọn bằng ký hiệu toán học thông thường (Ví dụ: n_Fe = m / M = 5.6 / 56 = 0.1 mol).
-  3. Phương trình hóa học viết dạng rõ ràng: Fe + S --t°--> FeS hoặc Fe + S -> FeS.
+- BẮT BỘC TRÌNH BÀY CÔNG THỨC TOÁN & HÓA BẰNG MÃ LATEX:
+  1. Mọi công thức hóa học, phương trình phản ứng phải kẹp trong dấu $ $ (Ví dụ: $2Fe + 3Cl_2 \\xrightarrow{t^o} 2FeCl_3$, $Cu + S \\xrightarrow{t^o} CuS$).
+  2. Mọi công thức tính toán, phân số phải dùng mã LaTeX chuẩn (Ví dụ: $n_{Fe} = \\frac{m_{Fe}}{M_{Fe}} = \\frac{5,6}{56} = 0,1\\text{ mol}$).
 """
 
 ERROR_MESSAGE_TAG = "[MISSING_DOC_ERROR]"
@@ -394,7 +435,7 @@ if not banner_loaded:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 📍 2. KHUNG HỘI THOẠI CHAT (XUẤT HTML)
+# 📍 2. KHUNG HỘI THOẠI CHAT (XUẤT MATHTYPE/LATEX RENDER)
 chat_placeholder = st.container()
 
 def render_chat_html(role, content):
