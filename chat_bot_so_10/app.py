@@ -341,11 +341,42 @@ for msg in st.session_state.messages:
 # ==================================================
 st.markdown("<br>", unsafe_allow_html=True)
 
+# GẮN CSS ĐỘC QUYỀN CHO NÚT "PRIMARY" ĐỂ NÓ NỔI BẬT LÊN
+st.markdown("""
+<style>
+    /* Mục tiêu: Nút có type="primary" */
+    button[kind="primary"] {
+        background: linear-gradient(135deg, #ff007f 0%, #ff5e00 100%) !important; /* Dải màu tươi sáng cam-hồng */
+        border: none !important;
+        border-radius: 40px !important; /* Bo góc tròn triêng */
+        box-shadow: 0 5px 15px rgba(255, 94, 0, 0.4) !important; /* Đổ bóng phát sáng */
+        padding: 10px 20px !important;
+        transition: all 0.3s ease-in-out !important;
+    }
+    button[kind="primary"]:hover {
+        transform: scale(1.02) !important; /* Nảy lên nhẹ khi chạm vào */
+        box-shadow: 0 8px 25px rgba(255, 94, 0, 0.6) !important; /* Bóng đậm hơn */
+    }
+    /* Canh chỉnh chữ bên trong nút */
+    button[kind="primary"] p {
+        color: #ffffff !important; 
+        font-size: 1.15rem !important; /* Font lớn hơn */
+        font-weight: 800 !important; /* Chữ siêu đậm */
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.3) !important; /* Chữ nổi bật, dễ đọc */
+        margin: 0 !important;
+        text-transform: uppercase !important; /* Tự động viết hoa */
+        letter-spacing: 0.5px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Chỉ hiển thị nút "Xóa bảng" nếu học sinh đã bắt đầu chat (nhiều hơn 1 tin nhắn mặc định)
 if len(st.session_state.messages) > 1:
-    col1, col2, col3 = st.columns([1, 4, 1])
+    # Mở rộng kích thước nút để câu dài không bị xuống dòng xấu
+    col1, col2, col3 = st.columns([0.2, 9.6, 0.2])
     with col2:
-        if st.button("✨ XOÁ LỊCH SỬ CHAT THƯỜNG XUYÊN ĐỂ CHẠY MƯỢT MÀ NHÉ CÁC EM, BẤM VÀO ĐÂY ĐỂ XOÁ NÈ ✨", use_container_width=True):
+        # CHÚ Ý THUỘC TÍNH type="primary" ĐƯỢC THÊM VÀO ĐÂY
+        if st.button("✨ XOÁ LỊCH SỬ CHAT THƯỜNG XUYÊN ĐỂ CHẠY MƯỢT MÀ NHÉ CÁC EM, BẤM VÀO ĐÂY ĐỂ XOÁ NÈ ✨", type="primary", use_container_width=True):
             st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
             save_data(HISTORY_FILE, st.session_state.messages)
             st.rerun()
