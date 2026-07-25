@@ -7,7 +7,7 @@ from google import genai
 from google.genai import types
 
 # ==================================================
-# 🎨 CẤU HÌNH TRANG & CUSTOM CSS + KATEX RENDERER
+# 🎨 CẤU HÌNH TRANG & CUSTOM CSS
 # ==================================================
 st.set_page_config(
     page_title="Gia sư Hóa học THCS - THCS Phan Chu Trinh", 
@@ -15,18 +15,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Tích hợp thư viện KaTeX để tự động hiển thị LaTeX (Phân số, Mũi tên nhiệt độ...)
 st.markdown("""
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"
-    onload="renderMathInElement(document.body, {
-        delimiters: [
-            {left: '$$', right: '$$', display: true},
-            {left: '$', right: '$', display: false}
-        ]
-    });"></script>
-
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
     
@@ -38,7 +27,6 @@ st.markdown("""
         background-color: #f8fafc;
     }
 
-    /* Sidebar style */
     .sidebar-card {
         background: #ffffff;
         border-left: 4px solid #0284c7;
@@ -49,7 +37,7 @@ st.markdown("""
     }
 
     /* -------------------------------------------------- */
-    /* 💬 GIAO DIỆN BONG BÓNG CHAT CHUYÊN NGHIỆP */
+    /* 💬 GIAO DIỆN BONG BÓNG CHAT ZALO/MESSENGER */
     /* -------------------------------------------------- */
     
     .chat-container {
@@ -65,7 +53,7 @@ st.markdown("""
         flex-direction: row;
         align-items: flex-start;
         gap: 12px;
-        max-width: 82%;
+        max-width: 85%;
         margin-right: auto;
     }
 
@@ -84,8 +72,8 @@ st.markdown("""
         color: #0284c7;
         font-size: 17px;
         font-weight: 700;
-        margin-top: 10px;
-        margin-bottom: 6px;
+        margin-top: 12px;
+        margin-bottom: 8px;
         border-bottom: 1px solid #f1f5f9;
         padding-bottom: 4px;
     }
@@ -151,7 +139,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==================================================
-# 📂 ĐỌC AVATAR BASE64 VÀ XỬ LÝ VĂN BẢN HÓA HỌC
+# 📂 ĐỌC AVATAR BASE64 VÀ XỬ LÝ CHUYỂN ĐỔI CHUỖI CÔNG THỨC
 # ==================================================
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(CURRENT_DIR, "chat_history.json")
@@ -176,22 +164,32 @@ DEFAULT_STUDENT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=Studen
 AVATAR_TEACHER_SRC = TEACHER_B64 if TEACHER_B64 else DEFAULT_TEACHER_AVATAR
 AVATAR_STUDENT_SRC = STUDENT_B64 if STUDENT_B64 else DEFAULT_STUDENT_AVATAR
 
-# 🧪 HÀM XỬ LÝ MARKDOWN & ĐIỀU CHỈNH CHUỖI LATEX TRƯỚC KHI RENDER
+# 🧪 HÀM CHUYỂN ĐỔI LATEX/CÔNG THỨC SANG HTML HIỂN THỊ CHUẨN ĐẸP
 def process_markdown_to_html(text):
     if not text:
         return ""
     
-    # 1. Sửa lỗi mã LaTeX mũi tên phản ứng nhiệt độ đơn giản hơn
-    text = re.sub(r'\\xrightarrow\{t\^o\}', r'\\xrightarrow{t^o}', text)
+    # 1. Chuyển đổi mã LaTeX phân số \frac{a}{b} -> a / b
+    text = re.sub(r'\\frac\{([^}]+)\}\{([^}]+)\}', r'<b>\1</b> / <b>\2</b>', text)
     
-    # 2. Đổi các tiêu đề mục lớn **1. Tiêu đề** thành <h3>
+    # 2. Chuyển đổi ký hiệu chỉ số dưới dạng _ {X} hoặc _X -> <sub>X</sub>
+    text = re.sub(r'\_\{([^}]+)\}', r'<sub>\1</sub>', text)
+    text = re.sub(r'\_([a-zA-Z0-9]+)', r'<sub>\1</sub>', text)
+    
+    # 3. Chuyển đổi chỉ số trên t^o -> t<sup>o</sup>
+    text = re.sub(r't\^o', r't<sup>o</sup>', text)
+    text = re.sub(r'\\xrightarrow\{([^}]+)\}', r' ──\1──► ', text)
+    text = re.sub(r'\\text\{([^}]+)\}', r'\1', text)
+    
+    # 4. Loại bỏ các ký tự $ thừa của LaTeX
+    text = text.replace("$", "")
+    
+    # 5. Định dạng tiêu đề **Mục lớn** -> <h3>
     text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\:\*\*', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\*\*', r'<h3>\1</h3>', text)
-    
-    # 3. Chuyển chữ in đậm **text** thành <b>text</b>
     text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
     
-    # 4. Đổi gạch đầu dòng * thành thẻ <li>
+    # 6. Chuyển đổi danh sách * thành <li>
     lines = text.split('\n')
     formatted_lines = []
     in_list = False
@@ -285,9 +283,10 @@ Bạn là Gia sư Hóa học THCS dành cho học sinh Trường THCS Phan Chu T
 - Chỉ giải đáp kiến thức Hóa học THCS (Lớp 8, 9).
 - Tên nguyên tố/chất áp dụng danh pháp IUPAC (vd: Oxygen, Hydrogen, Iron, Sulfur...).
 - Giảng giải thân thiện, dễ hiểu, đóng vai Thầy giáo xưng "Thầy" gọi "em".
-- QUY TẮC N TRÌNH BÀY TOÁN/HÓA HỌC:
-  1. Sử dụng LaTeX kẹp trong dấu $ $ cho các công thức tính toán, phân số (ví dụ: $n = \\frac{m}{M} = \\frac{5.6}{56} = 0.1\\text{ mol}$).
-  2. Mũi tên phản ứng có nhiệt độ dùng mã giản lược: $\\xrightarrow{t^o}$ hoặc $\\rightarrow$.
+- QUY TẮC HIỂN THỊ CÔNG THỨC:
+  1. KHÔNG sử dụng ký hiệu LaTeX rối rắm như \\frac hay \\text.
+  2. Hãy viết công thức và tính toán ngắn gọn bằng ký hiệu toán học thông thường (Ví dụ: n_Fe = m / M = 5.6 / 56 = 0.1 mol).
+  3. Phương trình hóa học viết dạng rõ ràng: Fe + S --t°--> FeS hoặc Fe + S -> FeS.
 """
 
 ERROR_MESSAGE_TAG = "[MISSING_DOC_ERROR]"
@@ -395,7 +394,7 @@ if not banner_loaded:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 📍 2. KHUNG HỘI THOẠI CHAT (XUẤT HTML ĐÃ TÍCH HỢP KATEX)
+# 📍 2. KHUNG HỘI THOẠI CHAT (XUẤT HTML)
 chat_placeholder = st.container()
 
 def render_chat_html(role, content):
