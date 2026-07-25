@@ -1,6 +1,7 @@
 import os
 import json
 import base64
+import re
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -14,7 +15,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# KỸ THUẬT ÉP CSS NATIVE STREAMLIT THÀNH GIAO DIỆN ZALO
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
@@ -67,7 +67,6 @@ st.markdown("""
         padding: 12px 20px !important;
         max-width: 80% !important;
     }
-    /* Ép tất cả chữ bên trong bong bóng học sinh thành màu trắng */
     [data-testid="stChatMessage"]:has(.user-anchor) [data-testid="stChatMessageContent"] * {
         color: #ffffff !important;
     }
@@ -87,7 +86,6 @@ st.markdown("""
         line-height: 1.6 !important;
     }
     
-    /* Làm đẹp các tiêu đề của Thầy giáo */
     [data-testid="stChatMessage"]:has(.assistant-anchor) [data-testid="stChatMessageContent"] h3 {
         color: #0284c7 !important;
         font-size: 1.1em !important;
@@ -142,9 +140,28 @@ def get_image_base64(base_name):
 TEACHER_B64 = get_image_base64("teacher_avatar")
 STUDENT_B64 = get_image_base64("student_avatar")
 
-# Nạp URL hình ảnh mặc định nếu không có file ảnh tĩnh
 AVATAR_TEACHER_SRC = TEACHER_B64 if TEACHER_B64 else "https://api.dicebear.com/7.x/bottts/svg?seed=Teacher"
 AVATAR_STUDENT_SRC = STUDENT_B64 if STUDENT_B64 else "https://api.dicebear.com/7.x/avataaars/svg?seed=Student"
+
+# 🧪 HÀM TIỀN XỬ LÝ: CHỐNG DÍNH PHƯƠNG TRÌNH HÓA HỌC
+def process_ai_response(text):
+    if not text: 
+        return ""
+    
+    # 1. Chuẩn hóa mũi tên nhiệt độ cho chuẩn KaTeX
+    text = text.replace(r'\xrightarrow{t^\circ}', r'\xrightarrow{t^o}')
+    text = text.replace(r'\xrightarrow{t^{\circ}}', r'\xrightarrow{t^o}')
+    
+    # 2. Tìm các pt đang kẹp $...$ (có mũi tên phản ứng) -> Đổi thành khối block $$...$$
+    text = re.sub(r'(?<!\$)\$([^$]+?(?:\\rightarrow|\\longrightarrow|\\xrightarrow)[^$]+?)\$(?!\$)', r'$$\1$$', text)
+    
+    # 3. CHỐNG DÍNH CHÙM: Ép mọi cặp $$ phải nằm độc lập trên 1 dòng mới
+    text = re.sub(r'\s*\$\$\s*', r'\n$$\n', text)
+    
+    # 4. Dọn dẹp khoảng trắng thừa do cắt dòng
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    
+    return text.strip()
 
 def load_data(file_path, default_value):
     if os.path.exists(file_path):
@@ -208,11 +225,9 @@ Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn 
 1. PHẠM VI: Chỉ sử dụng kiến thức trong chương trình GDPT 2018.
 2. DANH PHÁP (IUPAC): Bắt buộc dùng tên quốc tế (Oxygen, Aluminium, Hydrogen, Iron(III) oxide...).
 
-# 📐 QUY TẮC LATEX & ĐỊNH DẠNG MARKDOWN CHUẨN MỰC
-1. Mỗi Phương trình hóa học BẮT BỘC nằm trên MỘT DÒNG RIÊNG (có khoảng trống trước và sau) và dùng cặp `$$ ... $$`.
-   - VÍ DỤ: 
-   $$2Mg + O_2 \xrightarrow{t^o} 2MgO$$
-2. Sử dụng tiêu đề bằng `###` hoặc `** **` để làm nổi bật các mục lớn. Không cần tạo thẻ HTML.
+# 📐 QUY TẮC LATEX & ĐỊNH DẠNG MARKDOWN
+1. Mỗi Phương trình hóa học BẮT BỘC dùng cặp `$$ ... $$` riêng biệt.
+2. Sử dụng tiêu đề bằng `###` hoặc `** **` để làm nổi bật các mục lớn.
 3. Ký hiệu hóa học trong câu dùng `$ ... $` (Ví dụ: $Al_2O_3$).
 """
 
@@ -275,7 +290,6 @@ with st.sidebar:
 # ==================================================
 # 🏛️ KHU VỰC HIỂN THỊ CHÍNH
 # ==================================================
-# BANNER
 banner_loaded = False
 for name in ["banner.png", "banner.PNG", "banner.jpg", "banner.jpeg", "banner.JPG"]:
     banner_path = os.path.join(CURRENT_DIR, name)
@@ -292,7 +306,7 @@ if not banner_loaded:
     """, unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 📍 HÀM HIỂN THỊ TIN NHẮN (GẮN NEO TÀNG HÌNH CHO CSS)
+# 📍 HÀM HIỂN THỊ TIN NHẮN 
 def render_zalo_chat(role, content):
     if role == "user":
         avatar_src = AVATAR_STUDENT_SRC
@@ -300,11 +314,10 @@ def render_zalo_chat(role, content):
     else:
         avatar_src = AVATAR_TEACHER_SRC
         anchor = "<span class='assistant-anchor'></span>"
-        # Xử lý nhanh mũi tên nhiệt độ cho chuẩn KaTeX
-        content = content.replace(r'\xrightarrow{t^\circ}', r'\xrightarrow{t^o}').replace(r'\xrightarrow{t^{\circ}}', r'\xrightarrow{t^o}')
+        # XỬ LÝ CÔNG THỨC TRƯỚC KHI RENDER
+        content = process_ai_response(content)
         
     with st.chat_message(role, avatar=avatar_src):
-        # Anchor giúp CSS nhận diện bong bóng bên trái/phải, Markdown render hoàn hảo LaTeX
         st.markdown(f"{anchor}\n{content}", unsafe_allow_html=True)
 
 # HIỂN THỊ LỊCH SỬ CHAT
