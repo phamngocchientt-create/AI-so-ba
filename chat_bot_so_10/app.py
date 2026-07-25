@@ -330,8 +330,24 @@ if not banner_loaded:
     """, unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
+# --------------------------------------------------
+# 🧹 CHÈN KHU VỰC TỐI ƯU VÀO ĐÂY (NGAY DƯỚI BANNER)
+# --------------------------------------------------
+with st.expander("💡 Mẹo nhỏ giúp app chạy mượt & không bị lag", expanded=True):
+    st.markdown(
+        "Sau khi giải xong một bài tập, em hãy bấm nút **'Xóa bảng'** bên dưới nhé. "
+        "Việc này sẽ giúp giải phóng bộ nhớ, giảm lag và giúp Thầy AI phản hồi siêu tốc độ!"
+    )
+    if st.button("🧹 Xóa bảng (Làm mới cuộc trò chuyện)", use_container_width=True):
+        # Reset lại về câu chào mặc định ban đầu
+        st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
+        save_data(HISTORY_FILE, st.session_state.messages)
+        st.rerun()
+# --------------------------------------------------
+
 # 📍 HÀM HIỂN THỊ TIN NHẮN 
 def render_zalo_chat(role, content):
+# ... (Phần code bên dưới giữ nguyên) ...
     if role == "user":
         avatar_src = AVATAR_STUDENT_SRC
         anchor = "<span class='user-anchor'></span>"
