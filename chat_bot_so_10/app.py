@@ -216,12 +216,21 @@ def process_markdown_to_html(text):
     if not text:
         return ""
     
-    # 1. Chuyển đổi các tiêu đề **Mục lớn**
+    # 1. Thêm khoảng trắng trước/sau dấu $ để KaTeX nhận diện (Fix lỗi dính liền như *Ví dụ:*$2Na...)
+    text = re.sub(r'([^\s$])\$', r'\1 $', text)
+    text = re.sub(r'\$([^\s$])', r'$ \1', text)
+
+    # 2. Sửa lỗi số thứ tự 1., 2., 3. bị tự động xuống dòng riêng biệt
+    text = re.sub(r'(?m)^\s*(\d+)\.\s*\n+\s*\*\*([^*]+)\*\*', r'### \1. \2', text)
+    text = re.sub(r'(?m)^\s*(\d+)\.\s*\n+\s*###', r'### \1.', text)
+
+    # 3. Chuyển đổi định dạng tiêu đề Markdown sang HTML <h3> cho bong bóng Zalo
+    text = re.sub(r'###\s*([^\n<]+)', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\:\*\*', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\*\*', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
     
-    # 2. Định dạng danh sách gạch đầu dòng
+    # 4. Định dạng danh sách gạch đầu dòng và lọc bỏ số thứ tự đứng lẻ loi
     lines = text.split('\n')
     formatted_lines = []
     in_list = False
@@ -238,14 +247,18 @@ def process_markdown_to_html(text):
             if in_list:
                 formatted_lines.append("</ul>")
                 in_list = False
-            formatted_lines.append(line)
+            # Bỏ qua dòng rác chỉ chứa mỗi con số như "1.", "2."
+            if not re.match(r'^\d+\.$', stripped):
+                formatted_lines.append(line)
             
     if in_list:
         formatted_lines.append("</ul>")
         
     result = "\n".join(formatted_lines)
-    result = result.replace("\n\n", "<br><br>").replace("\n", "<br>")
-    
+
+    # 5. Dọn dẹp khoảng trắng và xuống dòng thừa
+    result = result.replace("\n\n", "<br>").replace("\n", "<br>")
+    result = re.sub(r'(<br>\s*){2,}', '<br>', result)
     result = re.sub(r'<br>\s*<ul>', '<ul>', result)
     result = re.sub(r'</ul>\s*<br>', '</ul>', result)
     result = re.sub(r'<br>\s*<h3>', '<h3>', result)
@@ -342,6 +355,14 @@ Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn 
    Ví dụ: $2Al + 3H_2SO_4 \rightarrow Al_2(SO_4)_3 + 3H_2\uparrow$
 2. Phép tính, phân số kẹp trong dấu $ $ hoặc $$ $$:
    Ví dụ: $n_{Fe} = \frac{m}{M} = \frac{5,6}{56} = 0,1\text{ mol}$
+3. LUÔN LUÔN để một khoảng trắng (space) trước và sau dấu $ chứa công thức.
+   VD ĐÚNG: *Ví dụ:* $2Na + 2H_2O \rightarrow 2NaOH + H_2\uparrow$
+   VD SAI: *Ví dụ:*$2Na + 2H_2O...
+4. Đề mục dạng số (1, 2, 3) phải viết chung trên cùng MỘT DÒNG với tiêu đề.
+   VD ĐÚNG: 1. Mức độ hoạt động
+   VD SAI: 
+   1.
+   Mức độ hoạt động
 """
 
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
