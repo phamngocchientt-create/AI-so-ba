@@ -1352,7 +1352,6 @@ Khi đã có số mol chất cần tìm, tiếp tục tính:
 VÍ DỤ VỀ BÀI TOÁN TÍNH THEO PHƯƠNG TRÌNH HÓA HỌC
 Ví dụ 1: Hoà tan hoàn toàn 2,7 gam Al trong dung dịch HCl dư. Sau khi phản ứng xảy ra hoàn toàn
 thu được muối AlCl3 và khí H2. Tính khối lượng muối AlCl3 và thể tích khí H2 (đkc) tạo thành.
-[GIẢI CHI TIẾT]
 Giải:
 Số mol của Al là:
 
@@ -1422,7 +1421,6 @@ ADCT: VH = n H .24,79 = 0,15.24,79 =3,7185L
 
 Ví dụ 2: Cho 11,2 gam Fe tác dụng vừa đủ với 200 gam dung dịch H2SO4 9,8%. Sau khi phản ứng
 xảy ra hoàn toàn thu được dung dịch X. Tính nồng độ chất tan có trong dung dịch X
-[GIẢI CHI TIẾT]
 Số mol Fe là:
 ADCT: n Fe =
 
@@ -1493,7 +1491,7 @@ m dd X
 
 Ví dụ 3: Cho 11,2 gam Fe tác dụng với dung dịch HCl dư. Sau khi phản ứng xảy ra thu được 19,05
 gam muối FeCl2 và khí H2. Tính hiệu suất của phản ứng trên.
-[GIẢI CHI TIẾT]
+Giải
 Số mol Fe là:
 ADCT : n Fe =
 
@@ -1576,7 +1574,7 @@ m CaO(lt) .H 5,6.80
 Đối với dạng này, nâng cao hơn một chút chúng ta có dạng bài tập chất dư, chất hết.
 CHUYÊN ĐỀ TĂNG GIẢM KHỐI LƯỢNG
 
-[BÀI TẬP VÀ GIẢI CHI TIẾT]
+
 Câu 1. Cho 8,3g hỗn hợp X gồm Fe và Al vào 1 lít dung dịch CuSO4 0,2 M, sau khi phản ứng xảy ra hoàn
 toàn thu được 15,68g chất rắn Y gồm 2 kim loại. Tính thành phần phần trăm theo khối lượng của nhôm
 trong hỗn hợp X?
@@ -1698,9 +1696,8 @@ Câu 2: Nhận biết các khí sau: CH4, C2H4, CO2, SO2 bằng phương pháp h
 + nhóm1 gồm CO2 và SO2, cho lần lượt 2 khí qua dung dịch nước Br2, khí nào làm mất màu nước Br2 là SO2,không hiện tượng là CO2
 + nhóm 2 gồm CH4 và C2H4 cũng cho lần lượt đi qua dung dịch nước Br2, khí nào làm mất màu nước Br2 là C2H4, ko hiện tượng là CH4
 <don_vi_tri_thuc>
-   <id>KHTN9_HOA_GLUCOSE_LEN_MEN</id>
-   <chu_de>PHẢN ỨNG LÊN MEN GLUCOSE SẢN XUẤT ETHYLIC ALCOHOL</chu_de>
-<huong_dan_giai>
+  
+PHẢN ỨNG LÊN MEN GLUCOSE SẢN XUẤT ETHYLIC ALCOHOL
       Bài tập: Nho chín chứa khoảng 38% glucose về khối lượng. Người ta tiến hành lên men 450 kg nho để sản xuất rượu vang nho.
 a.	Viết phương trình hóa học của phản ứng lên men.
 b.	Tính khối lượng ethylic alcohol thu được trong rượu, biết hiệu suất của toàn bộ quá trình lên men là 75%.
@@ -1711,7 +1708,6 @@ b.	Tính khối lượng ethylic alcohol thu được trong rượu, biết hi�
 		+ Bước 2: tính số mol glucose
 		+ Bước 3: từ số mol glucose và tỉ lệ số mol dựa theo pthh suy ra số mol ethylic lcohol lí thuyết, tiếp theo tính số mol ethylic alcohol thực tế thu được. 
 		+ Bước 4: cuối cùng khi đã có số mol ehylic alcohol thực tế có thể dễ dàng tính khối lượng của nó.
-<bai_giai_chi_tiet>
       a. Phương trình hóa học:
       $$C_6H_{12}O_6 \xrightarrow{men rượu} 2C_2H_5OH + 2CO_2$$
       
@@ -1723,5 +1719,3 @@ b.	Tính khối lượng ethylic alcohol thu được trong rượu, biết hi�
       - Số mol $C_2H_5OH$ thực tế (hiệu suất 75%): 
 	$$n_{thực tế} = n_{lí thuyết} \times \frac{H}{100}$$ = $1,9 \times 0,75 = 1,425$ kmol.
       - Khối lượng ethylic alcohol thu được: $1,425 \times 46 = 65,55$ kg.
-</bai_giai_chi_tiet>
-</don_vi_tri_thuc>
