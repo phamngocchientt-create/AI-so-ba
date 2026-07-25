@@ -160,7 +160,7 @@ st.markdown("""
 
     /* Cấu hình kích thước công thức KaTeX trong chat */
     .katex {
-        font-size: 1.08em !important;
+        font-size: 1.1em !important;
     }
 
     /* Khung nhập liệu */
@@ -211,27 +211,28 @@ DEFAULT_STUDENT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=Studen
 AVATAR_TEACHER_SRC = TEACHER_B64 if TEACHER_B64 else DEFAULT_TEACHER_AVATAR
 AVATAR_STUDENT_SRC = STUDENT_B64 if STUDENT_B64 else DEFAULT_STUDENT_AVATAR
 
-# 🧪 HÀM ĐỊNH DẠNG VĂN BẢN VÀ CHUẨN HÓA LATEX MÀ KHÔNG LÀM VỠ HTML ZALO
+# 🧪 HÀM ĐỊNH DẠNG VĂN BẢN VÀ CHUẨN HÓA LATEX SẠCH LỖI CHO KATEX
 def process_markdown_to_html(text):
     if not text:
         return ""
     
-    # 🎯 1. XỬ LÝ CHUẨN LATEX KATEX: Loại bỏ hoàn toàn khoảng trắng dính sau $ mở hoặc trước $ đóng
-    # Chuyển '$ Fe $' thành '$Fe$', '$ CuSO_4 $' thành '$CuSO_4$'
-    text = re.sub(r'\$\s+([^$]+?)\s+\$', r'$\1$', text)
-    text = re.sub(r'\$\s+([^$]+?)\$', r'$\1$', text)
-    text = re.sub(r'\$([^$]+?)\s+\$', r'$\1$', text)
-    
-    # 🎯 2. Tách các đề mục La Mã (I., II.) hoặc tiêu đề dính liền câu trước xuống dòng riêng
-    text = re.sub(r'([^\n])\s*([I|V|X]+\.\s+[A-ZÂÊÔĐ])', r'\1\n\n\2', text)
+    # 🎯 1. SỬA LỖI MŨI TÊN NHIỆT ĐỘ CỦA LATEX
+    text = text.replace(r'\xrightarrow{t^\circ}', r'\xrightarrow{t^o}').replace(r'\xrightarrow{t^{\circ}}', r'\xrightarrow{t^o}')
 
-    # 🎯 3. Định dạng tiêu đề thành <h3> chuẩn Zalo
+    # 🎯 2. TÁCH DẤU $ BỊ DÍNH LIỀN VÀO CHỮ VĂN BẢN (Ví dụ: "là:$2Al..." -> "là: $2Al...")
+    text = re.sub(r'([^\s$])\$', r'\1 $', text)
+    text = re.sub(r'\$([^\s$])', r'$ \1', text)
+
+    # 🎯 3. TỰ ĐỘNG TÁCH PHƯƠNG TRÌNH HÓA HỌC DẠNG $... -> ...$ THÀNH DÒNG RIÊNG CHO ĐẸP
+    text = re.sub(r'([^\n])\s*(\$[^$]+?\s*\\rightarrow\s*[^$]+?\$)', r'\1<br><br>\2<br>', text)
+
+    # 🎯 4. ĐỊNH DẠNG TIÊU ĐỀ & IN ĐẬM
     text = re.sub(r'(?m)^###\s*(.+)$', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\:\*\*', r'<h3>\1</h3>', text)
     text = re.sub(r'(?m)^\*\*([I|V|X\d]+\..+)\*\*$', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
 
-    # 🎯 4. Định dạng danh sách gạch đầu dòng
+    # 🎯 5. ĐỊNH DẠNG DANH SÁCH GẠCH ĐẦU DÒNG
     lines = text.split('\n')
     formatted_lines = []
     in_list = False
@@ -258,13 +259,13 @@ def process_markdown_to_html(text):
         
     result = "\n".join(formatted_lines)
 
-    # 🎯 5. Dọn dẹp khoảng trắng và thay thế xuống dòng
+    # 🎯 6. THAY THẾ XUỐNG DÒNG VÀ DỌN THẺ THỪA
     result = result.replace("\n\n", "<br><br>").replace("\n", "<br>")
     result = re.sub(r'(<br>\s*){2,}', '<br>', result)
     result = re.sub(r'<br>\s*<ul>', '<ul>', result)
     result = re.sub(r'</ul>\s*<br>', '</ul>', result)
     result = re.sub(r'<br>\s*<h3>', '<h3>', result)
-    result = re.sub(r'</h3>\s*<br>', '3>', result)
+    result = re.sub(r'</h3>\s*<br>', '</h3>', result)
     
     return result
 
@@ -339,11 +340,11 @@ Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn 
 2. CÂU HỎI BÀI TẬP: Tuyệt đối không giải ngay trong lần đầu. Đưa ra 3 lựa chọn A (Từng bước), B (Bản đồ các bước), C (Lời giải chi tiết).
 
 # 📐 QUY TẮC BẮT BỘC TRÌNH BÀY LATEX & CÔNG THỨC
-1. Mọi công thức hóa học, phương trình BẮT BỘC kẹp dính liền trong cặp dấu `$`:
-   - ĐÚNG: $Fe$, $CuSO_4$, $Fe + CuSO_4 \rightarrow FeSO_4 + Cu$
-   - SAI (CẤM NÓI): $ Fe $, $ CuSO_4 $ (Tuyệt đối KHÔNG có khoảng trắng sau $ mở và trước $ đóng).
-2. Chữ tiếng Việt mô tả phương trình tổng quát viết dạng văn bản thường ngoài dấu `$`, không nhét chữ tiếng Việt vào trong LaTeX.
-   - ĐÚNG: Kim loại mạnh + Muối của kim loại yếu $\rightarrow$ Muối của kim loại mạnh + Kim loại yếu
+1. Các tên chất đơn giản như Aluminium, Chlorine, Al, Cl2 trong câu văn cứ viết bình thường, KHÔNG CẦN kẹp dấu `$`.
+2. Chỉ kẹp dấu `$` đối với **Phương trình phản ứng** hoặc **Công thức tính toán phức tạp**.
+3. LUÔN LUÔN giữ một khoảng trắng trước và sau dấu `$`.
+   - ĐÚNG: Phương trình hóa học là: $2Al + 3Cl_2 \xrightarrow{t^o} 2AlCl_3$
+   - SAI: Phương trình hóa học là:$2Al + 3Cl_2...
 """
 
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
