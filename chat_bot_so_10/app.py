@@ -7,52 +7,13 @@ from google import genai
 from google.genai import types
 
 # ==================================================
-# 🎨 CẤU HÌNH TRANG & TÍCH HỢP KATEX CHUYÊN NGHIỆP
+# 🎨 CẤU HÌNH TRANG & STYLES (ZALO CHUẨN + MATHTYPE NATIVE)
 # ==================================================
 st.set_page_config(
     page_title="Gia sư Hóa học THCS - THCS Phan Chu Trinh", 
     page_icon="🧪",
     layout="wide"
 )
-
-# Tải thư viện KaTeX để hiển thị LaTeX/MathType nét như SGK
-st.components.v1.html("""
-<script>
-    const parentDoc = window.parent.document;
-    if (!parentDoc.getElementById('katex-css')) {
-        const link = parentDoc.createElement('link');
-        link.id = 'katex-css';
-        link.rel = 'stylesheet';
-        link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css';
-        parentDoc.head.appendChild(link);
-    }
-    if (!parentDoc.getElementById('katex-js')) {
-        const script = parentDoc.createElement('script');
-        script.id = 'katex-js';
-        script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js';
-        parentDoc.head.appendChild(script);
-    }
-    if (!parentDoc.getElementById('auto-render-js')) {
-        const script2 = parentDoc.createElement('script');
-        script2.id = 'auto-render-js';
-        script2.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js';
-        script2.onload = () => {
-            setInterval(() => {
-                if (window.parent.renderMathInElement) {
-                    window.parent.renderMathInElement(window.parent.document.body, {
-                        delimiters: [
-                            {left: '$$', right: '$$', display: true},
-                            {left: '$', right: '$', display: false}
-                        ],
-                        throwOnError: false
-                    });
-                }
-            }, 800);
-        };
-        parentDoc.head.appendChild(script2);
-    }
-</script>
-""", height=0)
 
 st.markdown("""
 <style>
@@ -63,7 +24,7 @@ st.markdown("""
     }
     
     .stApp {
-        background-color: #f8fafc;
+        background-color: #f1f5f9;
     }
 
     .sidebar-card {
@@ -75,91 +36,54 @@ st.markdown("""
         margin-bottom: 1rem;
     }
 
-    /* -------------------------------------------------- */
-    /* 💬 GIAO DIỆN BONG BÓNG CHAT CHUYÊN NGHIỆP */
-    /* -------------------------------------------------- */
+    /* 💬 ĐỊNH DẠNG AVATAR VÀ BONG BÓNG CHAT STREAMLIT NATIVE */
     
-    .chat-container {
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-        margin-bottom: 20px;
+    /* Bo tròn Avatar */
+    [data-testid="stChatMessage"] img, 
+    [data-testid="stChatMessage"] [data-testid="stChatMessageAvatar"] {
+        border-radius: 50% !important;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12) !important;
+        border: 2px solid #ffffff !important;
+        object-fit: cover !important;
     }
 
-    .chat-row-left {
-        display: flex;
-        flex-direction: row;
-        align-items: flex-start;
-        gap: 12px;
-        max-width: 85%;
-        margin-right: auto;
+    /* 🎒 CHAT HỌC SINH (BÊN PHẢI - NỀN XANH ZALO) */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
+        flex-direction: row-reverse !important;
+        background-color: #0284c7 !important;
+        color: #ffffff !important;
+        border-radius: 20px 20px 4px 20px !important;
+        padding: 12px 18px !important;
+        margin-left: auto !important;
+        margin-bottom: 14px !important;
+        max-width: 80% !important;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2) !important;
     }
 
-    .chat-bubble-left {
-        background-color: #ffffff;
-        color: #0f172a;
-        padding: 16px 20px;
-        border-radius: 4px 20px 20px 20px;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
-        border: 1px solid #e2e8f0;
-        font-size: 15px;
-        line-height: 1.6;
-    }
-
-    .chat-bubble-left h3 {
-        color: #0284c7;
-        font-size: 17px;
-        font-weight: 700;
-        margin-top: 12px;
-        margin-bottom: 8px;
-        border-bottom: 1px solid #f1f5f9;
-        padding-bottom: 4px;
-    }
-
-    .chat-bubble-left ul {
-        margin: 6px 0;
-        padding-left: 20px;
-    }
-
-    .chat-bubble-left li {
-        margin-bottom: 4px;
-    }
-
-    .chat-row-right {
-        display: flex;
-        flex-direction: row-reverse;
-        align-items: flex-start;
-        gap: 12px;
-        max-width: 80%;
-        margin-left: auto;
-    }
-
-    .chat-bubble-right {
-        background-color: #0284c7;
-        color: #ffffff;
-        padding: 14px 20px;
-        border-radius: 20px 4px 20px 20px;
-        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.22);
-        font-size: 15px;
-        line-height: 1.5;
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) p {
+        color: #ffffff !important;
         font-weight: 500;
     }
 
-    .avatar-img {
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        object-fit: cover;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.12);
-        border: 2px solid #ffffff;
-        flex-shrink: 0;
+    /* 👨‍🏫 CHAT THẦY GIÁO (BÊN TRÁI - NỀN TRẮNG TINH TẾ) */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-left: 5px solid #0284c7 !important;
+        border-radius: 20px 20px 20px 4px !important;
+        padding: 16px 20px !important;
+        margin-right: auto !important;
+        margin-bottom: 14px !important;
+        max-width: 85% !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
     }
 
-    /* Đảm bảo KaTeX hiển thị đẹp trong bong bóng chat */
-    .katex {
-        font-size: 1.05em !important;
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) p {
+        color: #0f172a !important;
+        line-height: 1.6 !important;
     }
 
+    /* ⌨️ KHUNG NHẬP LIỆU */
     [data-testid="stChatInput"] {
         border-radius: 30px !important;
         border: 2px solid #38bdf8 !important;
@@ -181,87 +105,22 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==================================================
-# 📂 ĐỌC AVATAR BASE64 VÀ BIẾN ĐỔI CHUỖI LATEX SẮC NÉT
+# 📂 NẠP CẤU HÌNH VÀ TÌM AVATAR
 # ==================================================
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(CURRENT_DIR, "chat_history.json")
 STORAGE_FILE = os.path.join(CURRENT_DIR, "missing_questions.json")
+PASSWORD_KEY = "CLEAR_PASSWORD"
 
-def get_image_base64(base_name):
+def get_avatar_path(base_name, default_emoji):
     for ext in [".PNG", ".png", ".jpg", ".jpeg", ".JPG", ".JPEG"]:
         path = os.path.join(CURRENT_DIR, f"{base_name}{ext}")
         if os.path.exists(path):
-            with open(path, "rb") as image_file:
-                encoded = base64.b64encode(image_file.read()).decode()
-                ext_type = "png" if "png" in ext.lower() else "jpeg"
-                return f"data:image/{ext_type};base64,{encoded}"
-    return None
+            return path
+    return default_emoji
 
-TEACHER_B64 = get_image_base64("teacher_avatar")
-STUDENT_B64 = get_image_base64("student_avatar")
-
-DEFAULT_TEACHER_AVATAR = "https://api.dicebear.com/7.x/bottts/svg?seed=Teacher"
-DEFAULT_STUDENT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=Student"
-
-AVATAR_TEACHER_SRC = TEACHER_B64 if TEACHER_B64 else DEFAULT_TEACHER_AVATAR
-AVATAR_STUDENT_SRC = STUDENT_B64 if STUDENT_B64 else DEFAULT_STUDENT_AVATAR
-
-# 🧪 HÀM CHUYỂN ĐỔI CHUỖI SANG MATHTYPE / LATEX CHUẨN ĐẸP
-def process_markdown_to_html(text):
-    if not text:
-        return ""
-    
-    # 1. Chuyển các phương trình dạng văn bản thô như --t°--> hoặc ----> thành mũi tên LaTeX đẹp
-    text = re.sub(r'--+t[°o]--+>', r'\\xrightarrow{t^o}', text)
-    text = re.sub(r'--+>', r'\\rightarrow', text)
-    
-    # 2. Tự động bọc công thức Hóa học chưa có $...$ bằng mã LaTeX
-    # Xử lý chỉ số chân công thức hóa học (VD: FeCl3 -> FeCl_3, CuCl2 -> CuCl_2)
-    def fix_chem_formula(match):
-        formula = match.group(0)
-        # Biến các số đi sau chữ cái thành chỉ số dưới (VD: Cl2 -> Cl_2)
-        formatted = re.sub(r'([A-Za-z\)])(\d+)', r'\1_{\2}', formula)
-        return f"${formatted}$"
-
-    # Tự động thay thế các cụm Hóa học
-    text = re.sub(r'\b[A-Z][a-z]?\d*(?:[A-Z][a-z]?\d*)+\b', fix_chem_formula, text)
-
-    # 3. Định dạng tiêu đề **Mục lớn** -> <h3>
-    text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\:\*\*', r'<h3>\1</h3>', text)
-    text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\*\*', r'<h3>\1</h3>', text)
-    text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
-    
-    # 4. Chuyển danh sách * thành <li>
-    lines = text.split('\n')
-    formatted_lines = []
-    in_list = False
-    
-    for line in lines:
-        stripped = line.strip()
-        if stripped.startswith('* ') or stripped.startswith('- '):
-            if not in_list:
-                formatted_lines.append("<ul>")
-                in_list = True
-            item_text = stripped[2:].strip()
-            formatted_lines.append(f"<li>{item_text}</li>")
-        else:
-            if in_list:
-                formatted_lines.append("</ul>")
-                in_list = False
-            formatted_lines.append(line)
-            
-    if in_list:
-        formatted_lines.append("</ul>")
-        
-    result = "\n".join(formatted_lines)
-    result = result.replace("\n\n", "<br><br>").replace("\n", "<br>")
-    
-    result = re.sub(r'<br>\s*<ul>', '<ul>', result)
-    result = re.sub(r'</ul>\s*<br>', '</ul>', result)
-    result = re.sub(r'<br>\s*<h3>', '<h3>', result)
-    result = re.sub(r'</h3>\s*<br>', '</h3>', result)
-    
-    return result
+AVATAR_TEACHER = get_avatar_path("teacher_avatar", "👨‍🔬")
+AVATAR_STUDENT = get_avatar_path("student_avatar", "🙋‍♂️")
 
 def load_data(file_path, default_value):
     if os.path.exists(file_path):
@@ -279,16 +138,16 @@ def save_data(file_path, data):
     except Exception:
         pass
 
-INITIAL_MESSAGE = {"role": "assistant", "content": "Xin chào em! Thầy là Gia sư Hóa học THCS. Em đang gặp khó khăn ở bài tập hay lý thuyết Hóa học nào, cứ chia sẻ với Thầy nhé!"}
+HARDCODED_GREETING = "Xin chào em! Thầy là Gia sư Hóa học THCS trường THCS Phan Chu Trinh. Em đang gặp khó khăn ở bài tập hay lý thuyết Hóa học nào, cứ chia sẻ với Thầy nhé!"
 
 if "messages" not in st.session_state:
-    st.session_state.messages = load_data(HISTORY_FILE, [INITIAL_MESSAGE])
+    st.session_state.messages = load_data(HISTORY_FILE, [{"role": "assistant", "content": HARDCODED_GREETING}])
 
 if "missing_questions" not in st.session_state:
     st.session_state.missing_questions = load_data(STORAGE_FILE, [])
 
 # ==================================================
-# 📚 ĐỌC FILE TÀI LIỆU RAG DỰ PHÒNG
+# 📚 ĐỌC TÀI LIỆU DỰ PHÒNG (RAG + FALLBACK)
 # ==================================================
 DOC_FILES = ["tai_lieu_hoa.txt", "giao_an_hoa.txt", "tai_lieu_hoa.pdf"]
 knowledge_base_text = ""
@@ -307,9 +166,9 @@ for doc_name in DOC_FILES:
             pass
 
 # ==================================================
-# 🔑 KHỞI TẠO GEMINI CLIENT & TẠO PROMPT ĐỘNG
+# 🔑 SYSTEM INSTRUCTION CHUẨN GDPT 2018 & LATEX
 # ==================================================
-api_key = os.environ.get("GEMINI_API_KEY")
+api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 client = None
 
 if api_key:
@@ -317,21 +176,32 @@ if api_key:
         client = genai.Client(api_key=api_key)
     except Exception as e:
         st.error(f"Lỗi kết nối Gemini API: {e}")
-else:
-    st.warning("Chưa cấu hình GEMINI_API_KEY trong Secrets.")
 
-BASE_INSTRUCTION = """
-Bạn là Gia sư Hóa học THCS dành cho học sinh Trường THCS Phan Chu Trinh (Krông Búk).
-- Chỉ giải đáp kiến thức Hóa học THCS (Lớp 8, 9).
-- Tên nguyên tố/chất áp dụng danh pháp IUPAC (vd: Oxygen, Hydrogen, Iron, Sulfur...).
-- Giảng giải thân thiện, dễ hiểu, đóng vai Thầy giáo xưng "Thầy" gọi "em".
-- BẮT BỘC TRÌNH BÀY CÔNG THỨC TOÁN & HÓA BẰNG MÃ LATEX:
-  1. Mọi công thức hóa học, phương trình phản ứng phải kẹp trong dấu $ $ (Ví dụ: $2Fe + 3Cl_2 \\xrightarrow{t^o} 2FeCl_3$, $Cu + S \\xrightarrow{t^o} CuS$).
-  2. Mọi công thức tính toán, phân số phải dùng mã LaTeX chuẩn (Ví dụ: $n_{Fe} = \\frac{m_{Fe}}{M_{Fe}} = \\frac{5,6}{56} = 0,1\\text{ mol}$).
+BASE_INSTRUCTION = r"""
+# 🎭 VAI TRÒ & DANH TÍNH
+Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn Hóa học 8-9) tại trường THCS Phan Chu Trinh (Krông Búk).
+- Phong cách: Một thầy giáo tâm huyết, xưng "Thầy", gọi "Em".
+- Ngôn ngữ: Gần gũi, khích lệ nhưng khoa học, đúng chuẩn sư phạm.
+
+# 📖 CHUẨN CHUYÊN MÔN GDPT 2018 (BẮT BUỘC)
+1. PHẠM VI: Chỉ sử dụng kiến thức trong chương trình GDPT 2018 cấp THCS.
+2. DANH PHÁP (IUPAC): Sử dụng 100% tên quốc tế (Oxygen, Aluminium, Hydrogen, Iron(III) oxide, Sulfate...). TUYỆT ĐỐI KHÔNG dùng tên cũ (Sắt, Nhôm, Đồng).
+3. ĐIỀU KIỆN CHUẨN (ĐKC): Đây là chuẩn mặc định. Thể tích mol chất khí là 24,79 L/mol (tại 25°C, 1 bar).
+
+# 📐 QUY TẮC HIỂN THỊ CÔNG THỨC LATEX & MATHTYPE (CỰC KỲ QUAN TRỌNG)
+1. PHƯƠNG TRÌNH HÓA HỌC (PTHH):
+   - Mọi phương trình hóa học BẮT BỘC kẹp trong dấu $$...$$ và nằm riêng trên một dòng độc lập.
+   - Ví dụ: 
+   $$2Al + 3H_2SO_4 \rightarrow Al_2(SO_4)_3 + 3H_2\uparrow$$
+   $$2Ag + 2H_2SO_4 \xrightarrow{t^o} Ag_2SO_4 + SO_2\uparrow + 2H_2O$$
+2. CÔNG THỨC TOÁN HỌC & TÍNH TOÁN:
+   - Các công thức tính toán ngắn, phân số kẹp trong dấu $...$ (cùng dòng) hoặc $$...$$ (riêng dòng).
+   - Ví dụ: $n_{Fe} = \frac{m}{M} = \frac{5,6}{56} = 0,1\text{ mol}$.
+   - Dùng \uparrow cho khí bay lên, \downarrow cho chất kết tủa.
 """
 
-ERROR_MESSAGE_TAG = "[MISSING_DOC_ERROR]"
-ERROR_MESSAGE = "Dữ liệu chưa cập nhật câu hỏi này. Thầy đã ghi nhận và sẽ bổ sung sau nhé!"
+ERROR_MESSAGE_TAG = "[MISSING_DOC]"
+ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư viện tài liệu của Thầy. Thầy sẽ sớm cập nhật kiến thức này nhanh nhất có thể. {ERROR_MESSAGE_TAG} Em có thể hỏi về một chủ đề khác trong chương trình Hóa học THCS không?"
 
 if has_rag_data:
     SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}
@@ -347,7 +217,7 @@ QUY TẮC BẮT BỘC KHI CÓ TÀI LIỆU:
 """
 else:
     SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}
-- Sử dụng tri thức Hóa học THCS chuẩn để trả lời cho học sinh.
+- Sử dụng tri thức Hóa học THCS chuẩn GDPT 2018 để trả lời cho học sinh.
 - Nếu gặp câu hỏi hoàn toàn không liên quan đến Hóa học THCS, trả về chuỗi {ERROR_MESSAGE_TAG}
 """
 
@@ -357,7 +227,7 @@ if client:
             model="gemini-2.5-flash",
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION,
-                temperature=0.2 if has_rag_data else 0.4
+                temperature=0.2 if has_rag_data else 0.3
             )
         )
     except Exception as e:
@@ -383,32 +253,30 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### 💡 Hướng dẫn:")
-    st.markdown("""
-    - Nhập câu hỏi bài tập hoặc lý thuyết cần giải đáp.
-    - Dùng tên chất theo chuẩn mới (VD: *Oxygen*, *Hydrogen*, *Aluminium*...).
-    """)
-    
     st.divider()
-
-    with st.expander("📌 Câu hỏi chưa có dữ liệu", expanded=False):
-        if st.session_state.missing_questions:
-            st.write(f"Hiện có **{len(st.session_state.missing_questions)}** câu hỏi cần bổ sung:")
-            for idx, q in enumerate(st.session_state.missing_questions, 1):
-                st.markdown(f"**{idx}.** {q}")
-            
-            if st.button("🗑️ Xóa danh sách câu hỏi", key="clear_missing"):
-                st.session_state.missing_questions = []
-                save_data(STORAGE_FILE, st.session_state.missing_questions)
-                st.success("Đã xóa danh sách!")
-                st.rerun()
-        else:
-            st.info("Chưa có câu hỏi nào bị thiếu dữ liệu!")
+    st.header("📝 Câu hỏi Cần Bổ Sung")
+    
+    if st.session_state.missing_questions:
+        for i, q in enumerate(st.session_state.missing_questions, 1):
+            st.markdown(f"**{i}.** {q}")
+        
+        with st.form("clear_form"):
+            password = st.text_input("Mật khẩu để xóa", type="password")
+            if st.form_submit_button("Xóa Toàn bộ"):
+                if password == st.secrets.get(PASSWORD_KEY, "admin123"):
+                    st.session_state.missing_questions = []
+                    save_data(STORAGE_FILE, [])
+                    st.success("✅ Đã xóa!")
+                    st.rerun()
+                else: 
+                    st.error("❌ Sai mật khẩu.")
+    else:
+        st.write("Không có câu hỏi nào cần bổ sung.")
 
     st.divider()
 
     if st.button("🗑️ Xóa lịch sử trò chuyện", use_container_width=True):
-        st.session_state.messages = [INITIAL_MESSAGE]
+        st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
         save_data(HISTORY_FILE, st.session_state.messages)
         st.rerun()
 
@@ -435,36 +303,19 @@ if not banner_loaded:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 📍 2. KHUNG HỘI THOẠI CHAT (XUẤT MATHTYPE/LATEX RENDER)
+# 📍 2. KHUNG HỘI THOẠI CHAT (SỬ DỤNG STREAMLIT NATIVE ĐỂ RENDER LATEX NÉT CĂNG)
 chat_placeholder = st.container()
 
-def render_chat_html(role, content):
-    if role == "assistant":
-        html_content = process_markdown_to_html(content)
-        return f"""
-        <div class="chat-row-left">
-            <img src="{AVATAR_TEACHER_SRC}" class="avatar-img" />
-            <div class="chat-bubble-left">{html_content}</div>
-        </div>
-        """
-    else:
-        formatted_user_text = content.replace("\n", "<br>")
-        return f"""
-        <div class="chat-row-right">
-            <img src="{AVATAR_STUDENT_SRC}" class="avatar-img" />
-            <div class="chat-bubble-right">{formatted_user_text}</div>
-        </div>
-        """
-
 with chat_placeholder:
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
     for msg in st.session_state.messages:
-        st.markdown(render_chat_html(msg["role"], msg["content"]), unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+        avatar = AVATAR_TEACHER if msg["role"] == "assistant" else AVATAR_STUDENT
+        with st.chat_message(msg["role"], avatar=avatar):
+            st.markdown(msg["content"])
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 📍 3. KHU VỰC NHẬP LIỆU BÊN DƯỚI
+# 📍 3. KHU VỰC NHẬP LIỆU BÊN DƯỚI (HỖ TRỢ TẢI ẢNH ĐỀ BÀI)
+uploaded_file = st.file_uploader("📷 Chụp hoặc gửi ảnh đề bài", type=["jpg", "jpeg", "png"], key="fixed_bottom_uploader")
 prompt = st.chat_input("Em muốn hỏi Thầy bài tập hay lý thuyết Hóa học nào hôm nay...")
 
 # ==================================================
@@ -473,31 +324,42 @@ prompt = st.chat_input("Em muốn hỏi Thầy bài tập hay lý thuyết Hóa 
 if prompt:
     if not client: st.stop()
     cleaned_prompt = prompt.strip()
+    message_parts = []
     
-    st.session_state.messages.append({"role": "user", "content": cleaned_prompt})
+    user_msg_content = cleaned_prompt
+    if uploaded_file:
+        image_part = types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=uploaded_file.type)
+        message_parts.append(image_part)
+        user_msg_content = f"📝 (Kèm ảnh) {cleaned_prompt}"
+
+    st.session_state.messages.append({"role": "user", "content": user_msg_content})
     save_data(HISTORY_FILE, st.session_state.messages)
 
     with chat_placeholder:
-        st.markdown(render_chat_html("user", cleaned_prompt), unsafe_allow_html=True)
+        with st.chat_message("user", avatar=AVATAR_STUDENT):
+            if uploaded_file: st.image(uploaded_file, width=300)
+            st.markdown(cleaned_prompt)
 
-        with st.spinner("Thầy đang suy nghĩ bài làm..."):
-            try:
-                message_parts = [types.Part.from_text(text=cleaned_prompt)]
-                response = chat_session.send_message(message_parts)
-                res_text = response.text.strip()
-                
-                if ERROR_MESSAGE_TAG.upper() in res_text.upper():
-                    if cleaned_prompt not in st.session_state.missing_questions:
-                        st.session_state.missing_questions.append(cleaned_prompt)
-                        save_data(STORAGE_FILE, st.session_state.missing_questions)
-                    final_res = ERROR_MESSAGE
-                else:
-                    final_res = res_text
+        with st.chat_message("assistant", avatar=AVATAR_TEACHER):
+            with st.spinner("Thầy đang xem bài..."):
+                try:
+                    message_parts.append(types.Part.from_text(text=cleaned_prompt))
+                    response = chat_session.send_message(message_parts)
+                    res_text = response.text.strip()
+                    
+                    if ERROR_MESSAGE_TAG.upper() in res_text.upper():
+                        if cleaned_prompt not in st.session_state.missing_questions:
+                            st.session_state.missing_questions.append(cleaned_prompt)
+                            save_data(STORAGE_FILE, st.session_state.missing_questions)
+                        final_res = ERROR_MESSAGE
+                    else:
+                        final_res = res_text
 
-                st.session_state.messages.append({"role": "assistant", "content": final_res})
-                save_data(HISTORY_FILE, st.session_state.messages)
-                
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"Thầy gặp sự cố kết nối: {e}")
+                    st.markdown(final_res)
+                    st.session_state.messages.append({"role": "assistant", "content": final_res})
+                    save_data(HISTORY_FILE, st.session_state.messages)
+                    
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"Lỗi kết nối: {e}")
