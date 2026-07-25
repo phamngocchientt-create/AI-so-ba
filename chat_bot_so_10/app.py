@@ -211,30 +211,31 @@ DEFAULT_STUDENT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=Studen
 AVATAR_TEACHER_SRC = TEACHER_B64 if TEACHER_B64 else DEFAULT_TEACHER_AVATAR
 AVATAR_STUDENT_SRC = STUDENT_B64 if STUDENT_B64 else DEFAULT_STUDENT_AVATAR
 
-# 🧪 HÀM ĐỊNH DẠNG VĂN BẢN VÀ CHUẨN HÓA LATEX MÀ KHÔNG LÀM VỠ HTML ZALO
-# 🧪 HÀM XỬ LÝ CHUỖI CÔNG THỨC LATEX CHO BONG BÓNG ZALO (FIX LỖI CÁCH DẤU $)
+# 🧪 HÀM ĐỊNH DẠNG VĂN BẢN VÀ CHUẨN HÓA LATEX DÀNH CHO ZALO BUBBLE (ĐÃ SỬA LỖI HIỂN THỊ)
 def process_markdown_to_html(text):
     if not text:
         return ""
     
-    # 1. Sửa lỗi khoảng trắng thừa quanh dấu $ (Chuyển '$ 2Al ... $' thành '$2Al ... $')
+    # 🎯 BƯỚC 1: TÁCH DÒNG CÔNG THỨC LATEX KHỎI CHỮ ĐỂ KHÔNG BỊ DÍNH LỖI NHƯ TRONG ẢNH
+    text = re.sub(r'([^\n\$])(\$\$)', r'\1\n\n\2', text)
+    text = re.sub(r'(\$\$)([^\n\$])', r'\1\n\n\2', text)
+
+    # 🎯 BƯỚC 2: CHUẨN HÓA KÝ HIỆU NHIỆT ĐỘ & KHOẢNG TRẮNG LATEX
+    text = text.replace(r'\xrightarrow{to}', r'\xrightarrow{t^o}').replace(r'\xrightarrow{t^\circ}', r'\xrightarrow{t^o}')
     text = re.sub(r'\$\s+', '$', text)
     text = re.sub(r'\s+\$', '$', text)
 
-    # 2. Thay thế ký hiệu nhiệt độ t^\circ hoặc t^\circ C thành t^o chuẩn LaTeX
-    text = text.replace(r't^\circ', r't^o').replace(r't^{\circ}', r't^o')
-
-    # 3. Sửa lỗi số thứ tự 1., 2., 3. bị tự động nhảy xuống dòng riêng lơ lửng
+    # 🎯 BƯỚC 3: SỬA LỖI SỐ THỨ TỰ (1., 2.) BỊ TỰ ĐỘNG TRÔI TÁCH DÒNG
     text = re.sub(r'(?m)^\s*(\d+)\.\s*\n+\s*\*\*([^*]+)\*\*', r'### \1. \2', text)
     text = re.sub(r'(?m)^\s*(\d+)\.\s*\n+\s*###', r'### \1.', text)
 
-    # 4. Chuyển đổi định dạng tiêu đề Markdown sang HTML <h3> cho bong bóng Zalo
+    # 🎯 BƯỚC 4: CHUYỂN ĐỔI TIÊU ĐỀ MARKDOWN SANG HTML <h3>
     text = re.sub(r'###\s*([^\n<]+)', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\:\*\*', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*(?:\d+\.\s*)?([^*]+)\*\*', r'<h3>\1</h3>', text)
     text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
     
-    # 5. Định dạng danh sách gạch đầu dòng và lọc bỏ số thứ tự đứng lẻ loi
+    # 🎯 BƯỚC 5: ĐỊNH DẠNG DANH SÁCH GẠCH ĐẦU DÒNG
     lines = text.split('\n')
     formatted_lines = []
     in_list = False
@@ -259,7 +260,7 @@ def process_markdown_to_html(text):
         
     result = "\n".join(formatted_lines)
 
-    # 6. Dọn dẹp khoảng trắng và xuống dòng thừa
+    # 🎯 BƯỚC 6: DỌN DẸP KHOẢNG TRẮNG CẢI THIỆN DÒNG TRỐNG
     result = result.replace("\n\n", "<br>").replace("\n", "<br>")
     result = re.sub(r'(<br>\s*){2,}', '<br>', result)
     result = re.sub(r'<br>\s*<ul>', '<ul>', result)
@@ -354,18 +355,13 @@ Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn 
 - Nếu là câu hỏi lý thuyết ngoài phạm vi hoặc hoàn toàn không liên quan Hóa học THCS, trả về mã [MISSING_DOC].
 
 # 📐 QUY TẮC BẮT BỘC TRÌNH BÀY LATEX
-1. Mọi phương trình hóa học BẮT BỘC kẹp trong dấu $ $ hoặc $$ $$.
-   Ví dụ: $2Al + 3H_2SO_4 \rightarrow Al_2(SO_4)_3 + 3H_2\uparrow$
-2. Phép tính, phân số kẹp trong dấu $ $ hoặc $$ $$:
-   Ví dụ: $n_{Fe} = \frac{m}{M} = \frac{5,6}{56} = 0,1\text{ mol}$
-3. LUÔN LUÔN để một khoảng trắng (space) trước và sau dấu $ chứa công thức.
-   VD ĐÚNG: *Ví dụ:* $2Na + 2H_2O \rightarrow 2NaOH + H_2\uparrow$
-   VD SAI: *Ví dụ:*$2Na + 2H_2O...
-4. Đề mục dạng số (1, 2, 3) phải viết chung trên cùng MỘT DÒNG với tiêu đề.
-   VD ĐÚNG: 1. Mức độ hoạt động
-   VD SAI: 
-   1.
-   Mức độ hoạt động
+1. PHƯƠNG TRÌNH HÓA HỌC (PTHH):
+   - Phải bọc trong $$...$$ và nằm riêng trên một dòng độc lập.
+   - Ví dụ: 
+   $$2Al + 3H_2SO_4 \rightarrow Al_2(SO_4)_3 + 3H_2\uparrow$$
+   $$2Fe + 3Cl_2 \xrightarrow{t^o} 2FeCl_3$$
+2. CÔNG THỨC TOÁN HỌC:
+   - Các công thức ngắn, phân số kẹp trong dấu $...$: $n_{Fe} = \frac{m}{M} = \frac{5,6}{56} = 0,1\text{ mol}$.
 """
 
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
