@@ -345,7 +345,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 if len(st.session_state.messages) > 1:
     col1, col2, col3 = st.columns([1, 4, 1])
     with col2:
-        if st.button("✨ XOÁ LỊCH SỬ CHAT THƯỜNG XUYÊN ĐỂ CHẠY MƯỢT MÀ NHÉ CÁC EM ✨", use_container_width=True):
+        if st.button("✨ XOÁ LỊCH SỬ CHAT THƯỜNG XUYÊN ĐỂ CHẠY MƯỢT MÀ NHÉ CÁC EM, BẤM VÀO ĐÂY ĐỂ XOÁ NÈ ✨", use_container_width=True):
             st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
             save_data(HISTORY_FILE, st.session_state.messages)
             st.rerun()
