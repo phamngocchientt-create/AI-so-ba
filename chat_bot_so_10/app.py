@@ -6,10 +6,11 @@ import streamlit as st
 from google import genai
 from google.genai import types
 
+# --- ĐÃ XÓA LANGCHAIN-GOOGLE-GENAI BỊ LỖI ---
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import FAISS
+from langchain_core.embeddings import Embeddings
 
 # ==================================================
 # 🎨 CẤU HÌNH TRANG & CSS ZALO HOÀN HẢO
@@ -107,9 +108,30 @@ if api_key:
         st.error(f"Lỗi kết nối Gemini API: {e}")
 
 # ==================================================
-# 📚 ĐỌC TÀI LIỆU (CƠ CHẾ BẢO HIỂM 2 LỚP)
+# 🚀 CẦU NỐI VECTOR TRỰC TIẾP (KHẮC PHỤC LỖI LANGCHAIN)
 # ==================================================
-# 1. Thử đọc kiểu FAISS (Tối ưu chi phí)
+class CustomGeminiEmbeddings(Embeddings):
+    def __init__(self, google_api_key):
+        self.client = genai.Client(api_key=google_api_key)
+        
+    def embed_documents(self, texts):
+        # Duyệt và mã hóa từng đoạn văn an toàn tuyệt đối
+        all_embeddings = []
+        for text in texts:
+            res = self.client.models.embed_content(
+                model="text-embedding-004",
+                contents=text
+            )
+            all_embeddings.append(res.embeddings[0].values)
+        return all_embeddings
+        
+    def embed_query(self, text):
+        res = self.client.models.embed_content(
+            model="text-embedding-004",
+            contents=text
+        )
+        return res.embeddings[0].values
+
 @st.cache_resource(show_spinner="Đang hệ thống hóa tài liệu môn KHTN...")
 def init_vector_db():
     doc_path = os.path.join(CURRENT_DIR, "tai_lieu_hoa.txt")
@@ -120,7 +142,9 @@ def init_vector_db():
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
         splits = text_splitter.split_documents(documents)
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+        
+        # SỬ DỤNG CẦU NỐI VỪA TẠO THAY VÌ LANGCHAIN
+        embeddings = CustomGeminiEmbeddings(google_api_key=api_key)
         vectorstore = FAISS.from_documents(splits, embeddings)
         return vectorstore, "OK"
     except Exception as e:
@@ -128,7 +152,7 @@ def init_vector_db():
 
 db, db_error = init_vector_db()
 
-# 2. Đọc kiểu cũ để DỰ PHÒNG nếu FAISS sập
+# Đọc kiểu cũ để DỰ PHÒNG 
 knowledge_base_text = ""
 try:
     with open(os.path.join(CURRENT_DIR, "tai_lieu_hoa.txt"), "r", encoding="utf-8") as f:
@@ -179,7 +203,6 @@ with st.sidebar:
     st.caption("Trường THCS Phan Chu Trinh - Krông Búk")
     st.divider()
 
-    # HIỂN THỊ RÕ TRẠNG THÁI CHO THẦY DỄ THEO DÕI
     if has_rag_data:
         st.success("📚 **Đang dùng:** Tài liệu Vector DB (Tối ưu chi phí & Bám sát giáo án)")
     elif has_fallback_data:
@@ -296,18 +319,14 @@ if prompt:
                 message_parts.append(types.Part.from_text(text=cleaned_prompt))
                 gemini_history.append(types.Content(role="user", parts=message_parts))
 
-                # --- 🎯 CƠ CHẾ LỰA CHỌN TÀI LIỆU (BẢO HIỂM LỚP 2) ---
                 if has_rag_data:
-                    # Chạy mượt thì dùng Vector (rút gọn)
                     docs_lien_quan = db.similarity_search(cleaned_prompt, k=3)
                     nguon_kien_thuc = "\n\n".join([doc.page_content for doc in docs_lien_quan])
                     DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}\n\nTÀI LIỆU CỦA THẦY TRÍCH XUẤT:\n{nguon_kien_thuc}\n\n1. CHỈ TRẢ LỜI dựa trên tài liệu. 2. Nếu không có, trả về: {ERROR_MESSAGE_TAG}"""
                 elif has_fallback_data:
-                    # FAISS sập thì đẩy toàn bộ tài liệu lên để giữ đúng chuẩn lớp 8
                     DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}\n\nTÀI LIỆU CỦA THẦY:\n{knowledge_base_text}\n\n1. CHỈ TRẢ LỜI dựa trên tài liệu. 2. Nếu không có, trả về: {ERROR_MESSAGE_TAG}"""
                 else:
                     DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}\n- Trả lời bằng tri thức Hóa học. Nếu ngoài phạm vi, trả về: {ERROR_MESSAGE_TAG}"""
-                # -----------------------------------------------------------
 
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
