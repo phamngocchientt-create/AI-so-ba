@@ -6,6 +6,12 @@ import streamlit as st
 from google import genai
 from google.genai import types
 
+# --- THƯ VIỆN MỚI CHO VECTOR DATABASE ---
+from langchain_community.document_loaders import TextLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_community.vectorstores import FAISS
+
 # ==================================================
 # 🎨 CẤU HÌNH TRANG & CSS ZALO HOÀN HẢO
 # ==================================================
@@ -148,17 +154,10 @@ def process_ai_response(text):
     if not text: 
         return ""
     
-    # 1. Chuẩn hóa mũi tên nhiệt độ cho chuẩn KaTeX
     text = text.replace(r'\xrightarrow{t^\circ}', r'\xrightarrow{t^o}')
     text = text.replace(r'\xrightarrow{t^{\circ}}', r'\xrightarrow{t^o}')
-    
-    # 2. Tìm các pt đang kẹp $...$ (có mũi tên phản ứng) -> Đổi thành khối block $$...$$
     text = re.sub(r'(?<!\$)\$([^$]+?(?:\\rightarrow|\\longrightarrow|\\xrightarrow)[^$]+?)\$(?!\$)', r'$$\1$$', text)
-    
-    # 3. CHỐNG DÍNH CHÙM: Ép mọi cặp $$ phải nằm độc lập trên 1 dòng mới
     text = re.sub(r'\s*\$\$\s*', r'\n$$\n', text)
-    
-    # 4. Dọn dẹp khoảng trắng thừa do cắt dòng
     text = re.sub(r'\n{3,}', '\n\n', text)
     
     return text.strip()
@@ -186,32 +185,42 @@ if "messages" not in st.session_state:
 if "missing_questions" not in st.session_state:
     st.session_state.missing_questions = load_data(STORAGE_FILE, [])
 
-# ==================================================
-# 📚 ĐỌC TÀI LIỆU DỰ PHÒNG
-# ==================================================
-DOC_FILES = ["tai_lieu_hoa.txt", "giao_an_hoa.txt", "tai_lieu_hoa.pdf"]
-knowledge_base_text = ""
-has_rag_data = False
-
-for doc_name in DOC_FILES:
-    doc_path = os.path.join(CURRENT_DIR, doc_name)
-    if os.path.exists(doc_path):
-        try:
-            with open(doc_path, "r", encoding="utf-8") as f:
-                knowledge_base_text = f.read().strip()
-                if knowledge_base_text:
-                    has_rag_data = True
-                    break
-        except Exception:
-            pass
-
+# Khởi tạo API Key
 api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 client = None
 if api_key:
     try:
         client = genai.Client(api_key=api_key)
+        # Bắt buộc khai báo biến môi trường để thư viện Langchain nhận được API Key
+        os.environ["GOOGLE_API_KEY"] = api_key
     except Exception as e:
         st.error(f"Lỗi kết nối Gemini API: {e}")
+
+# ==================================================
+# 📚 TÍCH HỢP VECTOR DATABASE (FAISS) 
+# ==================================================
+@st.cache_resource(show_spinner="Đang hệ thống hóa tài liệu môn KHTN...")
+def init_vector_db():
+    doc_path = os.path.join(CURRENT_DIR, "tai_lieu_hoa.txt")
+    if not os.path.exists(doc_path):
+        return None
+    try:
+        loader = TextLoader(doc_path, encoding='utf-8')
+        documents = loader.load()
+        # Cắt nhỏ tài liệu: Mỗi đoạn 800 ký tự, cho phép gối lên nhau 100 ký tự
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
+        splits = text_splitter.split_documents(documents)
+        
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        vectorstore = FAISS.from_documents(splits, embeddings)
+        return vectorstore
+    except Exception as e:
+        print("Lỗi tạo DB:", e)
+        return None
+
+# Gọi hàm tạo DB. Nó chỉ chạy 1 lần duy nhất khi app bật lên nhờ @st.cache_resource
+db = init_vector_db()
+has_rag_data = db is not None
 
 # 🔑 SYSTEM INSTRUCTION CỦA AI (BẢN CHUẨN SƯ PHẠM - CHUYÊN HÓA)
 # ==================================================
@@ -258,11 +267,6 @@ Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn 
 ERROR_MESSAGE_TAG = "[MISSING_DOC]"
 ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư viện tài liệu của Thầy. Thầy sẽ sớm cập nhật kiến thức này. {ERROR_MESSAGE_TAG} Em có thể hỏi về một chủ đề khác không?"
 
-if has_rag_data:
-    SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}\n\nTÀI LIỆU CỦA THẦY:\n{knowledge_base_text}\n\n1. CHỈ TRẢ LỜI dựa trên tài liệu. 2. Nếu không có, trả về: {ERROR_MESSAGE_TAG}"""
-else:
-    SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}\n- Trả lời bằng tri thức Hóa học THCS chuẩn. Nếu ngoài phạm vi, trả về: {ERROR_MESSAGE_TAG}"""
-
 # ==================================================
 # 📌 THANH BÊN TRÁI (SIDEBAR)
 # ==================================================
@@ -272,9 +276,9 @@ with st.sidebar:
     st.divider()
 
     if has_rag_data:
-        st.success("📚 **Đang dùng:** Tài liệu Giáo án riêng")
+        st.success("📚 **Đang dùng:** Tài liệu Giáo án riêng (Tối ưu chi phí)")
     else:
-        st.warning("⚡ **Đang dùng:** Tri thức mở")
+        st.warning("⚡ **Đang dùng:** Tri thức mở (Chưa có Vector DB)")
 
     st.divider()
     st.header("📝 Câu hỏi Cần Bổ Sung")
@@ -326,7 +330,6 @@ def render_zalo_chat(role, content):
     else:
         avatar_src = AVATAR_TEACHER_SRC
         anchor = "<span class='assistant-anchor'></span>"
-        # XỬ LÝ CÔNG THỨC TRƯỚC KHI RENDER
         content = process_ai_response(content)
         
     with st.chat_message(role, avatar=avatar_src):
@@ -337,46 +340,40 @@ for msg in st.session_state.messages:
     render_zalo_chat(msg["role"], msg["content"])
 
 # ==================================================
-# 🧹 NÚT XÓA BẢNG NẰM DƯỚI CÙNG (NGAY TRÊN THANH GÕ CHAT)
+# 🧹 NÚT XÓA BẢNG NẰM DƯỚI CÙNG
 # ==================================================
 st.markdown("<br>", unsafe_allow_html=True)
 
-# GẮN CSS ĐỘC QUYỀN CHO NÚT "PRIMARY" ĐỂ NÓ NỔI BẬT LÊN
 st.markdown("""
 <style>
-    /* Mục tiêu: Nút có type="primary" */
     button[kind="primary"] {
-        background: linear-gradient(135deg, #ff007f 0%, #ff5e00 100%) !important; /* Dải màu tươi sáng cam-hồng */
+        background: linear-gradient(135deg, #ff007f 0%, #ff5e00 100%) !important; 
         border: none !important;
-        border-radius: 40px !important; /* Bo góc tròn triêng */
-        box-shadow: 0 5px 15px rgba(255, 94, 0, 0.4) !important; /* Đổ bóng phát sáng */
+        border-radius: 40px !important; 
+        box-shadow: 0 5px 15px rgba(255, 94, 0, 0.4) !important; 
         padding: 10px 20px !important;
         transition: all 0.3s ease-in-out !important;
     }
     button[kind="primary"]:hover {
-        transform: scale(1.02) !important; /* Nảy lên nhẹ khi chạm vào */
-        box-shadow: 0 8px 25px rgba(255, 94, 0, 0.6) !important; /* Bóng đậm hơn */
+        transform: scale(1.02) !important; 
+        box-shadow: 0 8px 25px rgba(255, 94, 0, 0.6) !important; 
     }
-    /* Canh chỉnh chữ bên trong nút */
     button[kind="primary"] p {
         color: #ffffff !important; 
-        font-size: 1.15rem !important; /* Font lớn hơn */
-        font-weight: 800 !important; /* Chữ siêu đậm */
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.3) !important; /* Chữ nổi bật, dễ đọc */
+        font-size: 1.15rem !important; 
+        font-weight: 800 !important; 
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.3) !important; 
         margin: 0 !important;
-        text-transform: uppercase !important; /* Tự động viết hoa */
+        text-transform: uppercase !important; 
         letter-spacing: 0.5px !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Chỉ hiển thị nút "Xóa bảng" nếu học sinh đã bắt đầu chat (nhiều hơn 1 tin nhắn mặc định)
 if len(st.session_state.messages) > 1:
-    # Mở rộng kích thước nút để câu dài không bị xuống dòng xấu
     col1, col2, col3 = st.columns([0.2, 9.6, 0.2])
     with col2:
-        # CHÚ Ý THUỘC TÍNH type="primary" ĐƯỢC THÊM VÀO ĐÂY
-        if st.button("✨ XOÁ LỊCH SỬ CHAT THƯỜNG XUYÊN ĐỂ CHẠY MƯỢT MÀ NHÉ CÁC EM, BẤM VÀO ĐÂY ĐỂ XOÁ NÈ ✨", type="primary", use_container_width=True):
+        if st.button("✨ XOÁ LỊCH SỬ CHAT THƯỜNG XUYÊN ĐỂ CHẠY MƯỢT MÀ NHÉ CÁC EM, BẤM VÀO ĐỂ XOÁ NÈ ✨", type="primary", use_container_width=True):
             st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
             save_data(HISTORY_FILE, st.session_state.messages)
             st.rerun()
@@ -393,33 +390,25 @@ if prompt:
     if not client: st.stop()
     cleaned_prompt = prompt.strip()
     
-    # Lấy nội dung hiển thị cho UI
     user_msg_content = cleaned_prompt
     if uploaded_file:
         user_msg_content = f"📝 (Kèm ảnh) {cleaned_prompt}"
 
-    # 1. Lưu tin nhắn của user vào session_state (lịch sử cục bộ)
     st.session_state.messages.append({"role": "user", "content": user_msg_content})
     save_data(HISTORY_FILE, st.session_state.messages)
-
     render_zalo_chat("user", cleaned_prompt)
 
     with st.chat_message("assistant", avatar=AVATAR_TEACHER_SRC):
         st.markdown("<span class='assistant-anchor'></span>", unsafe_allow_html=True)
         with st.spinner("Thầy đang xem bài..."):
             try:
-                # 🔴 CHÌA KHÓA CHỐNG MẤT TRÍ NHỚ: GÓI TOÀN BỘ LỊCH SỬ GỬI CHO AI
                 gemini_history = []
-                
-                # Duyệt qua lịch sử (trừ tin nhắn vừa nhập)
                 for msg in st.session_state.messages[:-1]:
-                    # Gemini dùng 'model' thay vì 'assistant'
                     role = "user" if msg["role"] == "user" else "model"
                     gemini_history.append(
                         types.Content(role=role, parts=[types.Part.from_text(text=msg["content"])])
                     )
                 
-                # 2. Xử lý tin nhắn mới nhất (kèm ảnh nếu có)
                 message_parts = []
                 if uploaded_file:
                     message_parts.append(types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=uploaded_file.type))
@@ -427,12 +416,23 @@ if prompt:
                 
                 gemini_history.append(types.Content(role="user", parts=message_parts))
 
-                # 3. Gửi toàn bộ lịch sử (gemini_history) vào API
+                # --- 🎯 CHỖ NÀY LÀ MAGIC: RÚT TRÍCH DỮ LIỆU TỪ VECTOR DB ---
+                if has_rag_data:
+                    # Lấy 3 đoạn văn có nội dung sát nhất với câu hỏi
+                    docs_lien_quan = db.similarity_search(cleaned_prompt, k=3)
+                    nguon_kien_thuc = "\n\n".join([doc.page_content for doc in docs_lien_quan])
+                    
+                    # Cập nhật System Instruction siêu nhẹ gọn
+                    DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}\n\nTÀI LIỆU CỦA THẦY TRÍCH XUẤT ĐỂ TRẢ LỜI CÂU HỎI HIỆN TẠI:\n{nguon_kien_thuc}\n\n1. CHỈ TRẢ LỜI dựa trên tài liệu. 2. Nếu không có, trả về: {ERROR_MESSAGE_TAG}"""
+                else:
+                    DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}\n- Trả lời bằng tri thức Hóa học chuẩn. Nếu ngoài phạm vi, trả về: {ERROR_MESSAGE_TAG}"""
+                # -----------------------------------------------------------
+
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
                     contents=gemini_history,
                     config=types.GenerateContentConfig(
-                        system_instruction=SYSTEM_INSTRUCTION,
+                        system_instruction=DYNAMIC_SYSTEM_INSTRUCTION,
                         temperature=0.2 if has_rag_data else 0.3
                     )
                 )
@@ -446,7 +446,6 @@ if prompt:
                 else:
                     final_res = res_text
 
-                # 4. Lưu câu trả lời của AI vào lịch sử
                 st.session_state.messages.append({"role": "assistant", "content": final_res})
                 save_data(HISTORY_FILE, st.session_state.messages)
                 st.rerun()
