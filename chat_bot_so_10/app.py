@@ -203,11 +203,12 @@ if api_key:
 def init_vector_db():
     doc_path = os.path.join(CURRENT_DIR, "tai_lieu_hoa.txt")
     if not os.path.exists(doc_path):
+        st.error("❌ Không tìm thấy file tai_lieu_hoa.txt trong thư mục!")
         return None
     try:
         loader = TextLoader(doc_path, encoding='utf-8')
         documents = loader.load()
-        # Cắt nhỏ tài liệu: Mỗi đoạn 800 ký tự, cho phép gối lên nhau 100 ký tự
+        # Cắt nhỏ tài liệu
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
         splits = text_splitter.split_documents(documents)
         
@@ -215,7 +216,8 @@ def init_vector_db():
         vectorstore = FAISS.from_documents(splits, embeddings)
         return vectorstore
     except Exception as e:
-        print("Lỗi tạo DB:", e)
+        # 🎯 DÒNG NÀY ĐÃ ĐƯỢC SỬA ĐỂ BÁO LỖI LÊN MÀN HÌNH CHO THẦY THẤY
+        st.error(f"🚨 Lỗi khi tạo Vector Database: {e}")
         return None
 
 # Gọi hàm tạo DB. Nó chỉ chạy 1 lần duy nhất khi app bật lên nhờ @st.cache_resource
