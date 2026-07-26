@@ -2,11 +2,11 @@ import os
 import json
 import base64
 import re
+import requests  # Thêm thư viện gọi API trực tiếp
 import streamlit as st
 from google import genai
 from google.genai import types
 
-# --- ĐÃ XÓA LANGCHAIN-GOOGLE-GENAI BỊ LỖI ---
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
@@ -108,29 +108,39 @@ if api_key:
         st.error(f"Lỗi kết nối Gemini API: {e}")
 
 # ==================================================
-# 🚀 CẦU NỐI VECTOR TRỰC TIẾP (KHẮC PHỤC LỖI LANGCHAIN)
+# 🚀 ỐNG DẪN TRỰC TIẾP (BỎ QUA LỖI CỦA THƯ VIỆN GOOGLE)
 # ==================================================
-class CustomGeminiEmbeddings(Embeddings):
-    def __init__(self, google_api_key):
-        self.client = genai.Client(api_key=google_api_key)
+class SafeGeminiEmbeddings(Embeddings):
+    def __init__(self, api_key):
+        self.api_key = api_key
+        
+    def _call_api(self, text, model_name):
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:embedContent?key={self.api_key}"
+        payload = {
+            "model": f"models/{model_name}",
+            "content": {"parts": [{"text": text}]}
+        }
+        return requests.post(url, json=payload)
         
     def embed_documents(self, texts):
-        # Duyệt và mã hóa từng đoạn văn an toàn tuyệt đối
         all_embeddings = []
         for text in texts:
-            res = self.client.models.embed_content(
-                model="text-embedding-004",
-                contents=text
-            )
-            all_embeddings.append(res.embeddings[0].values)
+            # 1. Thử gọi API mô hình 004 mới nhất
+            res = self._call_api(text, "text-embedding-004")
+            
+            # 2. Nếu Google báo lỗi (như lỗi 404 vừa rồi), lùi ngay về mô hình 001
+            if res.status_code != 200:
+                res = self._call_api(text, "embedding-001")
+                
+            # 3. Lấy kết quả an toàn
+            if res.status_code == 200:
+                all_embeddings.append(res.json()['embedding']['values'])
+            else:
+                raise Exception(f"Google API Error: {res.text}")
         return all_embeddings
         
     def embed_query(self, text):
-        res = self.client.models.embed_content(
-            model="text-embedding-004",
-            contents=text
-        )
-        return res.embeddings[0].values
+        return self.embed_documents([text])[0]
 
 @st.cache_resource(show_spinner="Đang hệ thống hóa tài liệu môn KHTN...")
 def init_vector_db():
@@ -143,8 +153,8 @@ def init_vector_db():
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
         splits = text_splitter.split_documents(documents)
         
-        # SỬ DỤNG CẦU NỐI VỪA TẠO THAY VÌ LANGCHAIN
-        embeddings = CustomGeminiEmbeddings(google_api_key=api_key)
+        # Dùng lớp kết nối an toàn vừa tạo
+        embeddings = SafeGeminiEmbeddings(api_key=api_key)
         vectorstore = FAISS.from_documents(splits, embeddings)
         return vectorstore, "OK"
     except Exception as e:
