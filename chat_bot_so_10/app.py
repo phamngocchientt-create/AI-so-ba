@@ -120,7 +120,7 @@ def init_vector_db():
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
         splits = text_splitter.split_documents(documents)
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
         vectorstore = FAISS.from_documents(splits, embeddings)
         return vectorstore, "OK"
     except Exception as e:
