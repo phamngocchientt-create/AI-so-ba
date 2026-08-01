@@ -195,20 +195,36 @@ ERROR_MESSAGE_TAG = "[MISSING_DOC]"
 ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư viện tài liệu của Thầy. Thầy sẽ sớm cập nhật kiến thức này. {ERROR_MESSAGE_TAG} Em có thể hỏi về một chủ đề khác không?"
 
 # ==================================================
-# CẤU HÌNH TAB BÊN TRÁI
+# CẤU HÌNH TAB BÊN TRÁI (SIDEBAR)
 
 with st.sidebar:
-    st.title("🧪 Lớp Hóa Học THCS")
-    st.caption("Trường THCS Phan Chu Trinh - Krông Búk")
+    # 1. Hiển thị Header/Banner của Sidebar (Có hỗ trợ ảnh custom nếu có)
+    sidebar_img_loaded = False
+    for ext in [".png", ".PNG", ".jpg", ".jpeg", ".JPG"]:
+        sidebar_img_path = os.path.join(CURRENT_DIR, f"sidebar_logo{ext}")
+        if os.path.exists(sidebar_img_path):
+            st.image(sidebar_img_path, use_container_width=True)
+            sidebar_img_loaded = True
+            break
+            
+    if not sidebar_img_loaded:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 1.2rem 1rem; border-radius: 14px; color: white; text-align: center; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);">
+            <div style="font-size: 2.2rem; margin-bottom: 4px;">🧪</div>
+            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #ffffff !important; letter-spacing: 0.5px;">LỚP HÓA HỌC THCS</h3>
+            <p style="margin: 4px 0 0 0; font-size: 0.82rem; opacity: 0.9; color: #e0f2fe !important; font-weight: 500;">Trường THCS Phan Chu Trinh - Krông Búk</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
     st.divider()
 
+    # 2. Hiển thị Trạng thái Dữ liệu với văn phong Sư phạm & Chuẩn hóa
     if has_rag_data:
-        st.success("📚 **Đang dùng:** Tài liệu Vector DB (Tối ưu chi phí & Bám sát giáo án)")
+        st.success("📚 **Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn (Tối ưu truy xuất RAG)")
     elif has_fallback_data:
-        st.warning("⚠️ **Đang dùng:** Tài liệu Cũ (Bám sát giáo án, nhưng tốn phí). Hệ thống Vector đang lỗi.")
-        st.error(f"Chi tiết lỗi: {db_error}")
+        st.warning("⚠️ **Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn (Chế độ đọc trực tiếp)")
     else:
-        st.error("⚡ **Đang dùng:** Tri thức mở (Cảnh báo: Không có tài liệu!)")
+        st.info("💡 **Đang sử dụng:** Tri thức nền tảng của Mô hình ngôn ngữ (LLM)")
 
     st.divider()
     st.header("📝 Câu hỏi Cần Bổ Sung")
@@ -288,7 +304,7 @@ if len(st.session_state.messages) > 1:
 st.markdown("<br><br><br>", unsafe_allow_html=True)
 
 # ==================================================
-# THIÉT KẾ KHU VỰC NHẬP LIỆU & XỬ LÝ LOGIC
+# THIẾT KẾ KHU VỰC NHẬP LIỆU & XỬ LÝ LOGIC
 # ==================================================
 uploaded_file = st.file_uploader("📷 Chụp hoặc gửi ảnh", type=["jpg", "jpeg", "png"], key="uploader")
 prompt = st.chat_input("Em muốn hỏi Thầy bài tập hay lý thuyết Hóa học nào...")
