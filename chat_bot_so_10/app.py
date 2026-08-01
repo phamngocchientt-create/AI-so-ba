@@ -12,8 +12,8 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.embeddings import Embeddings
 
 # ==================================================
-# 🎨 CẤU HÌNH TRANG & CSS ZALO HOÀN HẢO
-# ==================================================
+# CẤU HÌNH TRANG
+
 st.set_page_config(
     page_title="Gia sư Hóa học THCS - THCS Phan Chu Trinh", 
     page_icon="🧪",
@@ -47,8 +47,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==================================================
-# 📂 NẠP AVATAR & QUẢN LÝ DỮ LIỆU
-# ==================================================
+# NẠP AVATAR & QUẢN LÝ DỮ LIỆU
+
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(CURRENT_DIR, "chat_history.json")
 STORAGE_FILE = os.path.join(CURRENT_DIR, "missing_questions.json")
@@ -107,8 +107,8 @@ if api_key:
         st.error(f"Lỗi kết nối Gemini API: {e}")
 
 # ==================================================
-# 🚀 CHUẨN MỚI 2026: SỬ DỤNG GEMINI-EMBEDDING-001
-# ==================================================
+#  MÃ HOÁ DỮ LIỆU VĂN BẢN
+
 class ModernGeminiEmbeddings(Embeddings):
     def __init__(self, api_key):
         self.client = genai.Client(api_key=api_key)
@@ -150,7 +150,7 @@ def init_vector_db():
 
 db, db_error = init_vector_db()
 
-# Đọc kiểu cũ để DỰ PHÒNG 
+# DỰ PHÒNG TRƯỜNG HỢP KHÔNG KHỞI TẠO ĐƯỢC VECTOR DATABASE HOẶC KO TRUY XUẤT ĐƯỢC DỮ LIỆU
 knowledge_base_text = ""
 try:
     with open(os.path.join(CURRENT_DIR, "tai_lieu_hoa.txt"), "r", encoding="utf-8") as f:
@@ -163,23 +163,24 @@ has_fallback_data = bool(knowledge_base_text)
 
 # ==================================================
 # 🔑 SYSTEM INSTRUCTION
-# ==================================================
+
 BASE_INSTRUCTION = r"""
 # 🎭 VAI TRÒ & DANH TÍNH
 Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn Hóa học khối 8-9) tại trường THCS Phan Chu Trinh (xã Krông Búk).
 - Phong cách: Một thầy giáo tâm huyết, xưng "Thầy", gọi "Em".
-- Ngôn ngữ: Gần gũi, khích lệ nhưng khoa học, đúng chuẩn sư phạm.
-- Mục tiêu: Không chủ động giải thay, ưu tiên dẫn dắt để học sinh tự tìm ra ánh sáng tri thức.
+- Ngôn ngữ: Gần gũi, khích lệ, biết động viên học sinh,nhưng đảm bảo tính khoa học, đúng chuẩn sư phạm.
+- Mục tiêu: Không chủ động giải thay, ưu tiên khích lệ, dẫn dắt để học sinh tự tìm ra ánh sáng tri thức, không tiêc lời khen khi các em hoàn thành được một vấn đề nào đó.
 
-# 📖 CHUẨN CHUYÊN MÔN GDPT 2018 (BẮT BUỘC)
-1. PHẠM VI: Chỉ sử dụng kiến thức trong chương trình GDPT 2018 cấp THCS (phân môn Hóa học). Tuyệt đối không đưa kiến thức THPT/Đại học vào bài giảng.
+# CHUẨN CHUYÊN MÔN GDPT 2018 (BẮT BUỘC)
+1. PHẠM VI: Chỉ sử dụng kiến thức trong chương trình GDPT 2018 cấp THCS (phân môn Hóa học). Tuyệt đối không đưa kiến thức THPT/Đại học vào bài giảng hoặc bài tập,...
 2. DANH PHÁP (IUPAC): Sử dụng 100% tên quốc tế. Hoặc theo quy định của chương trình GDPT 2018.
 3. ĐIỀU KIỆN CHUẨN (ĐKC): Đây là chuẩn mặc định. Thể tích mol chất khí là $24,79 \text{ L/mol}$. Lưu ý vẫn nếu đề bài hoặc học sinh yêu cầu về điều kiện tiêu chuẩn (đktc) thì vẫn sử dụng thể tích mol chất khí là$22,4 \text{ L/mol}$
 
-# 🎓 CHIẾN LƯỢC SƯ PHẠM (SCAFFOLDING)
-1. CÂU HỎI LÝ THUYẾT: Trả lời trực tiếp, rõ ràng. Chỉ dùng kiến thức cơ bản trừ khi HS hỏi sâu.
-2. CÂU HỎI BÀI TẬP: Đưa ra 3 lựa chọn (A: Cùng giải, B: Gợi ý bước, C: Đáp án chi tiết).
-Nếu HS chọn C, dùng kiến thức cung cấp và kết hợp với kiến thức nền của AI nếu tài liệu bị thiếu kiến thức phần đó để giải đầy đủ. Bài giải chi tiết cung cấp cho học sinh là bài hoàn chỉnh không ghi các bước, hoặc đưa chỉ dẫn, hướng dẫn vào trong bài nữa
+#  CHIẾN LƯỢC SƯ PHẠM (SCAFFOLDING)
+1. CÂU HỎI LÝ THUYẾT: Trả lời trực tiếp, rõ ràng. Chỉ dùng kiến thức cơ bản trừ khi HS hỏi sâu. Nêus học sinh chỉ hỏi chung chung 1 vấn đề lí thuyết (các em chưa định hình được mình phải bắt đầu từ đâu, còn mơ hồ) thì hãy đưa ra 1 phác đồ về vấn đề đó, để các em có thể lựa chọn bắt đầu từ đâu
+2. CÂU HỎI BÀI TẬP: Đưa ra 3 lựa chọn (A: Thầy sẽ cùng em giải bài tập này nhé, thầy cũng khuyên em nên cùng thầy giải để khắc sâu kiến thức hoặc tập làm quen với dạng bài tập này,.., B: Nếu em đã có một chút kiến thức về dạng bài tập này nhưng đang băn khoăn nên bắt đầu như thế nào, các bước giải ra sao thì thầy sẽ gợi ý bước cho em rồi em có thể dựa vào đó để giải bài tập này, C: Nếu e đã hoàn thành được bài tập này nhưng cần 1 barem chuẩn để so sánh thì thầy cũng sẽ sẵn sàng đưa ra đáp án chi tiết xịn sò cho em luôn đây).
+***LƯU Ý ĐẶC BIỆT: Nếu HS chọn C, dùng kiến thức cung cấp và kết hợp với kiến thức nền của AI nếu tài liệu bị thiếu kiến thức phần đó để giải đầy đủ. Bài giải chi tiết cung cấp cho học sinh là bài hoàn chỉnh không ghi các bước, hoặc đưa chỉ dẫn, hướng dẫn vào trong bài nữa
+3. Không sa đà vào các bước tính toán mang tính toán học, chẳng hạn khi giải 1 bài cần lập hệ phương trình thì từ hệ phương trình hãy suy trực tiếp ra nghiệm, đừng nêu các bước giải hệ nữa.
 Để câu trả lời đẹp như "viết bảng", PHẢI tuân thủ:
 1. KHOẢNG TRẮNG: Dòng trống giữa các đoạn văn.
 2. ĐỀ MỤC: IN ĐẬM và đứng riêng một dòng.
@@ -194,8 +195,8 @@ ERROR_MESSAGE_TAG = "[MISSING_DOC]"
 ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư viện tài liệu của Thầy. Thầy sẽ sớm cập nhật kiến thức này. {ERROR_MESSAGE_TAG} Em có thể hỏi về một chủ đề khác không?"
 
 # ==================================================
-# 📌 THANH BÊN TRÁI (SIDEBAR)
-# ==================================================
+# CẤU HÌNH TAB BÊN TRÁI
+
 with st.sidebar:
     st.title("🧪 Lớp Hóa Học THCS")
     st.caption("Trường THCS Phan Chu Trinh - Krông Búk")
@@ -233,8 +234,8 @@ with st.sidebar:
         st.rerun()
 
 # ==================================================
-# 🏛️ KHU VỰC HIỂN THỊ CHÍNH
-# ==================================================
+# THIẾT KẾ GIAO DIỆN CHÍNH 
+
 banner_loaded = False
 for name in ["banner.png", "banner.PNG", "banner.jpg", "banner.jpeg", "banner.JPG"]:
     banner_path = os.path.join(CURRENT_DIR, name)
@@ -287,7 +288,7 @@ if len(st.session_state.messages) > 1:
 st.markdown("<br><br><br>", unsafe_allow_html=True)
 
 # ==================================================
-# 🤖 KHU VỰC NHẬP LIỆU & XỬ LÝ LOGIC
+# THIÉT KẾ KHU VỰC NHẬP LIỆU & XỬ LÝ LOGIC
 # ==================================================
 uploaded_file = st.file_uploader("📷 Chụp hoặc gửi ảnh", type=["jpg", "jpeg", "png"], key="uploader")
 prompt = st.chat_input("Em muốn hỏi Thầy bài tập hay lý thuyết Hóa học nào...")
