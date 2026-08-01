@@ -97,6 +97,10 @@ if "messages" not in st.session_state:
 if "missing_questions" not in st.session_state:
     st.session_state.missing_questions = load_data(STORAGE_FILE, [])
 
+# CHÌA KHÓA: Khởi tạo biến lưu trạng thái để tự động Reset File Uploader
+if "file_uploader_key" not in st.session_state:
+    st.session_state.file_uploader_key = 0
+
 api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 client = None
 if api_key:
@@ -333,7 +337,13 @@ st.markdown("<br><br><br>", unsafe_allow_html=True)
 # ==================================================
 # THIẾT KẾ KHU VỰC NHẬP LIỆU & XỬ LÝ LOGIC
 # ==================================================
-uploaded_file = st.file_uploader("📷 Chụp hoặc gửi ảnh", type=["jpg", "jpeg", "png"], key="uploader")
+# Đã thêm các định dạng file văn bản (pdf, docx, txt...) và áp dụng dynamic key để xóa trắng sau khi gửi
+uploaded_file = st.file_uploader(
+    "📎 Tải lên tệp hoặc ảnh (Ảnh, PDF, Word, TXT)", 
+    type=["jpg", "jpeg", "png", "pdf", "docx", "doc", "txt"], 
+    key=f"uploader_{st.session_state.file_uploader_key}"
+)
+
 prompt = st.chat_input("Em muốn hỏi Thầy bài tập hay lý thuyết Hóa học nào...")
 
 if prompt:
@@ -341,7 +351,9 @@ if prompt:
     cleaned_prompt = prompt.strip()
     
     user_msg_content = cleaned_prompt
-    if uploaded_file: user_msg_content = f"📝 (Kèm ảnh) {cleaned_prompt}"
+    if uploaded_file: 
+        # Cập nhật hiển thị tên tệp trong lịch sử chat
+        user_msg_content = f"📎 (Kèm tệp: {uploaded_file.name}) {cleaned_prompt}"
 
     st.session_state.messages.append({"role": "user", "content": user_msg_content})
     save_data(HISTORY_FILE, st.session_state.messages)
@@ -357,7 +369,17 @@ if prompt:
                     gemini_history.append(types.Content(role=role, parts=[types.Part.from_text(text=msg["content"])]))
                 
                 message_parts = []
-                if uploaded_file: message_parts.append(types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=uploaded_file.type))
+                if uploaded_file:
+                    # Truyền dữ liệu file (bao gồm văn bản) trực tiếp vào mô hình bằng MIME Type
+                    mime_type = uploaded_file.type
+                    # Fallback để bảo đảm nếu định dạng không khớp, AI vẫn đọc được
+                    if not mime_type:
+                        if uploaded_file.name.endswith(".pdf"): mime_type = "application/pdf"
+                        elif uploaded_file.name.endswith(".docx"): mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        elif uploaded_file.name.endswith(".txt"): mime_type = "text/plain"
+                    
+                    message_parts.append(types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=mime_type))
+                    
                 message_parts.append(types.Part.from_text(text=cleaned_prompt))
                 gemini_history.append(types.Content(role="user", parts=message_parts))
 
@@ -390,6 +412,10 @@ if prompt:
 
                 st.session_state.messages.append({"role": "assistant", "content": final_res})
                 save_data(HISTORY_FILE, st.session_state.messages)
+                
+                # Tự động tăng Key để XÓA TRẮNG khung tải tệp ngay lập tức sau khi gửi
+                st.session_state.file_uploader_key += 1
+                
                 st.rerun()
                 
             except Exception as e:
