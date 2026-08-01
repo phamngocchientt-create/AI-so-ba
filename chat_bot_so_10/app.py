@@ -198,51 +198,67 @@ ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư vi�
 # CẤU HÌNH TAB BÊN TRÁI (SIDEBAR)
 
 with st.sidebar:
-    # 1. Hiển thị Header/Banner của Sidebar (Có hỗ trợ ảnh custom nếu có)
-    sidebar_img_loaded = False
+    # 1. Hiển thị Ảnh Giáo viên cầm sách ở phần trên cùng
+    icon_tailieu_loaded = False
     for ext in [".png", ".PNG", ".jpg", ".jpeg", ".JPG"]:
-        sidebar_img_path = os.path.join(CURRENT_DIR, f"sidebar_logo{ext}")
-        if os.path.exists(sidebar_img_path):
-            st.image(sidebar_img_path, use_container_width=True)
-            sidebar_img_loaded = True
+        icon_path = os.path.join(CURRENT_DIR, f"icon_tailieudaketnoi{ext}")
+        if os.path.exists(icon_path):
+            st.image(icon_path, use_container_width=True)
+            icon_tailieu_loaded = True
             break
             
-    if not sidebar_img_loaded:
+    if not icon_tailieu_loaded:
         st.markdown("""
-        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 1.2rem 1rem; border-radius: 14px; color: white; text-align: center; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);">
+        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 1.2rem 1rem; border-radius: 14px; color: white; text-align: center;">
             <div style="font-size: 2.2rem; margin-bottom: 4px;">🧪</div>
-            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #ffffff !important; letter-spacing: 0.5px;">LỚP HÓA HỌC THCS</h3>
-            <p style="margin: 4px 0 0 0; font-size: 0.82rem; opacity: 0.9; color: #e0f2fe !important; font-weight: 500;">Trường THCS Phan Chu Trinh - Krông Búk</p>
+            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #ffffff !important;">LỚP HÓA HỌC THCS</h3>
+            <p style="margin: 4px 0 0 0; font-size: 0.82rem; opacity: 0.9; color: #e0f2fe !important;">Trường THCS Phan Chu Trinh - Krông Búk</p>
         </div>
         """, unsafe_allow_html=True)
         
     st.divider()
 
-    # 2. Hiển thị Trạng thái Dữ liệu với văn phong Sư phạm & Chuẩn hóa
+    # 2. Hiển thị Trạng thái Dữ liệu (Đã bỏ icon, giữ nguyên văn phong chuẩn)
     if has_rag_data:
-        st.success("📚 **Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn (Tối ưu truy xuất RAG)")
+        st.success("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn (Tối ưu truy xuất RAG)")
     elif has_fallback_data:
-        st.warning("⚠️ **Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn (Chế độ đọc trực tiếp)")
+        st.warning("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn (Chế độ đọc trực tiếp)")
     else:
-        st.info("💡 **Đang sử dụng:** Tri thức nền tảng của Mô hình ngôn ngữ (LLM)")
+        st.info("**Đang sử dụng:** Tri thức nền tảng của Mô hình ngôn ngữ (LLM)")
 
     st.divider()
-    st.header("📝 Câu hỏi Cần Bổ Sung")
+
+    # 3. Hiển thị Banner "Kiến thức cần bổ sung"
+    banner_kt_loaded = False
+    for ext in [".png", ".PNG", ".jpg", ".jpeg", ".JPG"]:
+        banner_kt_path = os.path.join(CURRENT_DIR, f"kien_thuc_can_bo_sung{ext}")
+        if os.path.exists(banner_kt_path):
+            st.image(banner_kt_path, use_container_width=True)
+            banner_kt_loaded = True
+            break
+            
+    if not banner_kt_loaded:
+        st.header("📝 Câu hỏi Cần Bổ Sung")
+
+    # 4. Danh sách câu hỏi cần bổ sung & Xóa bằng Mật khẩu
     if st.session_state.missing_questions:
         for i, q in enumerate(st.session_state.missing_questions, 1):
             st.markdown(f"**{i}.** {q}")
         with st.form("clear_form"):
             password = st.text_input("Mật khẩu để xóa", type="password")
             if st.form_submit_button("Xóa Toàn bộ"):
-                if password == st.secrets.get(PASSWORD_KEY, "admin123"):
+                # Kiểm tra mật khẩu do Thầy quy định
+                correct_pass = st.secrets.get(PASSWORD_KEY) or "chiendayhoa12345@"
+                if password == correct_pass:
                     st.session_state.missing_questions = []
                     save_data(STORAGE_FILE, [])
-                    st.success("✅ Đã xóa!")
+                    st.success("✅ Đã xóa thành công!")
                     st.rerun()
                 else: 
-                    st.error("❌ Sai mật khẩu.")
+                    st.error("❌ Mật khẩu không chính xác.")
     else:
         st.write("Không có câu hỏi nào.")
+
     st.divider()
     if st.button("🗑️ Xóa lịch sử", use_container_width=True):
         st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
