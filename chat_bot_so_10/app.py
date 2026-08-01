@@ -198,7 +198,27 @@ ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư vi�
 # CẤU HÌNH TAB BÊN TRÁI (SIDEBAR)
 
 with st.sidebar:
-    # 1. Hiển thị Ảnh Giáo viên cầm sách ở phần trên cùng
+    # 1. Hiển thị Header/Banner của Sidebar (sidebar_logo.png)
+    sidebar_img_loaded = False
+    for ext in [".png", ".PNG", ".jpg", ".jpeg", ".JPG"]:
+        sidebar_img_path = os.path.join(CURRENT_DIR, f"sidebar_logo{ext}")
+        if os.path.exists(sidebar_img_path):
+            st.image(sidebar_img_path, use_container_width=True)
+            sidebar_img_loaded = True
+            break
+            
+    if not sidebar_img_loaded:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 1.2rem 1rem; border-radius: 14px; color: white; text-align: center; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);">
+            <div style="font-size: 2.2rem; margin-bottom: 4px;">🧪</div>
+            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #ffffff !important; letter-spacing: 0.5px;">LỚP HÓA HỌC THCS</h3>
+            <p style="margin: 4px 0 0 0; font-size: 0.82rem; opacity: 0.9; color: #e0f2fe !important; font-weight: 500;">Trường THCS Phan Chu Trinh - Krông Búk</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    st.divider()
+
+    # 2. Hiển thị Ảnh Giáo viên cầm sách & Trạng thái Dữ liệu
     icon_tailieu_loaded = False
     for ext in [".png", ".PNG", ".jpg", ".jpeg", ".JPG"]:
         icon_path = os.path.join(CURRENT_DIR, f"icon_tailieudaketnoi{ext}")
@@ -207,18 +227,6 @@ with st.sidebar:
             icon_tailieu_loaded = True
             break
             
-    if not icon_tailieu_loaded:
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 1.2rem 1rem; border-radius: 14px; color: white; text-align: center;">
-            <div style="font-size: 2.2rem; margin-bottom: 4px;">🧪</div>
-            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #ffffff !important;">LỚP HÓA HỌC THCS</h3>
-            <p style="margin: 4px 0 0 0; font-size: 0.82rem; opacity: 0.9; color: #e0f2fe !important;">Trường THCS Phan Chu Trinh - Krông Búk</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    st.divider()
-
-    # 2. Hiển thị Trạng thái Dữ liệu (Đã bỏ icon, giữ nguyên văn phong chuẩn)
     if has_rag_data:
         st.success("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn (Tối ưu truy xuất RAG)")
     elif has_fallback_data:
