@@ -58,10 +58,13 @@ def get_image_base64(base_name):
     for ext in [".PNG", ".png", ".jpg", ".jpeg", ".JPG", ".JPEG"]:
         path = os.path.join(CURRENT_DIR, f"{base_name}{ext}")
         if os.path.exists(path):
-            with open(path, "rb") as image_file:
-                encoded = base64.b64encode(image_file.read()).decode()
-                ext_type = "png" if "png" in ext.lower() else "jpeg"
-                return f"data:image/{ext_type};base64,{encoded}"
+            try:
+                with open(path, "rb") as image_file:
+                    encoded = base64.b64encode(image_file.read()).decode()
+                    ext_type = "png" if "png" in ext.lower() else "jpeg"
+                    return f"data:image/{ext_type};base64,{encoded}"
+            except:
+                pass
     return None
 
 TEACHER_B64 = get_image_base64("teacher_avatar")
@@ -210,9 +213,12 @@ with st.sidebar:
     for ext in [".png", ".PNG", ".jpg", ".jpeg", ".JPG"]:
         sidebar_img_path = os.path.join(CURRENT_DIR, f"sidebar_logo{ext}")
         if os.path.exists(sidebar_img_path):
-            st.image(sidebar_img_path, use_container_width=True)
-            sidebar_img_loaded = True
-            break
+            try:
+                st.image(sidebar_img_path, use_container_width=True)
+                sidebar_img_loaded = True
+                break
+            except Exception:
+                pass # Bỏ qua nếu file tồn tại nhưng bị lỗi/không phải ảnh
             
     if not sidebar_img_loaded:
         st.markdown("""
@@ -230,9 +236,12 @@ with st.sidebar:
     for ext in [".png", ".PNG", ".jpg", ".jpeg", ".JPG"]:
         icon_path = os.path.join(CURRENT_DIR, f"icon_tailieudaketnoi{ext}")
         if os.path.exists(icon_path):
-            st.image(icon_path, use_container_width=True)
-            icon_tailieu_loaded = True
-            break
+            try:
+                st.image(icon_path, use_container_width=True)
+                icon_tailieu_loaded = True
+                break
+            except Exception:
+                pass
             
     if has_rag_data:
         st.success("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn (Tối ưu truy xuất RAG)")
@@ -248,9 +257,12 @@ with st.sidebar:
     for ext in [".png", ".PNG", ".jpg", ".jpeg", ".JPG"]:
         banner_kt_path = os.path.join(CURRENT_DIR, f"kien_thuc_can_bo_sung{ext}")
         if os.path.exists(banner_kt_path):
-            st.image(banner_kt_path, use_container_width=True)
-            banner_kt_loaded = True
-            break
+            try:
+                st.image(banner_kt_path, use_container_width=True)
+                banner_kt_loaded = True
+                break
+            except Exception:
+                pass
             
     if not banner_kt_loaded:
         st.header("📝 Câu hỏi Cần Bổ Sung")
@@ -262,7 +274,6 @@ with st.sidebar:
         with st.form("clear_form"):
             password = st.text_input("Mật khẩu để xóa", type="password")
             if st.form_submit_button("Xóa Toàn bộ"):
-                # Kiểm tra mật khẩu do Thầy quy định
                 correct_pass = st.secrets.get(PASSWORD_KEY) or "chiendayhoa12345@"
                 if password == correct_pass:
                     st.session_state.missing_questions = []
@@ -287,9 +298,12 @@ banner_loaded = False
 for name in ["banner.png", "banner.PNG", "banner.jpg", "banner.jpeg", "banner.JPG"]:
     banner_path = os.path.join(CURRENT_DIR, name)
     if os.path.exists(banner_path):
-        st.image(banner_path, use_container_width=True)
-        banner_loaded = True
-        break
+        try:
+            st.image(banner_path, use_container_width=True)
+            banner_loaded = True
+            break
+        except Exception:
+            pass
 if not banner_loaded:
     st.markdown("""
     <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 1.5rem; border-radius: 16px; color: white; text-align: center; margin-bottom: 1.5rem;">
@@ -352,7 +366,6 @@ if prompt:
     
     user_msg_content = cleaned_prompt
     if uploaded_file: 
-        # Cập nhật hiển thị tên tệp trong lịch sử chat
         user_msg_content = f"📎 (Kèm tệp: {uploaded_file.name}) {cleaned_prompt}"
 
     st.session_state.messages.append({"role": "user", "content": user_msg_content})
@@ -370,9 +383,7 @@ if prompt:
                 
                 message_parts = []
                 if uploaded_file:
-                    # Truyền dữ liệu file (bao gồm văn bản) trực tiếp vào mô hình bằng MIME Type
                     mime_type = uploaded_file.type
-                    # Fallback để bảo đảm nếu định dạng không khớp, AI vẫn đọc được
                     if not mime_type:
                         if uploaded_file.name.endswith(".pdf"): mime_type = "application/pdf"
                         elif uploaded_file.name.endswith(".docx"): mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -413,7 +424,6 @@ if prompt:
                 st.session_state.messages.append({"role": "assistant", "content": final_res})
                 save_data(HISTORY_FILE, st.session_state.messages)
                 
-                # Tự động tăng Key để XÓA TRẮNG khung tải tệp ngay lập tức sau khi gửi
                 st.session_state.file_uploader_key += 1
                 
                 st.rerun()
