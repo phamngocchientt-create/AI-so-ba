@@ -11,9 +11,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_core.embeddings import Embeddings
 
-# ==================================================
-# CẤU HÌNH TRANG
-
 st.set_page_config(
     page_title="Gia sư Hóa học THCS - THCS Phan Chu Trinh", 
     page_icon="🧪",
@@ -45,9 +42,6 @@ st.markdown("""
     [data-testid="stChatInputSubmitButton"] { background-color: #0284c7 !important; color: white !important; border-radius: 50% !important; }
 </style>
 """, unsafe_allow_html=True)
-
-# ==================================================
-# NẠP AVATAR & QUẢN LÝ DỮ LIỆU
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(CURRENT_DIR, "chat_history.json")
@@ -112,9 +106,6 @@ if api_key:
     except Exception as e:
         st.error(f"Lỗi kết nối Gemini API: {e}")
 
-# ==================================================
-#  MÃ HOÁ DỮ LIỆU VĂN BẢN
-
 class ModernGeminiEmbeddings(Embeddings):
     def __init__(self, api_key):
         self.client = genai.Client(api_key=api_key)
@@ -146,8 +137,6 @@ def init_vector_db():
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
         splits = text_splitter.split_documents(documents)
-        
-        # Gọi chính xác mô hình thế hệ mới
         embeddings = ModernGeminiEmbeddings(api_key=api_key)
         vectorstore = FAISS.from_documents(splits, embeddings)
         return vectorstore, "OK"
@@ -156,7 +145,6 @@ def init_vector_db():
 
 db, db_error = init_vector_db()
 
-# DỰ PHÒNG TRƯỜNG HỢP KHÔNG KHỞI TẠO ĐƯỢC VECTOR DATABASE HOẶC KO TRUY XUẤT ĐƯỢC DỮ LIỆU
 knowledge_base_text = ""
 try:
     with open(os.path.join(CURRENT_DIR, "tai_lieu_hoa.txt"), "r", encoding="utf-8") as f:
@@ -166,9 +154,6 @@ except:
 
 has_rag_data = db is not None
 has_fallback_data = bool(knowledge_base_text)
-
-# ==================================================
-# 🔑 SYSTEM INSTRUCTION
 
 BASE_INSTRUCTION = r"""
 # 🎭 VAI TRÒ & DANH TÍNH
@@ -182,7 +167,7 @@ Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn 
 2. DANH PHÁP (IUPAC): Sử dụng 100% tên quốc tế. Hoặc theo quy định của chương trình GDPT 2018.
 3. ĐIỀU KIỆN CHUẨN (ĐKC): Đây là chuẩn mặc định. Thể tích mol chất khí là $24,79 \text{ L/mol}$. Lưu ý vẫn nếu đề bài hoặc học sinh yêu cầu về điều kiện tiêu chuẩn (đktc) thì vẫn sử dụng thể tích mol chất khí là$22,4 \text{ L/mol}$
 
-#  CHIẾN LƯỢC SƯ PHẠM (SCAFFOLDING)
+# CHIẾN LƯỢC SƯ PHẠM (SCAFFOLDING)
 1. CÂU HỎI LÝ THUYẾT: Trả lời trực tiếp, rõ ràng. Chỉ dùng kiến thức cơ bản trừ khi HS hỏi sâu. 
 2. Nếu học sinh chỉ hỏi chung chung 1 vấn đề lí thuyết (các em chưa định hình được mình phải bắt đầu từ đâu, còn mơ hồ, không đi vào trọng tâm 1 vấn đề nào đó, Ví dụ chỉ hỏi KIM Loại mà không vào trọng tâm là tính chất vật lí hay tính chất hoá học của kim loại) thì hãy đưa ra 1 phác đồ tổng quát (ví dụ Kim loại có Tính chất vật lí, tính chất hoá học, ứng dụng,...em muốn tìm hiểu phần nào trước)về vấn đề đó, để các em có thể lựa chọn bắt đầu từ đâu
 3. Khi cung cấp 1 liến thức lí thuyết nào đó, phải cung cấp đầy đủ, không ngắt giữa chừng.
@@ -196,18 +181,13 @@ Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn 
 3. PHƯƠNG TRÌNH HÓA HỌC: Bọc trong $$...$$ riêng dòng.
 4. CÔNG THỨC & LATEX: Bọc trong $...$ (cùng dòng) hoặc $$...$$ (riêng dòng).
 
-# PHONG CÁCH
+# ❤️ PHONG CÁCH
 - Khích lệ tinh thần tự giác của các em.
 - Kết thúc bằng một câu hỏi gợi mở.
 """
-ERROR_MESSAGE_TAG = "[MISSING_DOC]"
-ERROR_MESSAGE = f"Xin lỗi em, thông tin này hiện chưa có trong thư viện tài liệu của Thầy. Thầy sẽ sớm cập nhật kiến thức này. {ERROR_MESSAGE_TAG} Em có thể hỏi về một chủ đề khác không?"
-
-# ==================================================
-# CẤU HÌNH TAB BÊN TRÁI (SIDEBAR)
+OUT_OF_CONTEXT_TAG = "[THIEU_DATA]"
 
 with st.sidebar:
-    # 1. Hiển thị Header/Banner của Sidebar (sidebar_logo.png)
     sidebar_img_loaded = False
     for ext in [".png", ".PNG", ".jpg", ".jpeg", ".JPG"]:
         sidebar_img_path = os.path.join(CURRENT_DIR, f"sidebar_logo{ext}")
@@ -217,7 +197,7 @@ with st.sidebar:
                 sidebar_img_loaded = True
                 break
             except Exception:
-                pass 
+                pass
             
     if not sidebar_img_loaded:
         st.markdown("""
@@ -242,7 +222,7 @@ with st.sidebar:
                 pass
             
     if has_rag_data:
-        st.success("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn")
+        st.success("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn (Tối ưu truy xuất RAG)")
     elif has_fallback_data:
         st.warning("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn (Chế độ đọc trực tiếp)")
     else:
@@ -286,9 +266,6 @@ with st.sidebar:
         st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
         save_data(HISTORY_FILE, st.session_state.messages)
         st.rerun()
-
-# ==================================================
-# THIẾT KẾ GIAO DIỆN CHÍNH 
 
 banner_loaded = False
 for name in ["banner.png", "banner.PNG", "banner.jpg", "banner.jpeg", "banner.JPG"]:
@@ -344,9 +321,6 @@ if len(st.session_state.messages) > 1:
 
 st.markdown("<br><br><br>", unsafe_allow_html=True)
 
-# ==================================================
-# THIẾT KẾ KHU VỰC NHẬP LIỆU & XỬ LÝ LOGIC
-
 uploaded_file = st.file_uploader(
     "📎 Tải lên tệp hoặc ảnh (Ảnh, PDF, Word, TXT)", 
     type=["jpg", "jpeg", "png", "pdf", "docx", "doc", "txt"], 
@@ -392,27 +366,48 @@ if prompt:
                 if has_rag_data:
                     docs_lien_quan = db.similarity_search(cleaned_prompt, k=3)
                     nguon_kien_thuc = "\n\n".join([doc.page_content for doc in docs_lien_quan])
-                    DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}\n\nTÀI LIỆU CỦA THẦY TRÍCH XUẤT:\n{nguon_kien_thuc}\n\n1. CHỈ TRẢ LỜI dựa trên tài liệu. 2. Nếu không có, trả về: {ERROR_MESSAGE_TAG}"""
-                elif has_fallback_data:
-                    DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}\n\nTÀI LIỆU CỦA THẦY:\n{knowledge_base_text}\n\n1. CHỈ TRẢ LỜI dựa trên tài liệu. 2. Nếu không có, trả về: {ERROR_MESSAGE_TAG}"""
-                else:
-                    DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}\n- Trả lời bằng tri thức Hóa học. Nếu ngoài phạm vi, trả về: {ERROR_MESSAGE_TAG}"""
+                    DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}
+                    
+=== TÀI LIỆU CỦA THẦY ===
+{nguon_kien_thuc}
 
+=== YÊU CẦU QUAN TRỌNG ===
+1. Ưu tiên cao nhất sử dụng TÀI LIỆU CỦA THẦY để trả lời.
+2. Nếu thông tin trong tài liệu KHÔNG ĐỦ hoặc KHÔNG CÓ để trả lời, bạn VẪN PHẢI TRẢ LỜI học sinh bằng tri thức nền của bạn (nhưng phải kiểm soát chặt chẽ để đảm bảo chuẩn kiến thức THCS GDPT 2018).
+3. LỆNH BẮT BUỘC: Nếu bạn phải dùng tri thức nền (bên ngoài tài liệu) để trả lời dù chỉ một phần nhỏ, bạn PHẢI chèn thêm đúng chuỗi ký tự {OUT_OF_CONTEXT_TAG} vào cuối cùng của câu trả lời."""
+                
+                elif has_fallback_data:
+                    DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}
+                    
+=== TÀI LIỆU CỦA THẦY ===
+{knowledge_base_text}
+
+=== YÊU CẦU QUAN TRỌNG ===
+1. Ưu tiên cao nhất sử dụng TÀI LIỆU CỦA THẦY để trả lời.
+2. Nếu thông tin trong tài liệu KHÔNG ĐỦ hoặc KHÔNG CÓ để trả lời, bạn VẪN PHẢI TRẢ LỜI học sinh bằng tri thức nền của bạn (nhưng phải kiểm soát chặt chẽ để đảm bảo chuẩn kiến thức THCS GDPT 2018).
+3. LỆNH BẮT BUỘC: Nếu bạn phải dùng tri thức nền (bên ngoài tài liệu) để trả lời dù chỉ một phần nhỏ, bạn PHẢI chèn thêm đúng chuỗi ký tự {OUT_OF_CONTEXT_TAG} vào cuối cùng của câu trả lời."""
+                
+                else:
+                    DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}\n- Trả lời bằng tri thức Hóa học."""
+
+                # Đặt temperature là 0.3 để AI vừa sáng tạo trả lời từ tri thức nền, vừa tuân thủ đúng luật.
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
                     contents=gemini_history,
                     config=types.GenerateContentConfig(
                         system_instruction=DYNAMIC_SYSTEM_INSTRUCTION,
-                        temperature=0.2 if (has_rag_data or has_fallback_data) else 0.3
+                        temperature=0.3
                     )
                 )
                 res_text = response.text.strip()
                 
-                if ERROR_MESSAGE_TAG.upper() in res_text.upper():
+                # CƠ CHẾ BẮT MÃ NGẦM VÀ LỌC TEXT
+                if OUT_OF_CONTEXT_TAG in res_text:
                     if cleaned_prompt not in st.session_state.missing_questions:
                         st.session_state.missing_questions.append(cleaned_prompt)
                         save_data(STORAGE_FILE, st.session_state.missing_questions)
-                    final_res = ERROR_MESSAGE
+                    # Xóa mã ngầm đi trước khi hiển thị cho học sinh
+                    final_res = res_text.replace(OUT_OF_CONTEXT_TAG, "").strip()
                 else:
                     final_res = res_text
 
