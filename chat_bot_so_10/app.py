@@ -231,8 +231,7 @@ with st.sidebar:
         
     st.divider()
 
-    # 2. Hiển thị Ảnh Giáo viên cầm sách & Trạng thái Dữ liệu
-    icon_tailieu_loaded = False
+      icon_tailieu_loaded = False
     for ext in [".png", ".PNG", ".jpg", ".jpeg", ".JPG"]:
         icon_path = os.path.join(CURRENT_DIR, f"icon_tailieudaketnoi{ext}")
         if os.path.exists(icon_path):
@@ -252,7 +251,6 @@ with st.sidebar:
 
     st.divider()
 
-    # 3. Hiển thị Banner "Kiến thức cần bổ sung"
     banner_kt_loaded = False
     for ext in [".png", ".PNG", ".jpg", ".jpeg", ".JPG"]:
         banner_kt_path = os.path.join(CURRENT_DIR, f"kien_thuc_can_bo_sung{ext}")
@@ -267,14 +265,13 @@ with st.sidebar:
     if not banner_kt_loaded:
         st.header("📝 Câu hỏi Cần Bổ Sung")
 
-    # 4. Danh sách câu hỏi cần bổ sung & Xóa bằng Mật khẩu
     if st.session_state.missing_questions:
         for i, q in enumerate(st.session_state.missing_questions, 1):
             st.markdown(f"**{i}.** {q}")
         with st.form("clear_form"):
             password = st.text_input("Mật khẩu để xóa", type="password")
             if st.form_submit_button("Xóa Toàn bộ"):
-                correct_pass = st.secrets.get(PASSWORD_KEY) or "chiendayhoa12345@"
+                correct_pass = st.secrets.get(PASSWORD_KEY)
                 if password == correct_pass:
                     st.session_state.missing_questions = []
                     save_data(STORAGE_FILE, [])
@@ -350,8 +347,7 @@ st.markdown("<br><br><br>", unsafe_allow_html=True)
 
 # ==================================================
 # THIẾT KẾ KHU VỰC NHẬP LIỆU & XỬ LÝ LOGIC
-# ==================================================
-# Đã thêm các định dạng file văn bản (pdf, docx, txt...) và áp dụng dynamic key để xóa trắng sau khi gửi
+
 uploaded_file = st.file_uploader(
     "📎 Tải lên tệp hoặc ảnh (Ảnh, PDF, Word, TXT)", 
     type=["jpg", "jpeg", "png", "pdf", "docx", "doc", "txt"], 
