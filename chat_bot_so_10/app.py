@@ -156,7 +156,7 @@ has_rag_data = db is not None
 has_fallback_data = bool(knowledge_base_text)
 
 BASE_INSTRUCTION = r"""
-# 🎭 VAI TRÒ & DANH TÍNH
+#  VAI TRÒ & DANH TÍNH
 Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn Hóa học khối 8-9) tại trường THCS Phan Chu Trinh (xã Krông Búk).
 - Phong cách: Một thầy giáo tâm huyết, xưng "Thầy", gọi "Em".
 - Ngôn ngữ: Gần gũi, khích lệ, biết động viên học sinh,nhưng đảm bảo tính khoa học, đúng chuẩn sư phạm.
@@ -181,7 +181,7 @@ Bạn là "Gia sư ảo" chuyên trách môn Khoa học tự nhiên (phân môn 
 3. PHƯƠNG TRÌNH HÓA HỌC: Bọc trong $$...$$ riêng dòng.
 4. CÔNG THỨC & LATEX: Bọc trong $...$ (cùng dòng) hoặc $$...$$ (riêng dòng).
 
-# ❤️ PHONG CÁCH
+#  PHONG CÁCH
 - Khích lệ tinh thần tự giác của các em.
 - Kết thúc bằng một câu hỏi gợi mở.
 """
@@ -222,7 +222,7 @@ with st.sidebar:
                 pass
             
     if has_rag_data:
-        st.success("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn (Tối ưu truy xuất RAG)")
+        st.success("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn")
     elif has_fallback_data:
         st.warning("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn (Chế độ đọc trực tiếp)")
     else:
@@ -250,7 +250,7 @@ with st.sidebar:
         with st.form("clear_form"):
             password = st.text_input("Mật khẩu để xóa", type="password")
             if st.form_submit_button("Xóa Toàn bộ"):
-                correct_pass = st.secrets.get(PASSWORD_KEY) or "chiendayhoa12345@"
+                correct_pass = st.secrets.get(PASSWORD_KEY)
                 if password == correct_pass:
                     st.session_state.missing_questions = []
                     save_data(STORAGE_FILE, [])
@@ -314,7 +314,7 @@ st.markdown("""
 if len(st.session_state.messages) > 1:
     col1, col2, col3 = st.columns([0.2, 9.6, 0.2])
     with col2:
-        if st.button("✨ XOÁ LỊCH SỬ CHAT THƯỜNG XUYÊN ĐỂ CHẠY MƯỢT MÀ NHÉ CÁC EM, BẤM VÀO ĐỂ XOÁ NÈ ✨", type="primary", use_container_width=True):
+        if st.button("✨ XOÁ LỊCH SỬ CHAT THƯỜNG XUYÊN GIÚP HỆ THỐNG CHẠY MƯỢT MÀ HƠN - BẤM VÀO ĐÂY NÈ ✨", type="primary", use_container_width=True):
             st.session_state.messages = [{"role": "assistant", "content": HARDCODED_GREETING}]
             save_data(HISTORY_FILE, st.session_state.messages)
             st.rerun()
@@ -390,7 +390,6 @@ if prompt:
                 else:
                     DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}\n- Trả lời bằng tri thức Hóa học."""
 
-                # Đặt temperature là 0.3 để AI vừa sáng tạo trả lời từ tri thức nền, vừa tuân thủ đúng luật.
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
                     contents=gemini_history,
@@ -401,12 +400,11 @@ if prompt:
                 )
                 res_text = response.text.strip()
                 
-                # CƠ CHẾ BẮT MÃ NGẦM VÀ LỌC TEXT
                 if OUT_OF_CONTEXT_TAG in res_text:
                     if cleaned_prompt not in st.session_state.missing_questions:
                         st.session_state.missing_questions.append(cleaned_prompt)
                         save_data(STORAGE_FILE, st.session_state.missing_questions)
-                    # Xóa mã ngầm đi trước khi hiển thị cho học sinh
+
                     final_res = res_text.replace(OUT_OF_CONTEXT_TAG, "").strip()
                 else:
                     final_res = res_text
