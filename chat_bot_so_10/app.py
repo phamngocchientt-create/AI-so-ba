@@ -100,7 +100,6 @@ if "messages" not in st.session_state:
 if "missing_questions" not in st.session_state:
     st.session_state.missing_questions = load_data(STORAGE_FILE, [])
 
-# CHÌA KHÓA: Khởi tạo biến lưu trạng thái để tự động Reset File Uploader
 if "file_uploader_key" not in st.session_state:
     st.session_state.file_uploader_key = 0
 
