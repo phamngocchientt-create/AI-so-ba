@@ -127,18 +127,24 @@ class ModernGeminiEmbeddings(Embeddings):
         )
         return res.embeddings[0].values
 
-@st.cache_resource(show_spinner="Đang hệ thống hóa tài liệu môn KHTN...")
+@st.cache_resource(show_spinner="Đang nạp dữ liệu trí tuệ nhân tạo...")
 def init_vector_db():
-    doc_path = os.path.join(CURRENT_DIR, "tai_lieu_hoa.txt")
-    if not os.path.exists(doc_path):
-        return None, "Không tìm thấy file tai_lieu_hoa.txt"
+    # Trỏ thẳng vào thư mục Thầy vừa tạo
+    db_path = os.path.join(CURRENT_DIR, "faiss_db_luu_tru") 
+    
+    if not os.path.exists(db_path):
+        return None, f"Không tìm thấy thư mục {db_path}"
+        
     try:
-        loader = TextLoader(doc_path, encoding='utf-8')
-        documents = loader.load()
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
-        splits = text_splitter.split_documents(documents)
+        # Vẫn cần bộ nhúng để dịch CÂU HỎI của học sinh ra vector
         embeddings = ModernGeminiEmbeddings(api_key=api_key)
-        vectorstore = FAISS.from_documents(splits, embeddings)
+        
+        # Lấy dữ liệu đã tạo sẵn lên siêu tốc (không tốn token API)
+        vectorstore = FAISS.load_local(
+            folder_path=db_path,
+            embeddings=embeddings,
+            allow_dangerous_deserialization=True # Tham số bắt buộc của thư viện Langchain
+        )
         return vectorstore, "OK"
     except Exception as e:
         return None, str(e)
