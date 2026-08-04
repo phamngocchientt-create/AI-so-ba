@@ -6,8 +6,6 @@ import streamlit as st
 from google import genai
 from google.genai import types
 
-from langchain_community.document_loaders import TextLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_core.embeddings import Embeddings
 
@@ -129,37 +127,23 @@ class ModernGeminiEmbeddings(Embeddings):
 
 @st.cache_resource(show_spinner="Đang nạp dữ liệu trí tuệ nhân tạo...")
 def init_vector_db():
-    # Trỏ thẳng vào thư mục Thầy vừa tạo
     db_path = os.path.join(CURRENT_DIR, "faiss_db_luu_tru") 
-    
     if not os.path.exists(db_path):
         return None, f"Không tìm thấy thư mục {db_path}"
         
     try:
-        # Vẫn cần bộ nhúng để dịch CÂU HỎI của học sinh ra vector
         embeddings = ModernGeminiEmbeddings(api_key=api_key)
-        
-        # Lấy dữ liệu đã tạo sẵn lên siêu tốc (không tốn token API)
         vectorstore = FAISS.load_local(
             folder_path=db_path,
             embeddings=embeddings,
-            allow_dangerous_deserialization=True # Tham số bắt buộc của thư viện Langchain
+            allow_dangerous_deserialization=True
         )
         return vectorstore, "OK"
     except Exception as e:
         return None, str(e)
 
 db, db_error = init_vector_db()
-
-knowledge_base_text = ""
-try:
-    with open(os.path.join(CURRENT_DIR, "tai_lieu_hoa.txt"), "r", encoding="utf-8") as f:
-        knowledge_base_text = f.read().strip()
-except:
-    pass
-
 has_rag_data = db is not None
-has_fallback_data = bool(knowledge_base_text)
 
 BASE_INSTRUCTION = r"""
 # VAI TRÒ & NGUYÊN TẮC
@@ -207,21 +191,8 @@ with st.sidebar:
         
     st.divider()
 
-    icon_tailieu_loaded = False
-    for ext in [".png", ".PNG", ".jpg", ".jpeg", ".JPG"]:
-        icon_path = os.path.join(CURRENT_DIR, f"icon_tailieudaketnoi{ext}")
-        if os.path.exists(icon_path):
-            try:
-                st.image(icon_path, use_container_width=True)
-                icon_tailieu_loaded = True
-                break
-            except Exception:
-                pass
-            
     if has_rag_data:
         st.success("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn")
-    elif has_fallback_data:
-        st.warning("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn (Chế độ đọc trực tiếp)")
     else:
         st.info("**Đang sử dụng:** Tri thức nền tảng của Mô hình ngôn ngữ (LLM)")
 
@@ -342,8 +313,10 @@ if prompt:
         st.markdown("<span class='assistant-anchor'></span>", unsafe_allow_html=True)
         with st.spinner("Thầy đang xem bài..."):
             try:
+                # TỐI ƯU CHI PHÍ TOKEN: Chỉ lấy tối đa 6 tin nhắn gần nhất (3 cặp hỏi - đáp)
                 gemini_history = []
-                for msg in st.session_state.messages[:-1]:
+                recent_messages = st.session_state.messages[:-1][-6:]
+                for msg in recent_messages:
                     role = "user" if msg["role"] == "user" else "model"
                     gemini_history.append(types.Content(role=role, parts=[types.Part.from_text(text=msg["content"])]))
                 
@@ -361,7 +334,8 @@ if prompt:
                 gemini_history.append(types.Content(role="user", parts=message_parts))
 
                 if has_rag_data:
-                    docs_lien_quan = db.similarity_search(cleaned_prompt, k=3)
+                    # Giới hạn k=2 để giảm lượng token input từ tài liệu vector
+                    docs_lien_quan = db.similarity_search(cleaned_prompt, k=2)
                     nguon_kien_thuc = "\n\n".join([doc.page_content for doc in docs_lien_quan])
                     DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}
                     
@@ -372,20 +346,12 @@ if prompt:
 1. Ưu tiên cao nhất sử dụng TÀI LIỆU CỦA THẦY để trả lời.
 2. Nếu thông tin trong tài liệu KHÔNG ĐỦ hoặc KHÔNG CÓ để trả lời, bạn VẪN PHẢI TRẢ LỜI học sinh bằng tri thức nền của bạn (nhưng phải kiểm soát chặt chẽ để đảm bảo chuẩn kiến thức THCS GDPT 2018).
 3. LỆNH BẮT BUỘC: Nếu bạn phải dùng tri thức nền (bên ngoài tài liệu) để trả lời dù chỉ một phần nhỏ, bạn PHẢI chèn thêm đúng chuỗi ký tự {OUT_OF_CONTEXT_TAG} vào cuối cùng của câu trả lời."""
-                
-                elif has_fallback_data:
+                else:
                     DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}
                     
-=== TÀI LIỆU CỦA THẦY ===
-{knowledge_base_text}
-
 === YÊU CẦU QUAN TRỌNG ===
-1. Ưu tiên cao nhất sử dụng TÀI LIỆU CỦA THẦY để trả lời.
-2. Nếu thông tin trong tài liệu KHÔNG ĐỦ hoặc KHÔNG CÓ để trả lời, bạn VẪN PHẢI TRẢ LỜI học sinh bằng tri thức nền của bạn (nhưng phải kiểm soát chặt chẽ để đảm bảo chuẩn kiến thức THCS GDPT 2018).
-3. LỆNH BẮT BUỘC: Nếu bạn phải dùng tri thức nền (bên ngoài tài liệu) để trả lời dù chỉ một phần nhỏ, bạn PHẢI chèn thêm đúng chuỗi ký tự {OUT_OF_CONTEXT_TAG} vào cuối cùng của câu trả lời."""
-                
-                else:
-                    DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}\n- Trả lời bằng tri thức Hóa học."""
+1. Trả lời học sinh bằng tri thức Hóa học chuẩn THCS (GDPT 2018).
+2. LỆNH BẮT BUỘC: Bạn PHẢI chèn thêm đúng chuỗi ký tự {OUT_OF_CONTEXT_TAG} vào cuối cùng của câu trả lời."""
 
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
