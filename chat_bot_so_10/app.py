@@ -191,7 +191,7 @@ with st.sidebar:
         
     st.divider()
 
-    # Khôi phục phần load icon ảnh tài liệu đã kết nối
+    # HIỂN THỊ CẢ ẢNH ICON VÀ DÒNG TRẠNG THÁI CHUẨN XÁC
     icon_tailieu_loaded = False
     for ext in [".png", ".PNG", ".jpg", ".jpeg", ".JPG"]:
         icon_path = os.path.join(CURRENT_DIR, f"icon_tailieudaketnoi{ext}")
@@ -203,11 +203,10 @@ with st.sidebar:
             except Exception:
                 pass
             
-    if not icon_tailieu_loaded:
-        if has_rag_data:
-            st.success("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn")
-        else:
-            st.info("**Đang sử dụng:** Tri thức nền tảng của Mô hình ngôn ngữ (LLM)")
+    if has_rag_data:
+        st.success("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn")
+    else:
+        st.info("**Đang sử dụng:** Tri thức nền tảng của Mô hình ngôn ngữ (LLM)")
 
     st.divider()
 
