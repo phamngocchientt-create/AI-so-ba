@@ -191,10 +191,23 @@ with st.sidebar:
         
     st.divider()
 
-    if has_rag_data:
-        st.success("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn")
-    else:
-        st.info("**Đang sử dụng:** Tri thức nền tảng của Mô hình ngôn ngữ (LLM)")
+    # Khôi phục phần load icon ảnh tài liệu đã kết nối
+    icon_tailieu_loaded = False
+    for ext in [".png", ".PNG", ".jpg", ".jpeg", ".JPG"]:
+        icon_path = os.path.join(CURRENT_DIR, f"icon_tailieudaketnoi{ext}")
+        if os.path.exists(icon_path):
+            try:
+                st.image(icon_path, use_container_width=True)
+                icon_tailieu_loaded = True
+                break
+            except Exception:
+                pass
+            
+    if not icon_tailieu_loaded:
+        if has_rag_data:
+            st.success("**Đang sử dụng:** Học liệu chuẩn do Giáo viên biên soạn")
+        else:
+            st.info("**Đang sử dụng:** Tri thức nền tảng của Mô hình ngôn ngữ (LLM)")
 
     st.divider()
 
@@ -313,7 +326,6 @@ if prompt:
         st.markdown("<span class='assistant-anchor'></span>", unsafe_allow_html=True)
         with st.spinner("Thầy đang xem bài..."):
             try:
-                # TỐI ƯU CHI PHÍ TOKEN: Chỉ lấy tối đa 6 tin nhắn gần nhất (3 cặp hỏi - đáp)
                 gemini_history = []
                 recent_messages = st.session_state.messages[:-1][-6:]
                 for msg in recent_messages:
@@ -334,7 +346,6 @@ if prompt:
                 gemini_history.append(types.Content(role="user", parts=message_parts))
 
                 if has_rag_data:
-                    # Giới hạn k=2 để giảm lượng token input từ tài liệu vector
                     docs_lien_quan = db.similarity_search(cleaned_prompt, k=2)
                     nguon_kien_thuc = "\n\n".join([doc.page_content for doc in docs_lien_quan])
                     DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}
