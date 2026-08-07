@@ -2,8 +2,6 @@ import os
 import json
 import base64
 import re
-import docx
-import io  # Bổ sung thư viện xử lý luồng dữ liệu file
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -304,9 +302,10 @@ if len(st.session_state.messages) > 1:
 
 st.markdown("<br><br><br>", unsafe_allow_html=True)
 
+# ĐÃ LOẠI BỎ ĐỊNH DẠNG DOC, DOCX KHỎI FILE UPLOADER
 uploaded_file = st.file_uploader(
-    "📎 Tải lên tệp hoặc ảnh (Ảnh, PDF, Word, TXT)", 
-    type=["jpg", "jpeg", "png", "pdf", "docx", "doc", "txt"], 
+    "📎 Tải lên tệp hoặc ảnh (Ảnh, PDF, TXT)", 
+    type=["jpg", "jpeg", "png", "pdf", "txt"], 
     key=f"uploader_{st.session_state.file_uploader_key}"
 )
 
@@ -317,24 +316,11 @@ if prompt:
     cleaned_prompt = prompt.strip()
     
     user_msg_content = cleaned_prompt
-    extracted_word_text = ""
     
     if uploaded_file: 
         user_msg_content = f"📎 (Kèm tệp: {uploaded_file.name}) {cleaned_prompt}"
-        # RÚT TRÍCH VÀ LƯU VĂN BẢN WORD NGAY TỪ ĐẦU
-        if uploaded_file.name.endswith(".docx") or uploaded_file.name.endswith(".doc"):
-            try:
-                doc = docx.Document(io.BytesIO(uploaded_file.getvalue()))
-                extracted_word_text = '\n'.join([para.text for para in doc.paragraphs])
-            except Exception as e:
-                pass
 
-    # LƯU VÀO SESSION STATE ĐỂ HỆ THỐNG GHI NHỚ CHO CÁC LƯỢT SAU
-    st.session_state.messages.append({
-        "role": "user", 
-        "content": user_msg_content,
-        "word_text": extracted_word_text
-    })
+    st.session_state.messages.append({"role": "user", "content": user_msg_content})
     save_data(HISTORY_FILE, st.session_state.messages)
     render_zalo_chat("user", cleaned_prompt)
 
@@ -345,32 +331,20 @@ if prompt:
                 gemini_history = []
                 recent_messages = st.session_state.messages[:-1][-6:]
                 
-                # NẠP LẠI LỊCH SỬ CHAT CÙNG VỚI NỘI DUNG TỆP WORD ĐÃ LƯU
                 for msg in recent_messages:
                     role = "user" if msg["role"] == "user" else "model"
-                    msg_text = msg["content"]
-                    if msg.get("word_text"):
-                        msg_text = f"=== NỘI DUNG TỆP WORD HỌC SINH TẢI LÊN ===\n{msg['word_text']}\n\n=== HỌC SINH NÓI ===\n{msg_text}"
-                    gemini_history.append(types.Content(role=role, parts=[types.Part.from_text(text=msg_text)]))
+                    gemini_history.append(types.Content(role=role, parts=[types.Part.from_text(text=msg["content"])]))
                 
                 message_parts = []
-                current_msg = st.session_state.messages[-1]
                 
                 if uploaded_file:
-                    if uploaded_file.name.endswith(".docx") or uploaded_file.name.endswith(".doc"):
-                        if current_msg.get("word_text"):
-                            combined_text = f"=== NỘI DUNG TỆP WORD HỌC SINH TẢI LÊN ===\n{current_msg['word_text']}\n\n=== YÊU CẦU CỦA HỌC SINH ===\n{cleaned_prompt}"
-                            message_parts.append(types.Part.from_text(text=combined_text))
-                        else:
-                            message_parts.append(types.Part.from_text(text=cleaned_prompt))
-                    else:
-                        mime_type = uploaded_file.type
-                        if not mime_type:
-                            if uploaded_file.name.endswith(".pdf"): mime_type = "application/pdf"
-                            elif uploaded_file.name.endswith(".txt"): mime_type = "text/plain"
-                        
-                        message_parts.append(types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=mime_type))
-                        message_parts.append(types.Part.from_text(text=cleaned_prompt))
+                    mime_type = uploaded_file.type
+                    if not mime_type:
+                        if uploaded_file.name.endswith(".pdf"): mime_type = "application/pdf"
+                        elif uploaded_file.name.endswith(".txt"): mime_type = "text/plain"
+                    
+                    message_parts.append(types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=mime_type))
+                    message_parts.append(types.Part.from_text(text=cleaned_prompt))
                 else:
                     message_parts.append(types.Part.from_text(text=cleaned_prompt))
 
