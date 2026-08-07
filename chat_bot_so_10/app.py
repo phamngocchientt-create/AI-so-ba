@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import re
+import docx  # THÊM THƯ VIỆN ĐỌC FILE WORD
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -334,15 +335,30 @@ if prompt:
                 
                 message_parts = []
                 if uploaded_file:
-                    mime_type = uploaded_file.type
-                    if not mime_type:
-                        if uploaded_file.name.endswith(".pdf"): mime_type = "application/pdf"
-                        elif uploaded_file.name.endswith(".docx"): mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        elif uploaded_file.name.endswith(".txt"): mime_type = "text/plain"
+                    # NẾU LÀ FILE WORD -> CHUYỂN THÀNH TEXT TRƯỚC
+                    if uploaded_file.name.endswith(".docx") or uploaded_file.name.endswith(".doc"):
+                        try:
+                            doc = docx.Document(uploaded_file)
+                            doc_text = '\n'.join([para.text for para in doc.paragraphs])
+                            
+                            combined_text = f"=== NỘI DUNG TÀI LIỆU ĐÍNH KÈM ===\n{doc_text}\n\n=== YÊU CẦU CỦA HỌC SINH ===\n{cleaned_prompt}"
+                            message_parts.append(types.Part.from_text(text=combined_text))
+                        except Exception as e:
+                            st.warning(f"Không thể đọc file Word: {e}")
+                            message_parts.append(types.Part.from_text(text=cleaned_prompt))
                     
-                    message_parts.append(types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=mime_type))
-                    
-                message_parts.append(types.Part.from_text(text=cleaned_prompt))
+                    # NẾU LÀ ẢNH, PDF, TXT -> GỬI TRỰC TIẾP NHƯ CŨ
+                    else:
+                        mime_type = uploaded_file.type
+                        if not mime_type:
+                            if uploaded_file.name.endswith(".pdf"): mime_type = "application/pdf"
+                            elif uploaded_file.name.endswith(".txt"): mime_type = "text/plain"
+                        
+                        message_parts.append(types.Part.from_bytes(data=uploaded_file.getvalue(), mime_type=mime_type))
+                        message_parts.append(types.Part.from_text(text=cleaned_prompt))
+                else:
+                    message_parts.append(types.Part.from_text(text=cleaned_prompt))
+
                 gemini_history.append(types.Content(role="user", parts=message_parts))
 
                 if has_rag_data:
