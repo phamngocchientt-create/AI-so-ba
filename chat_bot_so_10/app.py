@@ -386,14 +386,16 @@ if prompt:
 
 === YÊU CẦU QUAN TRỌNG ===
 1. Ưu tiên cao nhất sử dụng TÀI LIỆU CỦA THẦY để trả lời.
-2. Nếu thông tin trong tài liệu KHÔNG ĐỦ hoặc KHÔNG CÓ để trả lời, bạn VẪN PHẢI TRẢ LỜI học sinh bằng tri thức nền của bạn (nhưng phải kiểm soát chặt chẽ để đảm bảo chuẩn kiến thức THCS GDPT 2018).
-3. LỆNH BẮT BUỘC: Nếu bạn phải dùng tri thức nền (bên ngoài tài liệu) để trả lời dù chỉ một phần nhỏ, bạn PHẢI chèn thêm đúng chuỗi ký tự {OUT_OF_CONTEXT_TAG} vào cuối cùng của câu trả lời."""
+2. KHI ĐỌC ĐỀ BÀI TỪ TỆP HOẶC TÀI LIỆU: Bắt buộc phải trích xuất NGUYÊN VĂN, CHÍNH XÁC TỪNG CHỮ, TỪNG CON SỐ của câu hỏi được yêu cầu. Tuyệt đối không tự ý thay đổi số liệu, không gộp dữ kiện của câu này vào câu khác.
+3. Nếu thông tin trong tài liệu KHÔNG ĐỦ hoặc KHÔNG CÓ để trả lời, bạn VẪN PHẢI TRẢ LỜI học sinh bằng tri thức nền của bạn (nhưng phải kiểm soát chặt chẽ để đảm bảo chuẩn kiến thức THCS GDPT 2018).
+4. LỆNH BẮT BUỘC: Nếu bạn phải dùng tri thức nền (bên ngoài tài liệu) để trả lời dù chỉ một phần nhỏ, bạn PHẢI chèn thêm đúng chuỗi ký tự {OUT_OF_CONTEXT_TAG} vào cuối cùng của câu trả lời."""
                 else:
                     DYNAMIC_SYSTEM_INSTRUCTION = f"""{BASE_INSTRUCTION}
                     
 === YÊU CẦU QUAN TRỌNG ===
 1. Trả lời học sinh bằng tri thức Hóa học chuẩn THCS (GDPT 2018).
-2. LỆNH BẮT BUỘC: Bạn PHẢI chèn thêm đúng chuỗi ký tự {OUT_OF_CONTEXT_TAG} vào cuối cùng của câu trả lời."""
+2. KHI ĐỌC ĐỀ BÀI TỪ TỆP: Bắt buộc phải trích xuất NGUYÊN VĂN, CHÍNH XÁC TỪNG CHỮ, TỪNG CON SỐ của câu hỏi được yêu cầu. Tuyệt đối không tự ý thay đổi số liệu, không gộp dữ kiện của câu này vào câu khác.
+3. LỆNH BẮT BUỘC: Bạn PHẢI chèn thêm đúng chuỗi ký tự {OUT_OF_CONTEXT_TAG} vào cuối cùng của câu trả lời."""
 
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
